@@ -18,7 +18,7 @@ def enumerate_pairs(n_items, dist):
     partner = idxs + dist
     valid_idxs = partner < n_items
 
-    return np.stack((idxs[valid_idxs], partner[valid_idxs]))
+    return np.stack((idxs[valid_idxs], partner[valid_idxs])).astype(np.int32)
 
 
 class TiTask:

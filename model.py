@@ -5,10 +5,13 @@ Model definitions
 # <codecell>
 import jax
 import jax.numpy as jnp
+import matplotlib.pyplot as plt
 import numpy as np
 import optax
 from flax import linen as nn, struct
 from flax.training import train_state
+
+from task.ti import TiTask
 
 
 def new_seed(): return np.random.randint(1, np.iinfo(np.int32).max)
@@ -35,13 +38,13 @@ class Metrics:
 
     @staticmethod
     def empty():
-        Metrics(accuracy=-1, loss=-1)
+        return Metrics(accuracy=-1, loss=-1)
     
     def merge(self, other):
         total = self.count + 1
-        self.accuracy = (self.count / total) * self.accuracy + (1 / total) * other.accuracy
-        self.loss = (self.count / total) * self.loss + (1 / total) * other.loss
-        self.count = total
+        acc = (self.count / total) * self.accuracy + (1 / total) * other.accuracy
+        loss = (self.count / total) * self.loss + (1 / total) * other.loss
+        return Metrics(acc, loss, count=total)
 
 
 class TrainState(train_state.TrainState):
@@ -49,8 +52,8 @@ class TrainState(train_state.TrainState):
 
 
 def create_train_state(rng, model, lr=1e-4, **opt_kwargs):
-    params = model.init(rng, jnp.ones(2))['params']
-    tx = optax.adamw(lr=lr, **opt_kwargs)
+    params = model.init(rng, jnp.ones(2, dtype=jnp.int32))['params']
+    tx = optax.adamw(learning_rate=lr, **opt_kwargs)
 
     return TrainState.create(
         apply_fn=model.apply,
@@ -76,7 +79,7 @@ class FFNN(nn.Module):
             x = nn.Dense(self.config.n_hidden)(x)
             x = nn.relu(x)
     
-        out = nn.Dense(1)(x)
+        out = nn.Dense(1)(x).flatten()
         return out
 
 
@@ -86,7 +89,7 @@ def train_step(state, batch):
 
     def loss_fn(params):
         logits = state.apply_fn({'params': params}, x)
-        loss = optax.sigmoid_binary_cross_entropy(logits, labels)
+        loss = optax.sigmoid_binary_cross_entropy(logits, labels).sum()
         return loss
     
     grad_fn = jax.grad(loss_fn)
@@ -102,7 +105,7 @@ def compute_metrics(state, batch):
     loss = optax.sigmoid_binary_cross_entropy(logits, labels).mean()
 
     preds = logits > 0
-    acc = jnp.mean(preds, labels)
+    acc = jnp.mean(preds == labels)
 
     metrics = Metrics(accuracy=acc, loss=loss)
     metrics = state.metrics.merge(metrics)
@@ -131,27 +134,35 @@ def train(config: ModelConfig, data_iter, seed=None):
 
         if (step + 1) % config.test_every == 0:
             hist['train_loss'].append(state.metrics.loss)
-            hist['train_acc'].append(state.metric.accuracy)
+            hist['train_acc'].append(state.metrics.accuracy)
 
-            state = state.metrics.replace(metrics=Metrics.empty())
+            state = state.replace(metrics=Metrics.empty())
             test_state = state
-            for test_batch in zip(range(config.test_iters), data_iter):
+            for _, test_batch in zip(range(config.test_iters), data_iter):
                 test_state = compute_metrics(test_state, test_batch)
             
             hist['test_loss'].append(test_state.metrics.loss)
-            hist['test_acc'].append(test_state.metric.accuracy)
+            hist['test_acc'].append(test_state.metrics.accuracy)
 
             _print_status(step+1, hist)
     
-    return state
+    return state, hist
 
             
 def _print_status(step, hist):
-    print(f'ITER {step}:  loss={hist["test_loss"][-1]:.4f}   acc={hist["train_loss"][-1]:.4f}')
+    print(f'ITER {step}:  loss={hist["test_loss"][-1]:.4f}   acc={hist["test_acc"][-1]:.4f}')
 
+if __name__ == '__main__':
+    # <codecell>
+    vocab_size = 5
+    task = TiTask(dist=[1,2,3,4])
 
-vocab_size = 5
-# TODO: bring in dataset iter, train
+    config = ModelConfig(vocab_size=vocab_size, train_iters=1_000, test_every=100)
+    state, hist = train(config, data_iter=iter(task))
 
-config = ModelConfig(vocab_size=vocab_size)
-state = train(config)
+    # <codecell>
+    logits = [state.apply_fn({'params': state.params}, jnp.array([[0, i]]).astype(jnp.int32)) for i in range(1, vocab_size)]
+
+    # %%
+    plt.plot(logits)
+
