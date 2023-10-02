@@ -14,6 +14,7 @@ from flax.training import train_state
 from task.ti import TiTask
 
 from model.mlp import MlpConfig
+from model.transformer import TransformerConfig
 
 
 def new_seed(): return np.random.randint(1, np.iinfo(np.int32).max)
@@ -41,7 +42,7 @@ class TrainState(train_state.TrainState):
 
 
 def create_train_state(rng, model, lr=1e-4, **opt_kwargs):
-    params = model.init(rng, jnp.ones(2, dtype=jnp.int32))['params']
+    params = model.init(rng, jnp.ones((1,2), dtype=jnp.int32))['params']
     tx = optax.adamw(learning_rate=lr, **opt_kwargs)
 
     return TrainState.create(
@@ -58,8 +59,9 @@ def train_step(state, batch):
 
     def loss_fn(params):
         logits = state.apply_fn({'params': params}, x)
-        loss = optax.sigmoid_binary_cross_entropy(logits, labels).sum()
-        return loss
+        loss = optax.sigmoid_binary_cross_entropy(logits, labels)
+        assert len(loss.shape) == 1
+        return loss.sum()
     
     grad_fn = jax.grad(loss_fn)
     grads = grad_fn(state.params)
@@ -125,9 +127,9 @@ def _print_status(step, hist):
 if __name__ == '__main__':
     # <codecell>
     vocab_size = 5
-    task = TiTask(dist=[1,2,3,4])
+    task = TiTask(dist=[1, 2])
 
-    config = MlpConfig(vocab_size=vocab_size)
+    config = TransformerConfig(vocab_size=vocab_size, n_layers=2, pos_emb=False)
     state, hist = train(config, data_iter=iter(task))
 
     # <codecell>
