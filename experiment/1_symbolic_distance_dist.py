@@ -15,7 +15,8 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
 sys.path.append('../')
-from model import ModelConfig, train
+from train import train
+from model.mlp import MlpConfig
 from task.ti import TiTask
 
 def run_exp(vocab_size=5, fig_path=None):
@@ -31,8 +32,8 @@ def run_exp(vocab_size=5, fig_path=None):
 
         all_logits = []
         for _ in range(n_replicas):
-            config = ModelConfig(vocab_size=vocab_size, train_iters=train_iters, test_every=test_every)
-            state, _ = train(config, data_iter=iter(task))
+            config = MlpConfig(vocab_size=vocab_size)
+            state, _ = train(config, data_iter=iter(task), train_iters=train_iters, test_every=test_every)
             logits = [state.apply_fn({'params': state.params}, jnp.array([[0, i]]).astype(jnp.int32)) for i in range(1, vocab_size)]
             all_logits.append(logits)
         
@@ -70,7 +71,7 @@ p = full_task.all_pairs
 
 task = TiTask(dist=[1,])
 
-config = ModelConfig(vocab_size=vocab_size, train_iters=train_iters, test_every=test_every)
+config = MlpConfig(vocab_size=vocab_size, train_iters=train_iters, test_every=test_every)
 state, _ = train(config, data_iter=iter(task))
 
 # <codecell>

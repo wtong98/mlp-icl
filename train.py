@@ -8,26 +8,15 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 import optax
-from flax import linen as nn, struct
+from flax import struct
 from flax.training import train_state
 
 from task.ti import TiTask
 
+from model.mlp import MlpConfig
+
 
 def new_seed(): return np.random.randint(1, np.iinfo(np.int32).max)
-
-
-@struct.dataclass
-class ModelConfig:
-    """Global hyperparamters"""
-    vocab_size: int | None = None
-    n_layers: int = 2
-    n_emb: int = 64
-    n_hidden: int = 128
-
-    train_iters: int = 1_000
-    test_iters: int = 100
-    test_every: int = 100
 
 
 @struct.dataclass
@@ -63,26 +52,6 @@ def create_train_state(rng, model, lr=1e-4, **opt_kwargs):
     )
 
 
-class FFNN(nn.Module):
-
-    config: ModelConfig
-
-    @nn.compact
-    def __call__(self, x):
-        x = nn.Embed(
-            num_embeddings=self.config.vocab_size,
-            features=self.config.n_emb)(x)
-        
-        x = x.reshape(-1, 2 * self.config.n_emb)
-
-        for _ in range(self.config.n_layers):
-            x = nn.Dense(self.config.n_hidden)(x)
-            x = nn.relu(x)
-    
-        out = nn.Dense(1)(x).flatten()
-        return out
-
-
 @jax.jit
 def train_step(state, batch):
     x, labels = batch
@@ -113,12 +82,12 @@ def compute_metrics(state, batch):
     return state
 
 
-def train(config: ModelConfig, data_iter, seed=None):
+def train(config, data_iter, train_iters=1_000, test_iters=100, test_every=100, seed=None):
     if seed is None:
         seed = new_seed()
     
     init_rng = jax.random.key(seed)
-    model = FFNN(config)
+    model = config.to_model()
     state = create_train_state(init_rng, model)
 
     hist = {
@@ -128,17 +97,17 @@ def train(config: ModelConfig, data_iter, seed=None):
         'test_acc': []
     }
 
-    for step, batch in zip(range(config.train_iters), data_iter):
+    for step, batch in zip(range(train_iters), data_iter):
         state = train_step(state, batch)
         state = compute_metrics(state, batch)
 
-        if (step + 1) % config.test_every == 0:
+        if (step + 1) % test_every == 0:
             hist['train_loss'].append(state.metrics.loss)
             hist['train_acc'].append(state.metrics.accuracy)
 
             state = state.replace(metrics=Metrics.empty())
             test_state = state
-            for _, test_batch in zip(range(config.test_iters), data_iter):
+            for _, test_batch in zip(range(test_iters), data_iter):
                 test_state = compute_metrics(test_state, test_batch)
             
             hist['test_loss'].append(test_state.metrics.loss)
@@ -152,12 +121,13 @@ def train(config: ModelConfig, data_iter, seed=None):
 def _print_status(step, hist):
     print(f'ITER {step}:  loss={hist["test_loss"][-1]:.4f}   acc={hist["test_acc"][-1]:.4f}')
 
+
 if __name__ == '__main__':
     # <codecell>
     vocab_size = 5
     task = TiTask(dist=[1,2,3,4])
 
-    config = ModelConfig(vocab_size=vocab_size, train_iters=1_000, test_every=100)
+    config = MlpConfig(vocab_size=vocab_size)
     state, hist = train(config, data_iter=iter(task))
 
     # <codecell>
