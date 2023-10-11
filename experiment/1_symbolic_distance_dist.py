@@ -18,6 +18,7 @@ sys.path.append('../')
 from train import train
 from model.mlp import MlpConfig
 from model.transformer import TransformerConfig
+from model.poly import PolyConfig
 from task.ti import TiTask
 
 from tqdm import tqdm
@@ -59,6 +60,11 @@ def run_exp(vocab_size=5, fig_path=None, config_class=MlpConfig, **config_kwargs
     if fig_path is not None:
         plt.savefig(fig_path)
 
+# <codecell>
+run_exp(vocab_size=5, config_class=PolyConfig, fig_path='fig/symb_dist_5_poly.png')
+
+# <codecell>
+run_exp(vocab_size=10, config_class=PolyConfig, fig_path='fig/symb_dist_10_poly.png')
 
 # <codecell>
 run_exp(vocab_size=5, fig_path='fig/symb_dist_5.png')

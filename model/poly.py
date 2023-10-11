@@ -51,7 +51,7 @@ class PolyNet(nn.Module):
         out = nn.Dense(1)(x).flatten()
         return out
 
-# TODO: train and try <-- STOPPED HERE
+
 if __name__ == '__main__':
     model = PolyConfig(10).to_model()
     # print(model.tabulate(jax.random.key(10), jnp.ones((32, 2)).astype(jnp.int32)))

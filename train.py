@@ -15,6 +15,7 @@ from task.ti import TiTask
 
 from model.mlp import MlpConfig
 from model.transformer import TransformerConfig
+from model.poly import PolyConfig
 
 
 def new_seed(): return np.random.randint(1, np.iinfo(np.int32).max)
@@ -127,9 +128,9 @@ def _print_status(step, hist):
 if __name__ == '__main__':
     # <codecell>
     vocab_size = 5
-    task = TiTask(dist=[1, 2])
+    task = TiTask(dist=[1])
 
-    config = TransformerConfig(vocab_size=vocab_size, n_layers=2, pos_emb=False)
+    config = PolyConfig(vocab_size=vocab_size)
     state, hist = train(config, data_iter=iter(task))
 
     # <codecell>
