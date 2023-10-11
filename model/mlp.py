@@ -1,13 +1,7 @@
 """
 Simple MLP model
 """
-import jax
-import jax.numpy as jnp
-import matplotlib.pyplot as plt
-import numpy as np
-import optax
 from flax import linen as nn, struct
-from flax.training import train_state
 
 
 @struct.dataclass

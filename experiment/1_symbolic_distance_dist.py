@@ -17,22 +17,27 @@ import matplotlib.pyplot as plt
 sys.path.append('../')
 from train import train
 from model.mlp import MlpConfig
+from model.transformer import TransformerConfig
 from task.ti import TiTask
 
-def run_exp(vocab_size=5, fig_path=None):
+from tqdm import tqdm
+
+def run_exp(vocab_size=5, fig_path=None, config_class=MlpConfig, **config_kwargs):
+    print('CONFIG CLASS', config_class, config_kwargs)
+
     n_replicas = 10
     train_iters = 1_000
     test_every = 500
 
     all_results = []
-    for max_dist in range(1, vocab_size):
+    for max_dist in tqdm(range(1, vocab_size)):
         print('PROCESSING UP TO DIST', max_dist)
         dists = np.arange(1, max_dist+1)
         task = TiTask(n_items=vocab_size, dist=dists)
 
         all_logits = []
         for _ in range(n_replicas):
-            config = MlpConfig(vocab_size=vocab_size)
+            config = config_class(vocab_size=vocab_size, **config_kwargs)
             state, _ = train(config, data_iter=iter(task), train_iters=train_iters, test_every=test_every)
             logits = [state.apply_fn({'params': state.params}, jnp.array([[0, i]]).astype(jnp.int32)) for i in range(1, vocab_size)]
             all_logits.append(logits)
@@ -60,6 +65,12 @@ run_exp(vocab_size=5, fig_path='fig/symb_dist_5.png')
 
 # <codecell>
 run_exp(vocab_size=10, fig_path='fig/symb_dist_10.png')
+
+# <codecell>
+run_exp(vocab_size=5, config_class=TransformerConfig, n_layers=6, fig_path='fig/symb_dist_5_transformer_6_layer.png')
+
+# <codecell>
+run_exp(vocab_size=10, config_class=TransformerConfig, n_layers=6, fig_path='fig/symb_dist_10_transformer_6_layers.png')
 # %%
 
 vocab_size = 5
