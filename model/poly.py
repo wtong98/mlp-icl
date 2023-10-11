@@ -36,7 +36,7 @@ class PolyNet(nn.Module):
             num_embeddings=self.config.vocab_size,
             features=self.config.n_emb)(x)
         
-        x = x.reshape(-1, 2 * self.config.n_emb)
+        x = x.reshape(x.shape[0], -1)
 
         proj_dim = self.config.n_hidden // 2
         for _ in range(self.config.n_layers):
@@ -54,6 +54,6 @@ class PolyNet(nn.Module):
 
 if __name__ == '__main__':
     model = PolyConfig(10).to_model()
-    # print(model.tabulate(jax.random.key(10), jnp.ones((32, 2)).astype(jnp.int32)))
-    params = model.init(jax.random.key(0), jnp.ones((32, 2)).astype(jnp.int32))
-    print(jax.tree_map(lambda x: x.shape, params))
+    print(model.tabulate(jax.random.key(10), jnp.ones((32, 2)).astype(jnp.int32)))
+    # params = model.init(jax.random.key(0), jnp.ones((32, 2)).astype(jnp.int32))
+    # print(jax.tree_map(lambda x: x.shape, params))

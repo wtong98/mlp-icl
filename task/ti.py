@@ -22,8 +22,8 @@ def enumerate_pairs(n_items, dist):
 
 
 class TiTask:
-    def __init__(self, n_items=5, dims=100, dist=1, dist_p=None, batch_size=32) -> None:
-        self.rep = np.random.randn(n_items, dims)
+    def __init__(self, n_items=5, n_dims=100, dist=1, dist_p=None, batch_size=32) -> None:
+        self.rep = np.random.randn(n_items, n_dims)
 
         try:
             self.dist = list(dist)
@@ -55,7 +55,8 @@ class TiTask:
         return self
 
 
-task = TiTask(dist=[1,2])
-next(iter(task))
+if __name__ == '__main__':
+    task = TiTask(dist=[1,2])
+    next(iter(task))
 
 # %%

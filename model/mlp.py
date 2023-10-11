@@ -26,7 +26,7 @@ class MLP(nn.Module):
             num_embeddings=self.config.vocab_size,
             features=self.config.n_emb)(x)
         
-        x = x.reshape(-1, 2 * self.config.n_emb)
+        x = x.reshape(x.shape[0], -1)
 
         for _ in range(self.config.n_layers):
             x = nn.Dense(self.config.n_hidden)(x)
