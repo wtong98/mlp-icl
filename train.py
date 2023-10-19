@@ -3,6 +3,8 @@ Model definitions
 """
 
 # <codecell>
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -11,6 +13,7 @@ import optax
 from flax import struct
 from flax.training import train_state
 
+from task.function import MultiplicationTask, DotProductTask
 from task.ti import TiTask
 
 from model.mlp import MlpConfig
@@ -42,8 +45,8 @@ class TrainState(train_state.TrainState):
     metrics: Metrics
 
 
-def create_train_state(rng, model, lr=1e-4, **opt_kwargs):
-    params = model.init(rng, jnp.ones((1,2), dtype=jnp.int32))['params']
+def create_train_state(rng, model, dummy_input, lr=1e-4, **opt_kwargs):
+    params = model.init(rng, dummy_input)['params']
     tx = optax.adamw(learning_rate=lr, **opt_kwargs)
 
     return TrainState.create(
@@ -53,16 +56,28 @@ def create_train_state(rng, model, lr=1e-4, **opt_kwargs):
         metrics=Metrics.empty()
     )
 
+def parse_loss_name(loss):
+    loss_func = None
+    if loss == 'bce':
+        loss_func = optax.sigmoid_binary_cross_entropy
+    elif loss == 'mse':
+        loss_func = optax.l2_loss
+    else:
+        raise ValueError(f'unrecognized loss name: {loss}')
+    return loss_func
 
-@jax.jit
-def train_step(state, batch):
+
+@partial(jax.jit, static_argnames=('loss',))
+def train_step(state, batch, loss='bce'):
     x, labels = batch
+    loss_func = parse_loss_name(loss)
 
     def loss_fn(params):
         logits = state.apply_fn({'params': params}, x)
-        loss = optax.sigmoid_binary_cross_entropy(logits, labels)
+        loss = loss_func(logits, labels)
         assert len(loss.shape) == 1
-        return loss.sum()
+        # print('LOSS', loss)
+        return loss.mean()
     
     grad_fn = jax.grad(loss_fn)
     grads = grad_fn(state.params)
@@ -70,11 +85,12 @@ def train_step(state, batch):
     return state
 
 
-@jax.jit
-def compute_metrics(state, batch):
+@partial(jax.jit, static_argnames=('loss',))
+def compute_metrics(state, batch, loss='bce'):
     x, labels = batch
     logits = state.apply_fn({'params': state.params}, x)
-    loss = optax.sigmoid_binary_cross_entropy(logits, labels).mean()
+    loss_func=parse_loss_name(loss)
+    loss = loss_func(logits, labels).mean()
 
     preds = logits > 0
     acc = jnp.mean(preds == labels)
@@ -85,13 +101,15 @@ def compute_metrics(state, batch):
     return state
 
 
-def train(config, data_iter, train_iters=1_000, test_iters=100, test_every=100, seed=None):
+def train(config, data_iter, loss='bce', train_iters=1_000, test_iters=100, test_every=100, seed=None):
     if seed is None:
         seed = new_seed()
     
     init_rng = jax.random.key(seed)
     model = config.to_model()
-    state = create_train_state(init_rng, model)
+
+    samp_x, _ = next(data_iter)
+    state = create_train_state(init_rng, model, samp_x)
 
     hist = {
         'train_loss': [],
@@ -101,8 +119,8 @@ def train(config, data_iter, train_iters=1_000, test_iters=100, test_every=100, 
     }
 
     for step, batch in zip(range(train_iters), data_iter):
-        state = train_step(state, batch)
-        state = compute_metrics(state, batch)
+        state = train_step(state, batch, loss=loss)
+        state = compute_metrics(state, batch, loss=loss)
 
         if (step + 1) % test_every == 0:
             hist['train_loss'].append(state.metrics.loss)
@@ -111,7 +129,7 @@ def train(config, data_iter, train_iters=1_000, test_iters=100, test_every=100, 
             state = state.replace(metrics=Metrics.empty())
             test_state = state
             for _, test_batch in zip(range(test_iters), data_iter):
-                test_state = compute_metrics(test_state, test_batch)
+                test_state = compute_metrics(test_state, test_batch, loss=loss)
             
             hist['test_loss'].append(test_state.metrics.loss)
             hist['test_acc'].append(test_state.metrics.accuracy)
@@ -127,15 +145,26 @@ def _print_status(step, hist):
 
 if __name__ == '__main__':
     # <codecell>
-    vocab_size = 5
-    task = TiTask(dist=[1])
+    # with jax.disable_jit():
+    domain = -3, 3
+    task = MultiplicationTask(domain)
+    # task = TiTask(dist=[1,2,3])
 
-    config = PolyConfig(vocab_size=vocab_size)
-    state, hist = train(config, data_iter=iter(task))
+    config = PolyConfig(n_hidden=2) # TODO: debug architecture by assuming correct params
+    state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=10000)
 
-    # <codecell>
-    logits = [state.apply_fn({'params': state.params}, jnp.array([[0, i]]).astype(jnp.int32)) for i in range(1, vocab_size)]
 
     # %%
-    plt.plot(logits)
+    state.apply_fn({'params': state.params}, jnp.array([[1, 2]]))
 
+
+    # vocab_size=5
+    # logits = [state.apply_fn({'params': state.params}, jnp.array([[0, i]]).astype(jnp.int32)) for i in range(1, vocab_size)]
+    # plt.plot(logits)
+
+    # %%
+
+
+# %%
+state.params
+# %%

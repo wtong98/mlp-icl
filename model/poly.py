@@ -32,23 +32,39 @@ class PolyNet(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        x = nn.Embed(
-            num_embeddings=self.config.vocab_size,
-            features=self.config.n_emb)(x)
+        if self.config.vocab_size is not None:
+            x = nn.Embed(
+                num_embeddings=self.config.vocab_size,
+                features=self.config.n_emb)(x)
         
         x = x.reshape(x.shape[0], -1)
 
+        # print('X', x)
+
         proj_dim = self.config.n_hidden // 2
-        for _ in range(self.config.n_layers):
-            x = nn.Dense(proj_dim)(x)
 
-            z = jnp.log(x)
-            z = nn.Dense(proj_dim)(z)
-            z = jnp.exp(x)
+        for i in range(self.config.n_layers):
+            x_lin = nn.Dense(proj_dim)(x)
 
-            x = jnp.concatenate((x, z), axis=-1)
+            # print('X fore log', x)
+            z = jnp.log(jnp.abs(x))
+            # print('X aft log', z)
+            z_kernel = self.param(f'z_kernel_{i}', nn.initializers.lecun_normal(), (x.shape[-1], proj_dim))
+            z_bias = self.param(f'z_bias_{i}', nn.initializers.zeros_init(), (proj_dim,))
+            # print('Z_SHAP', z.shape)
+            # print('Z_KER_SHAP', z_kernel.shape)
+            # print('Z_BIAS_SHAP', z_bias.shape)
+
+            z = z @ z_kernel + z_bias
+            # print('Z aft DENSE', z)
+            sign = jnp.cos(jnp.pi * jnp.sum(z_kernel, axis=0))
+            z = jnp.exp(z) * sign
+            # print('OUT Z', z)
+
+            x = jnp.concatenate((x_lin, z), axis=-1)
     
         out = nn.Dense(1)(x).flatten()
+        # print('OUT', out)
         return out
 
 

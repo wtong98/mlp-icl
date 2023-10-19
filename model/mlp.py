@@ -22,9 +22,10 @@ class MLP(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        x = nn.Embed(
-            num_embeddings=self.config.vocab_size,
-            features=self.config.n_emb)(x)
+        if self.config.vocab_size is not None:
+            x = nn.Embed(
+                num_embeddings=self.config.vocab_size,
+                features=self.config.n_emb)(x)
         
         x = x.reshape(x.shape[0], -1)
 
