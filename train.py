@@ -144,18 +144,48 @@ def _print_status(step, hist):
 
 
 if __name__ == '__main__':
-    # <codecell>
-    # with jax.disable_jit():
     domain = -3, 3
     task = MultiplicationTask(domain)
     # task = TiTask(dist=[1,2,3])
 
-    config = PolyConfig(n_hidden=2) # TODO: debug architecture by assuming correct params
-    state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=10000)
+    config = PolyConfig(n_hidden=2, n_layers=1)
+    state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=50_000)
 
 
     # %%
-    state.apply_fn({'params': state.params}, jnp.array([[1, 2]]))
+    state.apply_fn({'params': state.params}, jnp.array([[0.5, 0.5]]), mutable='intm')
+
+    # %%
+    x = np.linspace(-4, 4, 50)
+    xs = np.stack((x, x), axis=-1)
+
+    out = state.apply_fn({'params': state.params}, xs)
+
+    plt.plot(x, x**2)
+    plt.plot(x, out)
+
+
+# <codecell>
+x1 = 1
+x2 = 2
+
+w1 = state.params['Dense_0']['kernel']
+b1 = state.params['Dense_0']['bias']
+
+z1 = state.params['z_kernel_0']
+zb1 = state.params['z_bias_0']
+
+# wo = state.params['Dense_1']['kernel']
+# bo = state.params['Dense_1']['bias']
+
+h1 = x1 * w1[0] + x2 * w1[1] + b1
+sign = np.cos(np.pi * np.sum(z1))
+h2 = np.exp(np.log(x1) * z1[0] + np.log(x2) * z1[1] + zb1) * sign
+
+# out = h1 * wo[0] + h2 * wo[1] + bo
+# out
+h2
+
 
 
     # vocab_size=5

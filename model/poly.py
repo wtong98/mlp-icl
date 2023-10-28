@@ -30,6 +30,59 @@ class PolyNet(nn.Module):
 
     config: PolyConfig
 
+    def _fwd_product_only_positive(self, x):
+        z_kernel = self.param(f'z_kernel', nn.initializers.lecun_normal(), (x.shape[-1], 1))
+        z = jnp.log(jnp.abs(x))
+        z = z @ z_kernel
+        z = jnp.exp(z)
+        return z.flatten()
+    
+    def _fwd_product_only_cos_negative(self, x):
+        z_kernel = self.param(f'z_kernel', nn.initializers.lecun_normal(), (x.shape[-1], 1))
+        z = jnp.log(jnp.abs(x))
+        z = z @ z_kernel
+        neg_powers = z_kernel.T * (x < 0).astype(int)
+        sign = jnp.cos(jnp.pi * jnp.sum(neg_powers, axis=1))
+        z = jnp.exp(z) * jnp.expand_dims(sign, 1)  # NOTE: cosine generalization seems to be ineffectual
+        return z.flatten()
+    
+    def _fwd_product_mlp_parallel_cos(self, x):
+        proj_dim = self.config.n_hidden // 2
+
+        for i in range(self.config.n_layers):
+            x_lin = nn.Dense(proj_dim)(x)
+            z = jnp.log(jnp.abs(x))
+
+            z_kernel = self.param(f'z_kernel_{i}', nn.initializers.lecun_normal(), (x.shape[-1], proj_dim))
+            z_bias = self.param(f'z_bias_{i}', nn.initializers.zeros_init(), (proj_dim,))
+
+            z = z @ z_kernel + z_bias
+            neg_powers = z_kernel.T * (x < 0).astype(int)
+            sign = jnp.cos(jnp.pi * jnp.sum(neg_powers, axis=1))
+            z = jnp.exp(z) * jnp.expand_dims(sign, 1)
+            x = jnp.concatenate((x_lin, z), axis=-1)
+    
+        out = nn.Dense(1)(x).flatten()
+        return out
+    
+    def _fwd_product_mlp_seq_positive(self, x):
+        # NOTE: fails to learn anything meaningful, particularly on negative domain
+        hid = self.config.n_hidden
+
+        x = nn.Dense(hid)(x)
+        x = nn.relu(x) + 1e-8
+
+        x = jnp.log(x)
+        x = nn.Dense(hid)(x)
+        x = jnp.exp(x)
+
+        x = nn.Dense(hid)(x)
+        x = nn.relu(x)
+
+        x = nn.Dense(1)(x).flatten()
+        return x
+
+
     @nn.compact
     def __call__(self, x):
         if self.config.vocab_size is not None:
@@ -39,33 +92,7 @@ class PolyNet(nn.Module):
         
         x = x.reshape(x.shape[0], -1)
 
-        # print('X', x)
-
-        proj_dim = self.config.n_hidden // 2
-
-        for i in range(self.config.n_layers):
-            x_lin = nn.Dense(proj_dim)(x)
-
-            # print('X fore log', x)
-            z = jnp.log(jnp.abs(x))
-            # print('X aft log', z)
-            z_kernel = self.param(f'z_kernel_{i}', nn.initializers.lecun_normal(), (x.shape[-1], proj_dim))
-            z_bias = self.param(f'z_bias_{i}', nn.initializers.zeros_init(), (proj_dim,))
-            # print('Z_SHAP', z.shape)
-            # print('Z_KER_SHAP', z_kernel.shape)
-            # print('Z_BIAS_SHAP', z_bias.shape)
-
-            z = z @ z_kernel + z_bias
-            # print('Z aft DENSE', z)
-            sign = jnp.cos(jnp.pi * jnp.sum(z_kernel, axis=0))
-            z = jnp.exp(z) * sign
-            # print('OUT Z', z)
-
-            x = jnp.concatenate((x_lin, z), axis=-1)
-    
-        out = nn.Dense(1)(x).flatten()
-        # print('OUT', out)
-        return out
+        return self._fwd_product_mlp_seq_positive(x)
 
 
 if __name__ == '__main__':
