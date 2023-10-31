@@ -21,8 +21,6 @@ class PolyConfig:
     n_hidden: int = 128
 
     def to_model(self):
-        if self.n_hidden % 2 != 0:
-            raise ValueError(f'n_hidden should be even, got n_hidden={self.n_hidden}')
         return PolyNet(self)
 
 
@@ -47,6 +45,9 @@ class PolyNet(nn.Module):
         return z.flatten()
     
     def _fwd_product_mlp_parallel_cos(self, x):
+        if self.n_hidden % 2 != 0:
+            raise ValueError(f'n_hidden should be even, got n_hidden={self.n_hidden}')
+
         proj_dim = self.config.n_hidden // 2
 
         for i in range(self.config.n_layers):
@@ -87,14 +88,14 @@ class PolyNet(nn.Module):
             n_features = self.config.n_hidden
 
         z = jnp.log(jnp.abs(x))
-        z = nn.Dense(n_features)(z)
+        z = nn.Dense(n_features, name='DenseMult')(z)
         z = jnp.exp(z)
 
         beta = 10 # NOTE: sharpen tanh, can make trainable
         s = nn.tanh(beta * x)
-        s = nn.Dense(self.config.n_hidden)(s)  # TODO: make separate param
-        s = nn.relu(s)
-        s = nn.Dense(n_features)(s)
+        s = nn.Dense(self.config.n_hidden, name='SignHid')(s)  # TODO: make separate param
+        s = nn.gelu(s)
+        s = nn.Dense(n_features, name='SignOut')(s)
         s = nn.tanh(s) # NOTE: can also add sigmoid term for zeroing
 
         out = s * z
@@ -124,7 +125,7 @@ class PolyNet(nn.Module):
         
         x = x.reshape(x.shape[0], -1)
 
-        return self._fwd_product_sep_sign(x)
+        return self._fwd_product_sep_sign_full(x)
 
 
 if __name__ == '__main__':
