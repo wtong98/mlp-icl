@@ -82,6 +82,38 @@ class PolyNet(nn.Module):
         x = nn.Dense(1)(x).flatten()
         return x
 
+    def m_block(self, x, n_features=None):
+        if n_features is None:
+            n_features = self.config.n_hidden
+
+        z = jnp.log(jnp.abs(x))
+        z = nn.Dense(n_features)(z)
+        z = jnp.exp(z)
+
+        beta = 10 # NOTE: sharpen tanh, can make trainable
+        s = nn.tanh(beta * x)
+        s = nn.Dense(self.config.n_hidden)(s)  # TODO: make separate param
+        s = nn.relu(s)
+        s = nn.Dense(n_features)(s)
+        s = nn.tanh(s) # NOTE: can also add sigmoid term for zeroing
+
+        out = s * z
+        return out
+    
+    def poly_block(self, x, n_features=None):
+        if n_features is None:
+            n_features = self.config.n_hidden
+
+        x = self.m_block(x, n_features=self.config.n_hidden)
+        x = nn.Dense(n_features)(x)
+        return x
+
+    def _fwd_product_sep_sign(self, x):
+        return self.m_block(x, n_features=1).flatten()
+    
+    def _fwd_product_sep_sign_full(self, x):
+        return self.poly_block(x, n_features=1).flatten()
+
 
     @nn.compact
     def __call__(self, x):
@@ -92,7 +124,7 @@ class PolyNet(nn.Module):
         
         x = x.reshape(x.shape[0], -1)
 
-        return self._fwd_product_mlp_seq_positive(x)
+        return self._fwd_product_sep_sign(x)
 
 
 if __name__ == '__main__':

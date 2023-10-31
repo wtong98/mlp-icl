@@ -46,3 +46,5 @@ if __name__ == '__main__':
     print(ys[1])
     print(xs[1,[0]] @ xs[1, [1]].T)
 
+
+# %%
