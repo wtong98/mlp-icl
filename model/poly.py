@@ -93,10 +93,18 @@ class PolyNet(nn.Module):
 
         beta = 10 # NOTE: sharpen tanh, can make trainable
         s = nn.tanh(beta * x)
-        s = nn.Dense(self.config.n_hidden, name='SignHid')(s)  # TODO: make separate param
-        s = nn.gelu(s)
+
+        # NOTE: new product feature style
+        s_prod = jnp.einsum('ij,ik->ijk', s, s).reshape(s.shape[0], -1)
+        s = jnp.concatenate((s, s_prod), axis=-1)
         s = nn.Dense(n_features, name='SignOut')(s)
-        s = nn.tanh(s) # NOTE: can also add sigmoid term for zeroing
+        s = nn.tanh(s)
+
+        # NOTE: old 2-layer NN style
+        # s = nn.Dense(self.config.n_hidden, name='SignHid')(s)  # TODO: make separate param
+        # s = nn.gelu(s)
+        # s = nn.Dense(n_features, name='SignOut')(s)
+        # s = nn.tanh(0.5 * s) # NOTE: can also add sigmoid term for zeroing
 
         out = s * z
         return out

@@ -69,8 +69,9 @@ def parse_loss_name(loss):
     return loss_func
 
 def l1_loss(params):
-    sum_params = jax.tree_map(lambda x: jnp.sum(jnp.abs(x)), jax.tree_util.tree_leaves(params))
-    return jnp.sum(jnp.array(sum_params))
+    # sum_params = jax.tree_map(lambda x: jnp.sum(jnp.abs(x)), jax.tree_util.tree_leaves(params))
+    # return jnp.sum(jnp.array(sum_params))
+    return jnp.sum(jnp.abs(params['DenseMult']['kernel'])**(1/2))
 
 @partial(jax.jit, static_argnames=('loss',))
 def train_step(state, batch, loss='bce', l1_weight=0):
@@ -149,13 +150,13 @@ def _print_status(step, hist):
 
 if __name__ == '__main__':
     domain = -3, 3
-    task = DotProductTask(domain, n_dims=2)
+    task = DotProductTask(domain, n_dims=5)
     # task = TiTask(dist=[1,2,3])
 
     config = PolyConfig(n_hidden=10, n_layers=1)
-    state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=0.1)
+    state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=0.01)
 
-    # TODO: experiment with targeted L1 penalty, learning schedules
+    # TODO: rethink signage processing --> seems to be biggest bottleneck
 
 
     # %%
