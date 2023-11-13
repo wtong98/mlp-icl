@@ -68,10 +68,14 @@ def parse_loss_name(loss):
         raise ValueError(f'unrecognized loss name: {loss}')
     return loss_func
 
+# TODO: more robustly signal need for L1 loss
 def l1_loss(params):
     # sum_params = jax.tree_map(lambda x: jnp.sum(jnp.abs(x)), jax.tree_util.tree_leaves(params))
     # return jnp.sum(jnp.array(sum_params))
-    return jnp.sum(jnp.abs(params['DenseMult']['kernel'])**(1/2))
+    if 'DenseMult' in params:
+        return jnp.sum(jnp.abs(params['DenseMult']['kernel'])**(1/2))
+
+    return 0
 
 @partial(jax.jit, static_argnames=('loss',))
 def train_step(state, batch, loss='bce', l1_weight=0):
@@ -153,10 +157,9 @@ if __name__ == '__main__':
     task = DotProductTask(domain, n_dims=5)
     # task = TiTask(dist=[1,2,3])
 
+    # TODO: what happens if there are 2 layers?
     config = PolyConfig(n_hidden=10, n_layers=1)
     state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=0.01)
-
-    # TODO: rethink signage processing --> seems to be biggest bottleneck
 
 
     # %%
@@ -171,37 +174,3 @@ if __name__ == '__main__':
     plt.plot(x, -x**2)
     plt.plot(x, out, alpha=0.9, linestyle='dashed')
 
-
-# <codecell>
-x1 = 1
-x2 = 2
-
-w1 = state.params['Dense_0']['kernel']
-b1 = state.params['Dense_0']['bias']
-
-z1 = state.params['z_kernel_0']
-zb1 = state.params['z_bias_0']
-
-# wo = state.params['Dense_1']['kernel']
-# bo = state.params['Dense_1']['bias']
-
-h1 = x1 * w1[0] + x2 * w1[1] + b1
-sign = np.cos(np.pi * np.sum(z1))
-h2 = np.exp(np.log(x1) * z1[0] + np.log(x2) * z1[1] + zb1) * sign
-
-# out = h1 * wo[0] + h2 * wo[1] + bo
-# out
-h2
-
-
-
-    # vocab_size=5
-    # logits = [state.apply_fn({'params': state.params}, jnp.array([[0, i]]).astype(jnp.int32)) for i in range(1, vocab_size)]
-    # plt.plot(logits)
-
-    # %%
-
-
-# %%
-state.params
-# %%
