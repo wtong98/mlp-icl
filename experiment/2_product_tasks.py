@@ -67,7 +67,7 @@ common_args = {
 }
 
 all_cases = [
-    Case('MLP', MlpConfig(n_hidden=32, n_layers=2), 
+    Case('MLP', MlpConfig(n_hidden=128, n_layers=3), 
             experiment=dot_product_experiment, 
             experiment_args=common_args),
 

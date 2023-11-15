@@ -9,7 +9,7 @@ import numpy as np
 
 
 class MultiplicationTask:
-    def __init__(self, domain, batch_size=32) -> None:
+    def __init__(self, domain, batch_size=128) -> None:
         self.lower, self.upper = domain
         self.batch_size = batch_size
     
@@ -23,7 +23,7 @@ class MultiplicationTask:
 
 
 class DotProductTask:
-    def __init__(self, domain, n_dims=5, batch_size=32):
+    def __init__(self, domain, n_dims=5, batch_size=128):
         self.lower, self.upper = domain
         self.n_dims = n_dims
         self.batch_size = batch_size
@@ -38,7 +38,7 @@ class DotProductTask:
 
 
 class AttentionTask:
-    def __init__(self, domain, n_dims=5, batch_size=32):
+    def __init__(self, domain, n_dims=5, batch_size=128):
         self.lower, self.upper = domain
         self.n_dims = n_dims
         self.batch_size = batch_size

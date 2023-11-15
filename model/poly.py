@@ -61,7 +61,6 @@ class PolyNet(nn.Module):
     def _fwd_product_sep_sign_full(self, x):
         return self.poly_block(x, n_features=1).flatten()
 
-
     @nn.compact
     def __call__(self, x):
         if self.config.vocab_size is not None:
