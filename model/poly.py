@@ -38,11 +38,19 @@ class PolyNet(nn.Module):
 
         beta = 10 # NOTE: sharpen tanh, can make trainable
         s = nn.tanh(beta * x)
-        s_prod = jnp.einsum('ij,ik->ijk', s, s).reshape(s.shape[0], -1)
 
-        s = jnp.concatenate((s, s_prod), axis=-1)
+        # NOTE: need n-power features to capture n-power signs
+        # s_prod = jnp.einsum('ij,ik->ijk', s, s).reshape(s.shape[0], -1)
+        # s_prod = jnp.einsum('ij,ik->ijk', s_prod, s).reshape(s.shape[0], -1)
+        # s = jnp.concatenate((s, s_prod), axis=-1)
+
+        s = nn.Dense(self.config.n_hidden)(s)
+        s = nn.gelu(s)
+
         s = nn.Dense(n_features, name='SignOut')(s)
-        s = nn.tanh(s)
+
+        out_temp = self.param('out_temp', nn.initializers.constant(0), (1,))
+        s = nn.tanh(s * out_temp)
 
         out = s * z
         return out

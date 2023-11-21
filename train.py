@@ -154,11 +154,14 @@ def _print_status(step, hist):
 
 if __name__ == '__main__':
     domain = -3, 3
-    task = DotProductTask(domain, n_dims=5)
+    task = DotProductTask(domain, n_dims=2, n_args=3, batch_size=128)
     # task = TiTask(dist=[1,2,3])
 
+    # TODO: dim mismatch in transformer self-attention <-- STOPPED HERE
+    config = TransformerConfig(n_emb=None)
+
     # TODO: what happens if there are 2 layers?
-    config = PolyConfig(n_hidden=10, n_layers=1)
+    # config = PolyConfig(n_hidden=10, n_layers=1)
     state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=0.01)
 
 
@@ -173,4 +176,8 @@ if __name__ == '__main__':
 
     plt.plot(x, -x**2)
     plt.plot(x, out, alpha=0.9, linestyle='dashed')
+
+    # <codecell>
+
+
 

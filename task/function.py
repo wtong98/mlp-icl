@@ -23,18 +23,24 @@ class MultiplicationTask:
 
 
 class DotProductTask:
-    def __init__(self, domain, n_dims=5, batch_size=128):
+    def __init__(self, domain, n_args=2, n_dims=5, batch_size=128):
         self.lower, self.upper = domain
+        self.n_args = n_args
         self.n_dims = n_dims
         self.batch_size = batch_size
     
     def __next__(self):
-        xs = np.random.uniform(self.lower, self.upper, size=(self.batch_size, 2, self.n_dims))
-        ys = np.diag(xs[:,0] @ xs[:,1].T)
+        xs = np.random.uniform(self.lower, self.upper, size=(self.batch_size, self.n_args, self.n_dims))
+        # ys = np.diag(xs[:,0] @ xs[:,1].T)
+        ys = np.sum(np.prod(xs, axis=1), axis=-1)
         return xs, ys
     
     def __iter__(self):
         return self
+
+
+class TripleScalarProductTask:
+    pass
 
 
 class AttentionTask:
