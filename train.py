@@ -154,11 +154,10 @@ def _print_status(step, hist):
 
 if __name__ == '__main__':
     domain = -3, 3
-    task = DotProductTask(domain, n_dims=2, n_args=3, batch_size=128)
+    task = DotProductTask(domain, n_dims=2, n_args=3, batch_size=256)
     # task = TiTask(dist=[1,2,3])
 
-    # TODO: dim mismatch in transformer self-attention <-- STOPPED HERE
-    config = TransformerConfig(n_emb=None)
+    config = TransformerConfig(n_emb=None, n_layers=3, n_hid=128, use_mlp_layers=True, pure_linear_self_att=False)
 
     # TODO: what happens if there are 2 layers?
     # config = PolyConfig(n_hidden=10, n_layers=1)

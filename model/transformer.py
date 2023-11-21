@@ -35,7 +35,11 @@ class TransformerConfig:
     n_hid: int = 128
     max_len: int = 2
     pos_emb: bool = False
+    softmax_att: bool = True
+    softmax_val: bool = False
+    use_mlp_layers: bool = True
     return_final_logits_only: bool = True
+    pure_linear_self_att: bool = False
 
     def to_model(self):
         return Transformer(self)
@@ -104,8 +108,12 @@ class SingleHeadSelfAttention(nn.Module):
         if mask is not None:
             attn_weights = jnp.where(mask.squeeze(), attn_weights, np.iinfo(np.int32).min)
 
-        attn_weights = jax.nn.softmax(attn_weights)
+        if self.config.softmax_att:
+            attn_weights = jax.nn.softmax(attn_weights)
         self.sow('intermediates', 'attention_weights', attn_weights)
+
+        if self.config.softmax_val:
+            value = jax.nn.softmax(value)
 
         attn_out = attn_weights @ value
         return attn_out
@@ -168,7 +176,21 @@ class TransformerBlock(nn.Module):
         x = SingleHeadSelfAttention(self.config)(inputs, decoder_mask, idxs=idxs)
         x = x + inputs
 
+        if self.config.use_mlp_layers:
+            x = nn.Dense(features=self.config.n_hid)(x)
+            x = nn.gelu(x)
+            x = nn.Dense(features=self.config.n_hid)(x)
+            x = x + inputs
+
         return x
+
+
+class PureLinearSelfAttentionBlock(nn.Module):
+    
+    @nn.compact
+    def __call__(self, inputs, decoder_mask=None, idxs=None):
+        att = jnp.einsum('...qd,...kd->...qk', inputs, inputs)
+        return att.reshape(inputs.shape[0], 1, -1)
 
 
 class Transformer(nn.Module):
@@ -182,28 +204,33 @@ class Transformer(nn.Module):
 
         y = inputs
 
-        # Target Embedding
-        if config.n_emb is not None:
-            assert inputs.ndim == 2  # (batch, len)
+        if config.pure_linear_self_att:
+            y = PureLinearSelfAttentionBlock()(y)
+        else:
+            # Target Embedding
+            if config.n_emb is not None:
+                assert inputs.ndim == 2  # (batch, len)
 
-            y = nn.Embed(
-                    num_embeddings=config.vocab_size,
-                    features=config.n_emb)(y)
+                y = nn.Embed(
+                        num_embeddings=config.vocab_size,
+                        features=config.n_emb)(y)
+            else:
+                y = nn.Dense(features=config.n_hid)(y) # project to correct hidden dim
 
-        if config.pos_emb:
-            y = AddPositionEmbs(config=config)(y)
-        
-        # decoder_mask = nn.make_attention_mask(inputs > 0, inputs > 0)
-        # decoder_mask = nn.combine_masks(
-        #     decoder_mask,
-        #     nn.make_causal_mask(inputs))
-        decoder_mask = nn.make_causal_mask(inputs)
-        
-        for _ in range(config.n_layers):
-            y = TransformerBlock(
-                config=config)(
-                        y,
-                        decoder_mask=decoder_mask)
+            if config.pos_emb:
+                y = AddPositionEmbs(config=config)(y)
+            
+            # decoder_mask = nn.make_attention_mask(inputs > 0, inputs > 0)
+            # decoder_mask = nn.combine_masks(
+            #     decoder_mask,
+            #     nn.make_causal_mask(inputs))
+            decoder_mask = nn.make_causal_mask(jnp.zeros(inputs.shape[:2]))
+            
+            for _ in range(config.n_layers):
+                y = TransformerBlock(
+                    config=config)(
+                            y,
+                            decoder_mask=decoder_mask)
 
         logits = nn.Dense(1)(y)
         if config.return_final_logits_only:

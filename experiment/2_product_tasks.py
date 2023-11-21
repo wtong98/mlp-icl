@@ -71,6 +71,14 @@ all_cases = [
             experiment=dot_product_experiment, 
             experiment_args=common_args),
 
+    Case('Transformer (pure attention)', TransformerConfig(pure_linear_self_att=True), 
+            experiment=dot_product_experiment, 
+            experiment_args=common_args),
+
+    Case('Transformer (full)', TransformerConfig(use_mlp_layers=True, n_hid=128, n_layers=3), 
+            experiment=dot_product_experiment, 
+            experiment_args=common_args),
+
     Case('Mult NN', PolyConfig(n_hidden=10, n_layers=1), 
             experiment=dot_product_experiment, 
             experiment_args=common_args)
