@@ -72,10 +72,13 @@ def parse_loss_name(loss):
 def l1_loss(params):
     # sum_params = jax.tree_map(lambda x: jnp.sum(jnp.abs(x)), jax.tree_util.tree_leaves(params))
     # return jnp.sum(jnp.array(sum_params))
-    if 'DenseMult' in params:
-        return jnp.sum(jnp.abs(params['DenseMult']['kernel'])**(1/2))
+    loss = 0
+    for name in params:
+        if 'MBlock' in name:
+            z_weights = params[name]['DenseMultiply']['kernel']
+            loss += jnp.sum(jnp.abs(z_weights))
 
-    return 0
+    return loss
 
 @partial(jax.jit, static_argnames=('loss',))
 def train_step(state, batch, loss='bce', l1_weight=0):
@@ -154,14 +157,15 @@ def _print_status(step, hist):
 
 if __name__ == '__main__':
     domain = -3, 3
-    task = DotProductTask(domain, n_dims=2, n_args=3, batch_size=256)
+    task = DotProductTask(domain, n_dims=5, n_args=3, batch_size=256)
     # task = TiTask(dist=[1,2,3])
 
-    config = TransformerConfig(n_emb=None, n_layers=3, n_hid=128, use_mlp_layers=True, pure_linear_self_att=False)
+    # config = TransformerConfig(pure_linear_self_att=True)
+    # config = TransformerConfig(n_emb=None, n_layers=3, n_hid=128, use_mlp_layers=True, pure_linear_self_att=True)
 
     # TODO: what happens if there are 2 layers?
-    # config = PolyConfig(n_hidden=10, n_layers=1)
-    state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=0.01)
+    config = PolyConfig(n_hidden=128, n_layers=1)
+    state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4, l1_weight=1e-4)
 
 
     # %%

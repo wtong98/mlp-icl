@@ -24,16 +24,19 @@ class PolyConfig:
         return PolyNet(self)
 
 
-class PolyNet(nn.Module):
-
+class MBlock(nn.Module):
     config: PolyConfig
+    n_features: int | None = None
 
-    def m_block(self, x, n_features=None):
-        if n_features is None:
-            n_features = self.config.n_hidden
+    @nn.compact
+    def __call__(self, x):
+        if self.n_features is None:
+            self.n_features = self.config.n_hidden
 
         z = jnp.log(jnp.abs(x))
-        z = nn.Dense(n_features, name='DenseMult')(z)
+        z = nn.Dense(self.n_features, 
+                     kernel_init=nn.initializers.variance_scaling(scale=0.25, mode='fan_out', distribution='truncated_normal'),
+                     name='DenseMultiply')(z)
         z = jnp.exp(z)
 
         beta = 10 # NOTE: sharpen tanh, can make trainable
@@ -47,26 +50,31 @@ class PolyNet(nn.Module):
         s = nn.Dense(self.config.n_hidden)(s)
         s = nn.gelu(s)
 
-        s = nn.Dense(n_features, name='SignOut')(s)
+        s = nn.Dense(self.n_features)(s)
 
-        out_temp = self.param('out_temp', nn.initializers.constant(0), (1,))
+        out_temp = self.param('OutputTemperature', nn.initializers.constant(0), (1,))
         s = nn.tanh(s * out_temp)
 
         out = s * z
         return out
-    
+
+
+class PolyNet(nn.Module):
+
+    config: PolyConfig
+
     def poly_block(self, x, n_features=None):
         if n_features is None:
             n_features = self.config.n_hidden
 
-        x = self.m_block(x, n_features=self.config.n_hidden)
+        x = MBlock(self.config, n_features=self.config.n_hidden)(x)
         x = nn.Dense(n_features)(x)
         return x
 
-    def _fwd_product_sep_sign(self, x):
-        return self.m_block(x, n_features=1).flatten()
-    
     def _fwd_product_sep_sign_full(self, x):
+        for _ in range(self.config.n_layers - 1):
+            x = self.poly_block(x, n_features=self.config.n_hidden)
+
         return self.poly_block(x, n_features=1).flatten()
 
     @nn.compact
