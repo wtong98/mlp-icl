@@ -167,6 +167,27 @@ if __name__ == '__main__':
     config = PolyConfig(n_hidden=128, n_layers=1)
     state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4, l1_weight=1e-4)
 
+    # <codecell>
+    loss = [m.loss for m in hist['test']]
+    l1_loss = [m.l1_loss for m in hist['test']]
+    p1 = plt.plot(loss, label='Data loss')[0]
+    plt.yscale('log')
+    plt.xlabel('Epoch (x1000)')
+
+    ax = plt.gca().twinx()
+    p2 = ax.plot(l1_loss, color='C1', label='L1 loss')[0]
+
+    ax.set_yscale('log')
+
+    plt.legend(handles=[p1, p2], loc='center right')
+
+    ax = plt.gca()
+    ax.spines['left'].set_color('C0')
+    ax.spines['right'].set_color('C1')
+    
+    plt.tight_layout()
+    plt.savefig('experiment/fig/loss.png')
+
 
     # %%
     state.apply_fn({'params': state.params}, jnp.array([[0.5, 0.5]]), mutable='intm')
