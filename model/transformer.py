@@ -33,6 +33,7 @@ class TransformerConfig:
     n_layers: int = 2
     n_emb: int | None = 128
     n_hid: int = 128
+    n_out: int = 1
     max_len: int = 2
     pos_emb: bool = False
     softmax_att: bool = True
@@ -232,8 +233,12 @@ class Transformer(nn.Module):
                             y,
                             decoder_mask=decoder_mask)
 
-        logits = nn.Dense(1)(y)
+        logits = nn.Dense(config.n_out)(y)
         if config.return_final_logits_only:
-            logits = logits[:,-1,:].flatten()
+            logits = logits[:,-1,:]
+
+            if config.n_out == 1:
+                logits = logits.flatten()
+
         return logits
 

@@ -11,6 +11,7 @@ class MlpConfig:
     n_layers: int = 2
     n_emb: int = 64
     n_hidden: int = 128
+    n_out: int = 1
 
     def to_model(self):
         return MLP(self)
@@ -33,5 +34,9 @@ class MLP(nn.Module):
             x = nn.Dense(self.config.n_hidden)(x)
             x = nn.relu(x)
     
-        out = nn.Dense(1)(x).flatten()
+        out = nn.Dense(self.config.n_out)(x)
+
+        if self.config.n_out == 1:
+            out = out.flatten()
+
         return out

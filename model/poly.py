@@ -19,6 +19,7 @@ class PolyConfig:
     n_layers: int = 2
     n_emb: int = 64
     n_hidden: int = 128
+    n_out: int = 1
 
     def to_model(self):
         return PolyNet(self)
@@ -33,7 +34,7 @@ class MBlock(nn.Module):
         if self.n_features is None:
             self.n_features = self.config.n_hidden
 
-        z = jnp.log(jnp.abs(x))
+        z = jnp.log(jnp.abs(x) + 1e-32)
         z = nn.Dense(self.n_features, 
                      kernel_init=nn.initializers.variance_scaling(scale=0.25, mode='fan_out', distribution='truncated_normal'),
                      name='DenseMultiply')(z)
@@ -72,10 +73,17 @@ class PolyNet(nn.Module):
         return x
 
     def _fwd_product_sep_sign_full(self, x):
+        x = nn.Dense(self.config.n_hidden)(x)
+
         for _ in range(self.config.n_layers - 1):
             x = self.poly_block(x, n_features=self.config.n_hidden)
 
-        return self.poly_block(x, n_features=1).flatten()
+        out = self.poly_block(x, n_features=self.config.n_out)
+        if self.config.n_out == 1:
+            out = out.flatten()
+        
+        return out
+
 
     @nn.compact
     def __call__(self, x):

@@ -13,6 +13,7 @@ import optax
 from flax import struct
 from flax.training import train_state
 
+from task.oddball import FreeOddballTask
 from task.function import MultiplicationTask, DotProductTask
 from task.ti import TiTask
 
@@ -62,6 +63,8 @@ def parse_loss_name(loss):
     loss_func = None
     if loss == 'bce':
         loss_func = optax.sigmoid_binary_cross_entropy
+    elif loss == 'ce':
+        loss_func = optax.softmax_cross_entropy_with_integer_labels
     elif loss == 'mse':
         loss_func = optax.l2_loss
     else:
@@ -107,7 +110,11 @@ def compute_metrics(state, batch, loss='bce'):
     loss = loss_func(logits, labels).mean()
     l1 = l1_loss(state.params)
 
-    preds = logits > 0
+    if len(logits.shape) == 1:
+        preds = logits > 0
+    else:
+        preds = logits.argmax(axis=1)
+    
     acc = jnp.mean(preds == labels)
 
     metrics = Metrics(accuracy=acc, loss=loss, l1_loss=l1)
@@ -151,28 +158,27 @@ def train(config, data_iter, loss='bce', train_iters=1_000, test_iters=100, test
 
             
 def _print_status(step, hist):
-    # print(f'ITER {step}:  loss={hist["test_loss"][-1]:.4f}   acc={hist["test_acc"][-1]:.4f}')
-    print(f'ITER {step}:  loss={hist["test"][-1].loss:.4f}   l1_loss={hist["test"][-1].l1_loss:.4f}')
+    print(f'ITER {step}:  loss={hist["test"][-1].loss:.4f}   l1_loss={hist["test"][-1].l1_loss:.4f}  acc={hist["test"][-1].accuracy:.4f}')
 
 
 if __name__ == '__main__':
-    domain = -3, 3
-    task = DotProductTask(domain, n_dims=5, n_args=3, batch_size=256)
-    # task = TiTask(dist=[1,2,3])
+    # domain = -3, 3
+    # task = DotProductTask(domain, n_dims=5, n_args=3, batch_size=256)
+    task = FreeOddballTask()
 
     # config = TransformerConfig(pure_linear_self_att=True)
-    # config = TransformerConfig(n_emb=None, n_layers=3, n_hid=128, use_mlp_layers=True, pure_linear_self_att=True)
+    # config = TransformerConfig(n_emb=None, n_out=6, n_layers=3, n_hid=128, use_mlp_layers=True, pure_linear_self_att=False)
+    # config = MlpConfig(n_out=6, n_layers=3, n_hidden=128)
 
-    # TODO: what happens if there are 2 layers?
-    config = PolyConfig(n_hidden=128, n_layers=1)
-    state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4, l1_weight=1e-4)
+    config = PolyConfig(n_hidden=128, n_layers=1, n_out=6)
+    state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=200_000, lr=1e-4, l1_weight=1e-4)
 
     # <codecell>
     loss = [m.loss for m in hist['test']]
     l1_loss = [m.l1_loss for m in hist['test']]
     p1 = plt.plot(loss, label='Data loss')[0]
     plt.yscale('log')
-    plt.xlabel('Epoch (x1000)')
+    plt.xlabel('Time (x1000 batches)')
 
     ax = plt.gca().twinx()
     p2 = ax.plot(l1_loss, color='C1', label='L1 loss')[0]
@@ -186,7 +192,7 @@ if __name__ == '__main__':
     ax.spines['right'].set_color('C1')
     
     plt.tight_layout()
-    plt.savefig('experiment/fig/loss.png')
+    # plt.savefig('experiment/fig/loss.png')
 
 
     # %%
