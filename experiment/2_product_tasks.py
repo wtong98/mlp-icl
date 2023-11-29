@@ -50,14 +50,6 @@ class Case:
         self.state, self.hist = self.experiment(self.config, **self.experiment_args)
 
 
-case = Case('Test', PolyConfig(n_hidden=10, n_layers=1), 
-            experiment=dot_product_experiment, 
-            experiment_args={
-                'domain': (-3, 3)
-            })
-
-# case.run()
-
 # <codecell>
 ### DOT PRODUCT
 domain = -3, 3

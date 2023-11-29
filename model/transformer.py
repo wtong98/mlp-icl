@@ -31,8 +31,8 @@ import numpy as np
 class TransformerConfig:
     vocab_size: int | None = None
     n_layers: int = 2
-    n_emb: int | None = 128
-    n_hid: int = 128
+    n_emb: int | None = None
+    n_hidden: int = 128
     n_out: int = 1
     max_len: int = 2
     pos_emb: bool = False
@@ -93,7 +93,7 @@ class SingleHeadSelfAttention(nn.Module):
     def __call__(self, inputs, mask=None, idxs=None, use_bias=False):
         dense = functools.partial(
             nn.Dense,
-            features=self.config.n_hid,
+            features=self.config.n_hidden,
             use_bias=use_bias)
         
         self.sow('intermediates', 'inputs', inputs)
@@ -178,9 +178,9 @@ class TransformerBlock(nn.Module):
         x = x + inputs
 
         if self.config.use_mlp_layers:
-            x = nn.Dense(features=self.config.n_hid)(x)
+            x = nn.Dense(features=self.config.n_hidden)(x)
             x = nn.gelu(x)
-            x = nn.Dense(features=self.config.n_hid)(x)
+            x = nn.Dense(features=self.config.n_hidden)(x)
             x = x + inputs
 
         return x
@@ -216,7 +216,7 @@ class Transformer(nn.Module):
                         num_embeddings=config.vocab_size,
                         features=config.n_emb)(y)
             else:
-                y = nn.Dense(features=config.n_hid)(y) # project to correct hidden dim
+                y = nn.Dense(features=config.n_hidden)(y) # project to correct hidden dim
 
             if config.pos_emb:
                 y = AddPositionEmbs(config=config)(y)

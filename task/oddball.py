@@ -10,7 +10,7 @@ import numpy as np
 
 
 class FreeOddballTask:
-    def __init__(self, n_choices=6, discrim_dist=5, box_radius=10, n_dims=2, batch_size=128, data_size=None) -> None:
+    def __init__(self, n_choices=6, discrim_dist=5, box_radius=10, n_dims=2, batch_size=128, data_size=None, n_retry_if_missing_labels=0) -> None:
         self.n_choices = n_choices
         self.discrim_dist = discrim_dist
         self.box_radius = box_radius
@@ -20,6 +20,15 @@ class FreeOddballTask:
 
         if data_size is not None:
             self.data = self._samp_batch(data_size)
+
+            for i in range(n_retry_if_missing_labels):
+                labels = self.data[1]
+                if len(np.unique(labels)) == n_choices:
+                    break
+
+                print('warn: retry number', i)
+                self.data = self._samp_batch(data_size)
+
 
     
     def _samp_batch(self, size):
