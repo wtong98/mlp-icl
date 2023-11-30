@@ -34,7 +34,7 @@ class TransformerConfig:
     n_emb: int | None = None
     n_hidden: int = 128
     n_out: int = 1
-    max_len: int = 2
+    max_len: int = 32
     pos_emb: bool = False
     softmax_att: bool = True
     softmax_val: bool = False

@@ -154,7 +154,6 @@ print(logits.argmax(axis=1))
 print(ys)
 
 # %%
-# TODO: solidify results <-- STOPPED HERE
 # also plot transition from memorization to generalization in MNN and MLP
 
 x = np.random.randn(*(1, 6, 2)) * 1

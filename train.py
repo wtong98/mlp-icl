@@ -167,10 +167,10 @@ if __name__ == '__main__':
     task = FreeOddballTask()
 
     # config = TransformerConfig(pure_linear_self_att=True)
-    # config = TransformerConfig(n_emb=None, n_out=6, n_layers=3, n_hid=128, use_mlp_layers=True, pure_linear_self_att=False)
+    config = TransformerConfig(pos_emb=True, n_emb=None, n_out=6, n_layers=3, n_hidden=128, use_mlp_layers=True, pure_linear_self_att=False)
     # config = MlpConfig(n_out=6, n_layers=3, n_hidden=128)
 
-    config = PolyConfig(n_hidden=128, n_layers=1, n_out=6)
+    # config = PolyConfig(n_hidden=128, n_layers=1, n_out=6)
     state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=200_000, lr=1e-4, l1_weight=1e-4)
 
     # <codecell>
