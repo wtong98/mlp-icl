@@ -25,7 +25,7 @@ from train import train
 from model.mlp import MlpConfig
 from model.transformer import TransformerConfig
 from model.poly import PolyConfig
-from task.oddball import FreeOddballTask
+from task.oddball import FreeOddballTask, LineOddballTask
 
 
 def free_oddball_experiment(config, train_iters=50_000, lr=1e-4, l1_weight=1e-4, **task_kwargs):
@@ -67,7 +67,7 @@ all_cases = []
 for _ in range(n_iters):
     all_cases.extend([
         Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=128), free_oddball_experiment, experiment_args={}),
-        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=128, use_mlp_layers=True), free_oddball_experiment, experiment_args={}),
+        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=128, use_mlp_layers=True, pos_emb=True), free_oddball_experiment, experiment_args={}),
         Case('MNN', MlpConfig(n_out=n_out, n_layers=1, n_hidden=128), free_oddball_experiment, experiment_args={}),
     ])
 
@@ -137,14 +137,14 @@ plt.tight_layout()
 plt.savefig('fig/oddball_data_size_gen.png')
 
 # <codecell>
-task = FreeOddballTask(data_size=256)
+task = FreeOddballTask(data_size=None)
 
 # config = TransformerConfig(pure_linear_self_att=True)
 # config = TransformerConfig(n_emb=None, n_out=6, n_layers=3, n_hid=128, use_mlp_layers=True, pure_linear_self_att=False)
-# config = MlpConfig(n_out=6, n_layers=3, n_hidden=128)
+config = MlpConfig(n_out=6, n_layers=3, n_hidden=128)
 
-config = PolyConfig(n_hidden=128, n_layers=1, n_out=6)
-state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
+# config = PolyConfig(n_hidden=128, n_layers=1, n_out=6)
+state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=10_000, lr=1e-4, l1_weight=1e-4)
 
 # %%
 xs, ys = next(task)
@@ -155,12 +155,58 @@ print(ys)
 
 # %%
 # also plot transition from memorization to generalization in MNN and MLP
+# dists = 10**np.linspace(0.5, 2, num=100)
+dists = np.linspace(0, 50, num=50)
+all_targets = []
+for d in tqdm(dists):
+    x = np.random.randn(*(1, 6, 2)) * 0.5 + 5
+    x[0, 4] = d
+    # plt.scatter(x[0,:,0], x[0,:,1], c=np.arange(6))
+    # plt.colorbar()
 
-x = np.random.randn(*(1, 6, 2)) * 1
-x[0, 4] = 4
-plt.scatter(x[0,:,0], x[0,:,1], c=np.arange(6))
-plt.colorbar()
+    logits = state.apply_fn({'params': state.params}, x)
+    target = logits[0, 4]
+    all_targets.append(target.item())
 
-logits = state.apply_fn({'params': state.params}, x)
-logits
 
+# %%
+plt.plot(dists, all_targets, 'o--')
+plt.xlabel('Distance')
+plt.ylabel('Logit')
+plt.savefig('fig/mlp_oddball_logit_dist.png')
+# plt.plot(dists, dists)
+
+"""
+Some freaky stuff:
+- decreasing spread of points sharpens line
+- moving center will create a linear dip in the plot exactly
+aligned with the center
+
+- conclusion: it appears the model is computing the distance
+to the center of the cluster exactly!
+"""
+
+# <codecell>
+# EXPERIMENT WITH LINE ODDBALL TASK
+n_choices = 12
+task = LineOddballTask(n_choices=n_choices, linear_dist=5)
+
+# config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=256)
+# config = PolyConfig(n_hidden=256, n_layers=1, n_out=n_choices)
+config = TransformerConfig(pos_emb=True, n_emb=None, n_out=n_choices, n_layers=3, n_hidden=128, use_mlp_layers=True, pure_linear_self_att=False)
+
+state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
+
+# %%
+task = LineOddballTask(n_choices=n_choices, linear_dist=20, perp_dist=5)
+xs, ys = next(task)
+
+logits = state.apply_fn({'params': state.params}, xs)
+print(logits.argmax(axis=1))
+print(ys)
+
+np.mean(logits.argmax(axis=1) == ys)
+
+# NOTE: generalization on oddball task is challenging for all models, though
+# transformer may do better with smaller perp_dist?
+# TODO: try with more exaggerated distribution --> could improve generalization?

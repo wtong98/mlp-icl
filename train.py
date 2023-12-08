@@ -13,7 +13,7 @@ import optax
 from flax import struct
 from flax.training import train_state
 
-from task.oddball import FreeOddballTask
+from task.oddball import FreeOddballTask, LineOddballTask
 from task.function import MultiplicationTask, DotProductTask
 from task.ti import TiTask
 
@@ -164,14 +164,16 @@ def _print_status(step, hist):
 if __name__ == '__main__':
     # domain = -3, 3
     # task = DotProductTask(domain, n_dims=5, n_args=3, batch_size=256)
-    task = FreeOddballTask()
+    # task = FreeOddballTask()
+    n_choices = 12
+    task = LineOddballTask(n_choices=n_choices, linear_dist=10)
 
     # config = TransformerConfig(pure_linear_self_att=True)
-    config = TransformerConfig(pos_emb=True, n_emb=None, n_out=6, n_layers=3, n_hidden=128, use_mlp_layers=True, pure_linear_self_att=False)
-    # config = MlpConfig(n_out=6, n_layers=3, n_hidden=128)
+    # config = TransformerConfig(pos_emb=True, n_emb=None, n_out=6, n_layers=3, n_hidden=128, use_mlp_layers=True, pure_linear_self_att=False)
+    config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=128)
 
-    # config = PolyConfig(n_hidden=128, n_layers=1, n_out=6)
-    state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=200_000, lr=1e-4, l1_weight=1e-4)
+    # config = PolyConfig(n_hidden=128, n_layers=1, n_out=n_choices)
+    state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
 
     # <codecell>
     loss = [m.loss for m in hist['test']]

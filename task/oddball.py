@@ -29,8 +29,6 @@ class FreeOddballTask:
                 print('warn: retry number', i)
                 self.data = self._samp_batch(data_size)
 
-
-    
     def _samp_batch(self, size):
         centers = np.random.uniform(-self.box_radius, self.box_radius, size=(size, 1, self.n_dims))
         points = np.random.randn(size, self.n_choices, self.n_dims)
@@ -55,16 +53,43 @@ class FreeOddballTask:
     def __iter__(self):
         return self
 
+
+class LineOddballTask:
+    def __init__(self, n_choices=6, linear_dist=5, perp_dist=5, batch_size=128) -> None:
+        self.n_choices = n_choices
+        self.linear_dist = linear_dist
+        self.perp_dist = perp_dist
+        self.batch_size = batch_size
+
+    def __next__(self):
+        dirs = np.random.uniform(0, 2 * np.pi, size=self.batch_size)
+        perp_dirs = dirs + np.random.choice([1, -1], size=self.batch_size) * np.pi / 2
+        radii = np.random.normal(0, self.linear_dist, size=(self.batch_size, self.n_choices))
+
+        radii = np.expand_dims(radii, axis=-1)
+        angles = np.expand_dims(np.stack([np.cos(dirs), np.sin(dirs)], axis=-1), axis=1)
+        points = radii * angles
+
+        oddballs = self.perp_dist * np.stack([np.cos(perp_dirs), np.sin(perp_dirs)], axis=-1)
+        oddball_idxs = np.random.choice(self.n_choices, size=self.batch_size, replace=True)
+
+        points[np.arange(self.batch_size), oddball_idxs] = oddballs
+        return points, oddball_idxs
+
+    def __iter__(self):
+        return self
+
+
 class FixedOddballTask:
     pass
 
 
 if __name__ == '__main__':
-    task = FreeOddballTask(data_size=1024)
+    task = LineOddballTask(n_choices=10, perp_dist=5)
     xs, ys = next(task)
 
     import matplotlib.pyplot as plt
-    plt.scatter(xs[0,:,0], xs[0,:,1], c=np.arange(6))
+    plt.scatter(xs[0,:,0], xs[0,:,1], c=np.arange(10))
     plt.gca().axis('equal')
     plt.colorbar()
     print(ys)
