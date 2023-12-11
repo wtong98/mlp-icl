@@ -85,12 +85,18 @@ def l1_loss(params):
 
 @partial(jax.jit, static_argnames=('loss',))
 def train_step(state, batch, loss='bce', l1_weight=0):
+    loss_name = loss
     x, labels = batch
-    loss_func = parse_loss_name(loss)
+    loss_func = parse_loss_name(loss_name)
 
     def loss_fn(params):
         logits = state.apply_fn({'params': params}, x)
         loss = loss_func(logits, labels)
+
+        if loss_name == 'bce' and len(labels.shape) > 1:
+            assert logits.shape == loss.shape
+            loss = loss.mean(axis=-1)
+
         assert len(loss.shape) == 1
 
         l1_term = l1_weight * l1_loss(params)
@@ -114,6 +120,9 @@ def compute_metrics(state, batch, loss='bce'):
         preds = logits > 0
     else:
         preds = logits.argmax(axis=1)
+    
+    if len(labels.shape) > 1:
+        labels = labels.argmax(axis=1)
     
     acc = jnp.mean(preds == labels)
 
@@ -164,16 +173,16 @@ def _print_status(step, hist):
 if __name__ == '__main__':
     # domain = -3, 3
     # task = DotProductTask(domain, n_dims=5, n_args=3, batch_size=256)
-    # task = FreeOddballTask()
-    n_choices = 12
-    task = LineOddballTask(n_choices=n_choices, linear_dist=10)
+    n_choices = 6
+    task = FreeOddballTask(n_choices=n_choices, one_hot=True)
+    # task = LineOddballTask(n_choices=n_choices, linear_dist=10)
 
     # config = TransformerConfig(pure_linear_self_att=True)
     # config = TransformerConfig(pos_emb=True, n_emb=None, n_out=6, n_layers=3, n_hidden=128, use_mlp_layers=True, pure_linear_self_att=False)
     config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=128)
 
     # config = PolyConfig(n_hidden=128, n_layers=1, n_out=n_choices)
-    state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
+    state, hist = train(config, data_iter=iter(task), loss='bce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
 
     # <codecell>
     loss = [m.loss for m in hist['test']]
