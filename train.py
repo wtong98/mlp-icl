@@ -13,8 +13,8 @@ import optax
 from flax import struct
 from flax.training import train_state
 
-from task.oddball import FreeOddballTask, LineOddballTask
 from task.function import MultiplicationTask, DotProductTask
+from task.oddball import FreeOddballTask, LineOddballTask
 from task.ti import TiTask
 
 from model.mlp import MlpConfig
