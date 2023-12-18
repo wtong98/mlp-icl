@@ -20,6 +20,9 @@ class PolyConfig:
     n_emb: int = 64
     n_hidden: int = 128
     n_out: int = 1
+    start_with_dense: bool = True
+    use_mult_signage: bool = False
+    learnable_signage_temp: bool = True
 
     def to_model(self):
         return PolyNet(self)
@@ -44,16 +47,21 @@ class MBlock(nn.Module):
         s = nn.tanh(beta * x)
 
         # NOTE: need n-power features to capture n-power signs
-        # s_prod = jnp.einsum('ij,ik->ijk', s, s).reshape(s.shape[0], -1)
-        # s_prod = jnp.einsum('ij,ik->ijk', s_prod, s).reshape(s.shape[0], -1)
-        # s = jnp.concatenate((s, s_prod), axis=-1)
-
-        s = nn.Dense(self.config.n_hidden)(s)
-        s = nn.gelu(s)
+        if self.config.use_mult_signage:
+            s_prod = jnp.einsum('ij,ik->ijk', s, s).reshape(s.shape[0], -1)
+            s_prod = jnp.einsum('ij,ik->ijk', s_prod, s).reshape(s.shape[0], -1)
+            s = jnp.concatenate((s, s_prod), axis=-1)
+        else:
+            s = nn.Dense(self.config.n_hidden)(s)
+            s = nn.gelu(s)
 
         s = nn.Dense(self.n_features)(s)
 
-        out_temp = self.param('OutputTemperature', nn.initializers.constant(0), (1,))
+        if self.config.learnable_signage_temp:
+            out_temp = self.param('OutputTemperature', nn.initializers.constant(0), (1,))
+        else:
+            out_temp = 1
+
         s = nn.tanh(s * out_temp)
 
         out = s * z
@@ -73,7 +81,8 @@ class PolyNet(nn.Module):
         return x
 
     def _fwd_product_sep_sign_full(self, x):
-        x = nn.Dense(self.config.n_hidden)(x)
+        if self.config.start_with_dense:
+            x = nn.Dense(self.config.n_hidden)(x)
 
         for _ in range(self.config.n_layers - 1):
             x = self.poly_block(x, n_features=self.config.n_hidden)
