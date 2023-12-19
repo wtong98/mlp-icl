@@ -1,5 +1,17 @@
 """
-Experimenting with the match tasks (TODO: longer description)
+Experimenting with the match tasks, which is comparable to the
+delayed match-to-sample task of the Griffiths papeer.
+
+Observations:
+
+- MLP learns this in-context
+- Increasing radius is no problem --> performs some sort of dot product operation
+- All models struggle to generalize from fixed --> scramble task
+    - MNN seems to perform marginally better
+    --> uses ring structure, not purely dot-product-driven
+
+Tentative conclusion: with perfect data, in-context learning is well
+within capacity of MLP (among other models)
 """
 
 # <codecell>
@@ -173,18 +185,3 @@ logits = state.apply_fn({'params': state.params}, xs)
 preds = logits.argmax(axis=1)
 eval_acc = np.mean(labs == preds)
 eval_acc
-
-# <codecell>
-
-'''
-Observations: (need to solidify)
-
-- MLP learns this in-context
-- Increasing radius is no problem --> performs some sort of dot product operation
-- All models struggle to generalize from fixed --> scramble task
-    - MNN seems to perform marginally better
-    --> uses ring structure, not purely dot-product-driven
-
-Tentative conclusion: with perfect data, in-context learning is well
-within capacity of MLP (among other models)
-'''

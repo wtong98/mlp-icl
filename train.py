@@ -14,7 +14,7 @@ from flax import struct
 from flax.training import train_state
 
 from task.function import MultiplicationTask, DotProductTask
-from task.match import RingMatch
+from task.match import RingMatch, LabelRingMatch
 from task.oddball import FreeOddballTask, LineOddballTask
 from task.ti import TiTask
 
@@ -177,14 +177,16 @@ if __name__ == '__main__':
     n_choices = 6
     # task = FreeOddballTask(n_choices=n_choices, one_hot=True)
     # task = LineOddballTask(n_choices=n_choices, linear_dist=10)
-    task = RingMatch(n_points=n_choices)
+    task = LabelRingMatch(n_points=n_choices)
 
-    # config = TransformerConfig(pure_linear_self_att=True)
     # config = TransformerConfig(pos_emb=True, n_emb=None, n_out=6, n_layers=3, n_hidden=128, use_mlp_layers=True, pure_linear_self_att=False)
-    config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=128)
+    # config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=512)
 
-    # config = PolyConfig(n_hidden=128, n_layers=1, n_out=n_choices)
+    config = PolyConfig(n_hidden=512, n_layers=1, n_out=n_choices, disable_signage=False)
     state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
+
+    """Observations: transformer performs handsomely, with great sample efficiency. Then
+    MLP, then MNN performs the worst (but still reasonably well)""" # TODO: solidify <-- STOPPED HERE
 
     # <codecell>
     loss = [m.loss for m in hist['test']]

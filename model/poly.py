@@ -23,6 +23,7 @@ class PolyConfig:
     start_with_dense: bool = True
     use_mult_signage: bool = False
     learnable_signage_temp: bool = True
+    disable_signage: bool = False
 
     def to_model(self):
         return PolyNet(self)
@@ -39,9 +40,12 @@ class MBlock(nn.Module):
 
         z = jnp.log(jnp.abs(x) + 1e-32)
         z = nn.Dense(self.n_features, 
-                     kernel_init=nn.initializers.variance_scaling(scale=0.25, mode='fan_out', distribution='truncated_normal'),
+                     kernel_init=nn.initializers.variance_scaling(scale=0.1, mode='fan_out', distribution='truncated_normal'),
                      name='DenseMultiply')(z)
         z = jnp.exp(z)
+
+        if self.config.disable_signage:
+            return z
 
         beta = 10 # NOTE: sharpen tanh, can make trainable
         s = nn.tanh(beta * x)
@@ -83,6 +87,9 @@ class PolyNet(nn.Module):
     def _fwd_product_sep_sign_full(self, x):
         if self.config.start_with_dense:
             x = nn.Dense(self.config.n_hidden)(x)
+            # x = nn.gelu(x)
+            # x = nn.Dense(self.config.n_hidden)(x)
+            # x = nn.gelu(x)
 
         for _ in range(self.config.n_layers - 1):
             x = self.poly_block(x, n_features=self.config.n_hidden)
