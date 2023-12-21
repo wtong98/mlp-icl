@@ -3,10 +3,11 @@ import pickle
 
 from tqdm import tqdm
 
-from common import *
-
 import sys
+sys.path.append('../../')
 sys.path.append('../../../')
+
+from common import *
 from train import train
 from model.mlp import MlpConfig
 from model.poly import PolyConfig
