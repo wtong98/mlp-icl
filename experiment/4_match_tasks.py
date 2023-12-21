@@ -33,6 +33,7 @@ from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.match import RingMatch, LabelRingMatch
 
+match_experiment = functools.partial(experiment, task_class=RingMatch)
 
 # <codecell>
 # W/W_OUT SCRAMBLE GENERALIZATION
@@ -41,8 +42,6 @@ n_out = 6
 
 common_args = {'train_iters': 20_000}
 scramble_args = dict(scramble=True, **common_args)
-
-match_experiment = functools.partial(experiment, task_class=RingMatch)
 
 all_cases = []
 for _ in range(n_iters):
@@ -158,6 +157,8 @@ Tests to try:
 
 - eventually: probe MLP for evidence of "multiplicative" interactions
 '''
+
+# <codecell>
 
 # <codecell>
 eval_cases(all_cases, eval_taks=LabelRingMatch(n_points=n_out))
