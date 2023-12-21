@@ -8,6 +8,20 @@ author: William Tong (wtong@g.harvard.edu)
 import numpy as np
 
 
+class PointTask:
+    def __init__(self, points, batch_size=128) -> None:
+        self.points = np.array(points)
+        self.batch_size = batch_size
+    
+    def __next__(self):
+        idxs = np.random.choice(len(self.points), size=self.batch_size, replace=True)
+        xs, ys = zip(*self.points[idxs])
+        return np.array(xs), np.array(ys)
+
+    def __iter__(self):
+        return self
+
+
 class MultiplicationTask:
     def __init__(self, domain, batch_size=128) -> None:
         self.lower, self.upper = domain
@@ -59,13 +73,18 @@ class AttentionTask:
     
 
 if __name__ == '__main__':
-    task = DotProductTask(domain=(-5, 5))
-    xs, ys = next(iter(task))
+    points = [(0, 0), (1, 2)]
+    task = PointTask(points, batch_size=5)
+    xs, y = next(task)
+    print(xs)
+    print(y)
+    # task = DotProductTask(domain=(-5, 5))
+    # xs, ys = next(iter(task))
 
-    print('XS', xs.shape)
-    print('YS', ys.shape)
-    print(ys[1])
-    print(xs[1,[0]] @ xs[1, [1]].T)
+    # print('XS', xs.shape)
+    # print('YS', ys.shape)
+    # print(ys[1])
+    # print(xs[1,[0]] @ xs[1, [1]].T)
 
 
 # %%
