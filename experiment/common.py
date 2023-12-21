@@ -5,6 +5,7 @@ author: William Tong (wtong@g.harvard.edu)
 """
 
 from dataclasses import dataclass, field
+import itertools
 from typing import Callable
 
 import numpy as np
@@ -13,6 +14,9 @@ from tqdm import tqdm
 import sys
 sys.path.append('../')
 from train import train
+
+def new_seed():
+    return np.random.randint(0, np.iinfo(np.in32).max)
 
 
 def experiment(config, task_class, train_iters=50_000, loss='ce', lr=1e-4, l1_weight=1e-4, **task_kwargs):
@@ -36,9 +40,14 @@ class Case:
 
 
 def eval_cases(all_cases, eval_task, key_name='eval_acc', ignore_err=False):
-    for c in tqdm(all_cases):
+    try:
+        task_iter = iter(eval_task)
+    except TypeError:
+        task_iter = itertools.repeat(eval_task)
+
+    for c, task in tqdm(zip(all_cases, task_iter), total=len(all_cases)):
         try:
-            xs, ys = next(eval_task)
+            xs, ys = next(task)
             logits = c.state.apply_fn({'params': c.state.params}, xs)
             preds = logits.argmax(axis=1)
             eval_acc = np.mean(ys == preds)

@@ -125,29 +125,46 @@ plt.savefig('fig/match_width_scramble.png')
 
 # <codecell>
 ### LABEL RING MATCH TASK
+
+# TODO: test new seed paradigm
 n_iters = 3
 n_out = 6
 
-common_args = {'train_iters': 50_000, 'n_points': n_out}
+def make_common():
+    return {'train_iters': 50_000, 'n_points': n_out, 'seed': new_seed()}
 
 label_match_experiment = functools.partial(experiment, task_class=LabelRingMatch)
 
 all_cases = []
 for _ in range(n_iters):
     all_cases.extend([
-        Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=512), label_match_experiment, experiment_args=common_args),
-        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=512, use_mlp_layers=True, pos_emb=True), label_match_experiment, experiment_args=common_args),
-        Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=512), label_match_experiment, experiment_args=common_args),
+        Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=512), label_match_experiment, experiment_args=make_common()),
+        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=512, use_mlp_layers=True, pos_emb=True), label_match_experiment, experiment_args=make_common()),
+        Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=512), label_match_experiment, experiment_args=make_common()),
     ])
 
 for case in tqdm(all_cases):
+    print('CASE', case.name)
+    print('seed', case.experiment_args['seed'])
     case.run()
 
-## TODO: tasks below
 ## TODO: incorporate utility to plot training curves
 
 # <codecell>
+### RADIUS GENERALIZATION
+radii = [0.1, 0.5, 1, 2, 4, 8]
+for r in radii:
+    eval_cases(all_cases, 
+               [LabelRingMatch(n_points=n_out, radius=r, batch_size=1024, seed=c.experiment_args['seed']) for c in all_cases], 
+               key_name=f'rad_{r}')
 
+
+# <codecell>
+df = pd.DataFrame(all_cases)
+df_rad = pd.DataFrame(df['info'].tolist())
+
+
+# <codecell>
 
 '''
 Tests to try:

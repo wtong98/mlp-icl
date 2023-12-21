@@ -33,30 +33,34 @@ class RingMatch:
 
 class LabelRingMatch:
     """Gautam's classification task (simplified)"""
-    def __init__(self, n_points=4, radius=1, n_classes=None, scramble=True, batch_size=128):
+    def __init__(self, n_points=4, radius=1, n_classes=None, scramble=True, batch_size=128, seed=None, reset_rng_for_data=True):
         self.n_points = n_points
         self.radius = radius
         self.n_classes = n_classes or (n_points - 1)
         self.scramble = scramble
         self.batch_size = batch_size
+        self.rng = np.random.default_rng(seed)
 
-        self.idx_to_label = np.random.randn(self.n_classes, 2) / np.sqrt(2)  # 2D dataset
+        self.idx_to_label = self.rng.normal(loc=0, scale=(1 / np.sqrt(2)), size=(self.n_classes, 2)) # 2D dataset
+
+        if reset_rng_for_data:
+            self.rng = np.random.default_rng(None)
     
     def __next__(self):
-        start = np.random.uniform(0, 2 * np.pi, size=self.batch_size)
+        start = self.rng.uniform(0, 2 * np.pi, size=self.batch_size)
         incs = 2 * np.pi / (self.n_points - 1)
-        angles = np.array([start + incs * i for i in range(self.n_points - 1)] + [np.random.uniform(0, 2 * np.pi, size=self.batch_size)]).T
+        angles = np.array([start + incs * i for i in range(self.n_points - 1)] + [self.rng.uniform(0, 2 * np.pi, size=self.batch_size)]).T
         
         xs = self.radius * np.stack((np.cos(angles), np.sin(angles)), axis=-1)
 
         if self.scramble:
-            list(map(np.random.shuffle, xs[:,:-1,:]))
+            list(map(self.rng.shuffle, xs[:,:-1,:]))
 
         xs_choice = np.transpose(xs[:,[-1],:], axes=(0, 2, 1))
         dots = (xs[:,:-1,:] @ xs_choice).squeeze()
         closest_idxs = np.argmax(dots, axis=1)
 
-        classes = np.stack([np.random.choice(self.n_classes, replace=False, size=(self.n_points - 1)) for _ in range(self.batch_size)])
+        classes = np.stack([self.rng.choice(self.n_classes, replace=False, size=(self.n_points - 1)) for _ in range(self.batch_size)])
         labels = self.idx_to_label[classes]
         closest_classes = classes[np.arange(self.batch_size), closest_idxs]
 
@@ -74,9 +78,8 @@ class LabelRingMatch:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = LabelRingMatch(n_points=6)
+    task = LabelRingMatch(n_points=6, seed=1, reset_rng_for_data=True)
 
-    # <codecell>
     xs, labs = next(task)
 
     xs = xs[0]
