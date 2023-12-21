@@ -24,6 +24,7 @@ class PolyConfig:
     use_mult_signage: bool = False
     learnable_signage_temp: bool = True
     disable_signage: bool = False
+    sharpen_signange_inputs: bool = False
 
     def to_model(self):
         return PolyNet(self)
@@ -47,8 +48,11 @@ class MBlock(nn.Module):
         if self.config.disable_signage:
             return z
 
-        beta = 10 # NOTE: sharpen tanh, can make trainable
-        s = nn.tanh(beta * x)
+        if self.config.sharpen_signange_inputs:
+            beta = 10 # NOTE: sharpen tanh, can make trainable
+            s = nn.tanh(beta * x)
+        else:
+            s = x
 
         # NOTE: need n-power features to capture n-power signs
         if self.config.use_mult_signage:
@@ -87,14 +91,15 @@ class PolyNet(nn.Module):
     def _fwd_product_sep_sign_full(self, x):
         if self.config.start_with_dense:
             x = nn.Dense(self.config.n_hidden)(x)
-            # x = nn.gelu(x)
-            # x = nn.Dense(self.config.n_hidden)(x)
-            # x = nn.gelu(x)
 
         for _ in range(self.config.n_layers - 1):
             x = self.poly_block(x, n_features=self.config.n_hidden)
 
         out = self.poly_block(x, n_features=self.config.n_out)
+
+        # NOTE: somehow appending a dense layer is disastrous for performance
+        # out = self.poly_block(x, n_features=self.config.n_hidden)
+        # out = nn.Dense(self.config.n_out)(x)
         if self.config.n_out == 1:
             out = out.flatten()
         

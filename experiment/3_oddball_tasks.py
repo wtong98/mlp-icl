@@ -10,6 +10,7 @@ transformers.
 
 # <codecell>
 from dataclasses import dataclass, field
+import functools
 from typing import Callable
 
 import matplotlib.pyplot as plt
@@ -19,6 +20,8 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
+from common import *
+
 import sys
 sys.path.append('../')
 from train import train
@@ -27,46 +30,8 @@ from model.transformer import TransformerConfig
 from model.poly import PolyConfig
 from task.oddball import FreeOddballTask, LineOddballTask
 
+oddball_experiment = functools.partial(experiment, task_class=FreeOddballTask)
 
-def oddball_experiment(config, task_class=FreeOddballTask, train_iters=50_000, loss='ce', lr=1e-4, l1_weight=1e-4, **task_kwargs):
-    task = task_class(**task_kwargs)
-    state, hist = train(config, data_iter=iter(task), loss=loss, test_every=1000, train_iters=train_iters, lr=lr, l1_weight=l1_weight)
-    return state, hist
-
-
-@dataclass
-class Case:
-    name: str
-    config: dataclass
-    experiment: Callable
-    experiment_args: dict = field(default_factory=dict)
-    state = None
-    hist = None
-    info: dict = field(default_factory=dict)
-
-    def run(self):
-        self.state, self.hist = self.experiment(self.config, **self.experiment_args)
-
-
-def eval_cases(all_cases, key_name='eval_acc', eval_task=None, ignore_err=False):
-    if eval_task is None:
-        eval_task = FreeOddballTask(batch_size=1024)
-
-    for c in tqdm(all_cases):
-        try:
-            xs, ys = next(eval_task)
-            logits = c.state.apply_fn({'params': c.state.params}, xs)
-            preds = logits.argmax(axis=1)
-            eval_acc = np.mean(ys == preds)
-            print('ACC', eval_acc)
-
-            c.info[key_name] = eval_acc
-
-        except Exception as e:
-            if ignore_err:
-                continue
-            else:
-                raise e
 # <codecell>
 # In-distribution performance
 n_iters = 3
@@ -82,14 +47,14 @@ for _ in range(n_iters):
     all_cases.extend([
         Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=128), oddball_experiment, experiment_args=common_args),
         Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=128, use_mlp_layers=True, pos_emb=True), oddball_experiment, experiment_args=common_args),
-        Case('MNN', MlpConfig(n_out=n_out, n_layers=1, n_hidden=128), oddball_experiment, experiment_args=common_args),
+        Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=128), oddball_experiment, experiment_args=common_args),
     ])
 
 for case in tqdm(all_cases):
     case.run()
 
 # <codecell>
-eval_cases(all_cases)
+eval_cases(all_cases, eval_task=FreeOddballTask(n_choices=n_out))
 
 # <codecell>
 df = pd.DataFrame(all_cases)
@@ -116,13 +81,13 @@ all_cases = []
 for _ in range(n_iters):
     for sz in data_sizes:
         all_cases.extend([
-            Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=128), free_oddball_experiment, experiment_args={
+            Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=128), oddball_experiment, experiment_args={
                 'data_size': sz,'n_retry_if_missing_labels': 3, 'train_iters': 10_000
             }),
             # Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=128, use_mlp_layers=True), free_oddball_experiment, experiment_args={
             #     'data_size': sz,'n_retry_if_missing_labels': 3
             # }),
-            Case('MNN', MlpConfig(n_out=n_out, n_layers=1, n_hidden=128), free_oddball_experiment, experiment_args={
+            Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=128), oddball_experiment, experiment_args={
                 'data_size': sz,'n_retry_if_missing_labels': 3, 'train_iters': 10_000
             }),
         ])
@@ -131,7 +96,7 @@ for case in tqdm(all_cases):
     case.run()
 
 # <codecell>
-eval_cases(all_cases)
+eval_cases(all_cases, eval_task=FreeOddballTask())
 
 # <codecell>
 df = pd.DataFrame(all_cases)
