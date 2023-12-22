@@ -123,6 +123,52 @@ sns.barplot(df, x='width', y='acc', hue='name')
 plt.tight_layout()
 plt.savefig('fig/match_width_scramble.png')
 
+
+
+
+
+# <codecell>
+### KNN Experimentation
+n_out = 6
+
+def compute_dists(point, data):
+    diff = data - point
+    dists = np.sqrt(np.diag(diff @ diff.T))
+    return dists
+
+task = RingMatch(data_size=32, n_points=n_out)
+model = MlpConfig(n_layers=3, n_hidden=32, n_out=n_out)
+
+state, hist = train(model, task, loss='ce', train_iters=5_000, test_every=1_000)
+# <codecell>
+full_task = RingMatch(n_points=n_out)
+xs, ys = next(full_task)
+
+logits = state.apply_fn({'params': state.params}, xs)
+
+x = xs[0].flatten()
+y = ys[0]
+
+data = task.data[0].reshape(task.data_size, -1)
+
+dists = compute_dists(x, data)
+labs = task.data[1]
+
+weights = np.exp(-3 * dists)
+res = np.zeros(n_out)
+
+for idx in range(n_out):
+    res[idx] = np.sum(weights[labs == idx])
+    
+res = np.log(res + 1e-1)
+plt.plot(res, 'o--')
+ax = plt.twinx()
+ax.plot(logits[0], 'o--', color='red')
+
+print(labs[np.argmin(dists)])
+
+
+
 # <codecell>
 ### LABEL RING MATCH TASK
 
@@ -165,20 +211,36 @@ df_rad = pd.DataFrame(df['info'].tolist())
 
 
 # <codecell>
+df.to_pickle('tmp.pkl') # TODO: finish plotting <-- STOPPED HERE
+
+# <codecell>
+df = pd.read_pickle('tmp.pkl')
+
+# <codecell>
+df_rad = pd.DataFrame(df['info'].tolist())
+df_rad = df_rad.rename(lambda x: x.split('_')[1], axis='columns')
+
+plot_df = df[['name']].join(df_rad) \
+                      .melt(id_vars='name', var_name='radius', value_name='acc')
+plot_df['acc'] = plot_df['acc'].astype('float32')
+
+# <codecell>
+plt.gcf().set_size_inches(6, 3)
+sns.barplot(plot_df, x='radius', y='acc', hue='name')
+
+plt.tight_layout()
+plt.savefig('fig/match_label_radius.png')
+
+# <codecell>
 
 '''
 Tests to try:
 - for large n_out, can a model handle small n_out? (with same number of classes)
-- vary radius
 - vary depth and compare to MNN
 
 - eventually: probe MLP for evidence of "multiplicative" interactions
 '''
 
-# <codecell>
-
-# <codecell>
-eval_cases(all_cases, eval_taks=LabelRingMatch(n_points=n_out))
 
 # <codecell>
 

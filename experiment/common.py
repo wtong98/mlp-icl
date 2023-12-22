@@ -16,7 +16,7 @@ sys.path.append('../')
 from train import train
 
 def new_seed():
-    return np.random.randint(0, np.iinfo(np.in32).max)
+    return np.random.randint(0, np.iinfo(np.int32).max)
 
 
 def experiment(config, task_class, train_iters=50_000, loss='ce', lr=1e-4, l1_weight=1e-4, **task_kwargs):
