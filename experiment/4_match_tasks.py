@@ -17,6 +17,7 @@ within capacity of MLP (among other models)
 # <codecell>
 import functools
 
+import jax
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -28,6 +29,7 @@ from common import *
 import sys
 sys.path.append('../')
 from train import train
+from model.knn import KnnConfig
 from model.mlp import MlpConfig
 from model.poly import PolyConfig
 from model.transformer import TransformerConfig
@@ -124,9 +126,6 @@ plt.tight_layout()
 plt.savefig('fig/match_width_scramble.png')
 
 
-
-
-
 # <codecell>
 ### KNN Experimentation
 n_out = 6
@@ -136,14 +135,37 @@ def compute_dists(point, data):
     dists = np.sqrt(np.diag(diff @ diff.T))
     return dists
 
-task = RingMatch(data_size=32, n_points=n_out)
-model = MlpConfig(n_layers=3, n_hidden=32, n_out=n_out)
+task = RingMatch(data_size=128, n_points=n_out)
+model = MlpConfig(n_layers=1, n_hidden=32, n_out=n_out)
 
 state, hist = train(model, task, loss='ce', train_iters=5_000, test_every=1_000)
 # <codecell>
-full_task = RingMatch(n_points=n_out)
+full_task = RingMatch(n_points=n_out, batch_size=1024)
 xs, ys = next(full_task)
+logits = state.apply_fn({'params': state.params}, xs)
+mlp_probs = jax.nn.softmax(logits, axis=-1)
+mlp_acc = np.mean(logits.argmax(-1) == ys)
 
+data = task.data[0].reshape(task.data_size, -1)
+labs = task.data[1]
+knn = KnnConfig(beta=3, n_classes=n_out, xs=data, ys=labs).to_model()
+
+xs_knn = xs.reshape(1024, -1)
+knn_probs = knn(xs_knn)
+knn_preds = knn_probs.argmax(-1)
+
+knn_acc = np.mean(knn_preds == ys)
+
+print('MLP', mlp_acc)
+print('KNN', knn_acc)
+
+
+plt.plot(knn_probs[0], 'o--')
+plt.plot(mlp_probs[0], 'o--')
+
+
+
+# <codecell>
 logits = state.apply_fn({'params': state.params}, xs)
 
 x = xs[0].flatten()
