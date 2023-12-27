@@ -138,7 +138,7 @@ def compute_dists(point, data):
 task = RingMatch(data_size=128, n_points=n_out)
 model = MlpConfig(n_layers=1, n_hidden=32, n_out=n_out)
 
-state, hist = train(model, task, loss='ce', train_iters=5_000, test_every=1_000)
+state, hist = train(model, task, loss='ce', train_iters=20_000, test_every=1_000)
 # <codecell>
 full_task = RingMatch(n_points=n_out, batch_size=1024)
 xs, ys = next(full_task)
@@ -148,7 +148,7 @@ mlp_acc = np.mean(logits.argmax(-1) == ys)
 
 data = task.data[0].reshape(task.data_size, -1)
 labs = task.data[1]
-knn = KnnConfig(beta=3, n_classes=n_out, xs=data, ys=labs).to_model()
+knn = KnnConfig(beta=20, n_classes=n_out, xs=data, ys=labs).to_model()
 
 xs_knn = xs.reshape(1024, -1)
 knn_probs = knn(xs_knn)

@@ -3,7 +3,7 @@ K-Nearest Neighbors model
 """
 
 # <codecell>
-from flax import struct
+from dataclasses import dataclass
 import numpy as np
 
 import jax
@@ -22,7 +22,7 @@ def compute_dists(point, data):
     return dists
 
 
-@struct.dataclass
+@dataclass
 class KnnConfig:
     """Global hyperparamters"""
     beta: float = 1
@@ -35,11 +35,12 @@ class KnnConfig:
 
 
 class Knn:
-
     def __init__(self, config) -> None:
         self.config = config
     
     def __call__(self, x):
+        x = x.reshape(x.shape[0], -1)
+
         dists = compute_dists(x, self.config.xs)
         weights = jnp.exp(-self.config.beta * dists)
         weights = weights / np.sum(weights, axis=1, keepdims=True)

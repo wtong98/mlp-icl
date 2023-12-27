@@ -29,7 +29,7 @@ def experiment(config, task_class, train_iters=50_000, loss='ce', lr=1e-4, l1_we
 class Case:
     name: str
     config: dataclass
-    experiment: Callable
+    experiment: Callable | None = None
     experiment_args: dict = field(default_factory=dict)
     state = None
     hist = None
@@ -37,23 +37,26 @@ class Case:
 
     def run(self):
         self.state, self.hist = self.experiment(self.config, **self.experiment_args)
+    
+    def eval(self, task, key_name='eval_acc'):
+        xs, ys = next(task)
+        logits = self.state.apply_fn({'params': self.state.params}, xs)
+        preds = logits.argmax(axis=1)
+        eval_acc = np.mean(ys == preds)
+
+        self.info[key_name] = eval_acc
+
 
 
 def eval_cases(all_cases, eval_task, key_name='eval_acc', ignore_err=False):
     try:
-        task_iter = iter(eval_task)
+        len(eval_task)
     except TypeError:
-        task_iter = itertools.repeat(eval_task)
+        eval_task = itertools.repeat(eval_task)
 
-    for c, task in tqdm(zip(all_cases, task_iter), total=len(all_cases)):
+    for c, task in tqdm(zip(all_cases, eval_task), total=len(all_cases)):
         try:
-            xs, ys = next(task)
-            logits = c.state.apply_fn({'params': c.state.params}, xs)
-            preds = logits.argmax(axis=1)
-            eval_acc = np.mean(ys == preds)
-
-            c.info[key_name] = eval_acc
-
+            c.eval(task, key_name)
         except Exception as e:
             if ignore_err:
                 continue
