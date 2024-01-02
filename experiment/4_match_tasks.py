@@ -233,7 +233,7 @@ df_rad = pd.DataFrame(df['info'].tolist())
 
 
 # <codecell>
-df.to_pickle('tmp.pkl') # TODO: finish plotting <-- STOPPED HERE
+df.to_pickle('tmp.pkl')
 
 # <codecell>
 df = pd.read_pickle('tmp.pkl')

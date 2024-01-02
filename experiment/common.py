@@ -6,7 +6,7 @@ author: William Tong (wtong@g.harvard.edu)
 
 from dataclasses import dataclass, field
 import itertools
-from typing import Callable
+from typing import Callable, Iterable
 
 import numpy as np
 from tqdm import tqdm
@@ -18,25 +18,19 @@ from train import train
 def new_seed():
     return np.random.randint(0, np.iinfo(np.int32).max)
 
-
-def experiment(config, task_class, train_iters=50_000, loss='ce', lr=1e-4, l1_weight=1e-4, **task_kwargs):
-    task = task_class(**task_kwargs)
-    state, hist = train(config, data_iter=iter(task), loss=loss, test_every=1000, train_iters=train_iters, lr=lr, l1_weight=l1_weight)
-    return state, hist
-
-
 @dataclass
 class Case:
     name: str
     config: dataclass
-    experiment: Callable | None = None
-    experiment_args: dict = field(default_factory=dict)
-    state = None
-    hist = None
+    train_task: Iterable | None = None
+    test_task: Iterable | None = None
+    train_args: dict = field(default_factory=dict)
+    state: list = None
+    hist: list = None
     info: dict = field(default_factory=dict)
 
     def run(self):
-        self.state, self.hist = self.experiment(self.config, **self.experiment_args)
+        self.state, self.hist = train(self.config, data_iter=self.train_task, test_iter=self.test_task, **self.train_args)
     
     def eval(self, task, key_name='eval_acc'):
         xs, ys = next(task)

@@ -133,9 +133,18 @@ def compute_metrics(state, batch, loss='bce'):
     return state
 
 
-def train(config, data_iter, loss='bce', train_iters=1_000, test_iters=100, test_every=100, seed=None, l1_weight=0, **opt_kwargs):
+def train(config, data_iter, 
+          test_iter=None, 
+          loss='ce', 
+          train_iters=1_000, test_iters=100, test_every=100, 
+          early_stop_n=None, early_stop_key='loss', early_stop_decision='min' ,
+          seed=None, 
+          l1_weight=0, **opt_kwargs):
     if seed is None:
         seed = new_seed()
+    
+    if test_iter is None:
+        test_iter = data_iter
     
     init_rng = jax.random.key(seed)
     model = config.to_model()
@@ -157,12 +166,19 @@ def train(config, data_iter, loss='bce', train_iters=1_000, test_iters=100, test
 
             state = state.replace(metrics=Metrics.empty())
             test_state = state
-            for _, test_batch in zip(range(test_iters), data_iter):
+            for _, test_batch in zip(range(test_iters), test_iter):
                 test_state = compute_metrics(test_state, test_batch, loss=loss)
             
             hist['test'].append(test_state.metrics)
 
             _print_status(step+1, hist)
+        
+            if early_stop_n is not None and len(hist['train']) > early_stop_n:
+                last_n_metrics = np.array([getattr(m, early_stop_key) for m in hist['train'][-early_stop_n - 1:]])
+                if early_stop_decision == 'min' and np.all(last_n_metrics[0] < last_n_metrics[1:]) \
+                or early_stop_decision == 'max' and np.all(last_n_metrics[0] > last_n_metrics[1:]):
+                    print(f'info: stopping early with {early_stop_key} =', last_n_metrics[-1])
+                    break
     
     return state, hist
 
@@ -177,13 +193,13 @@ if __name__ == '__main__':
     n_choices = 6
     # task = FreeOddballTask(n_choices=n_choices, one_hot=True)
     # task = LineOddballTask(n_choices=n_choices, linear_dist=10)
-    task = LabelRingMatch(n_points=n_choices)
+    task = RingMatch(n_points=n_choices)
 
     # config = TransformerConfig(pos_emb=True, n_emb=None, n_out=6, n_layers=3, n_hidden=128, use_mlp_layers=True, pure_linear_self_att=False)
-    # config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=512)
+    config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=512)
 
-    config = PolyConfig(n_hidden=512, n_layers=1, n_out=n_choices, disable_signage=False)
-    state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
+    # config = PolyConfig(n_hidden=512, n_layers=1, n_out=n_choices, disable_signage=False)
+    state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, early_stop_n=3, early_stop_decision='max', early_stop_key='accuracy', lr=1e-4, l1_weight=1e-4)
 
     """Observations: transformer performs handsomely, with great sample efficiency. Then
     MLP, then MNN performs the worst (but still reasonably well)""" # TODO: solidify <-- STOPPED HERE

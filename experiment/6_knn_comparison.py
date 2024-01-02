@@ -24,7 +24,6 @@ from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.match import RingMatch, LabelRingMatch
 
-match_experiment = functools.partial(experiment, task_class=RingMatch)
 
 # <codecell>
 @ dataclass
@@ -52,8 +51,8 @@ class KnnCase:
 
 n_iters = 1
 n_out = 6
-data_sizes = [8, 16, 32, 64, 128, 256, 512]
-# data_sizes = [128, 256, 512]
+# data_sizes = [8, 16, 32, 64, 128, 256, 512]
+data_sizes = [16, 32, 64]
 # train_iters=20_000
 train_iters=8_000
 
@@ -62,19 +61,24 @@ for _ in range(n_iters):
     for size in data_sizes:
 
         common_seed = new_seed()
-
-        def make_common():
-            return {'train_iters': train_iters, 'data_size': size, 'seed': common_seed, 'reset_rng_for_data': True}
+        common_task_args = {'n_points': n_out, 'seed': common_seed}
+        common_train_args = {'train_iters': train_iters, 'test_iters': 1, 'test_every': 25, 
+                             'early_stop_n': 3, 'early_stop_key': 'accuracy', 'early_stop_decision': 'max'}
 
         all_cases.extend([
-            Case('MLP', MlpConfig(n_out=n_out, n_layers=1, n_hidden=256), match_experiment, experiment_args=make_common()),
+            Case('MLP', MlpConfig(n_out=n_out, n_layers=1, n_hidden=256), 
+                 train_task=RingMatch(data_size=size, **common_task_args),
+                 test_task=RingMatch(batch_size=1024, **common_task_args),
+                 train_args=common_train_args),
+
             # Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, use_mlp_layers=True, pos_emb=True), match_experiment, experiment_args=make_common()),
             # Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=256), match_experiment, experiment_args=make_common()),
 
-            KnnCase('KNN', KnnConfig(beta=99, n_classes=n_out), task_class=RingMatch, data_size=size, seed=common_seed)
+            KnnCase('KNN', KnnConfig(beta=3, n_classes=n_out), task_class=RingMatch, data_size=size, seed=common_seed)
         ])
 
 for case in tqdm(all_cases):
+    print('RUNNING', case.name)
     case.run()
 
 
@@ -93,12 +97,20 @@ task = RingMatch(n_points=n_out, batch_size=1024)
 eval_cases(all_cases, task)
 
 # <codecell>
+train_acc = [m.accuracy for m in all_cases[2].hist['train']]
+test_acc = [m.accuracy for m in all_cases[2].hist['test']]
+
+plt.plot(train_acc)
+plt.plot(test_acc)
+plt.axhline(y=all_cases[3].info['eval_acc'])
+
+# <codecell>
 df = pd.DataFrame(all_cases)
 
 def extract_plot_vals(row):
     data_size = row['data_size']
     if np.isnan(data_size):
-        data_size = row['experiment_args']['data_size']
+        data_size = row['train_task'].data_size
 
     return pd.Series([
         row['name'],
@@ -107,7 +119,6 @@ def extract_plot_vals(row):
     ], index=['name', 'data_size', 'acc'])
 
 plot_df = df.apply(extract_plot_vals, axis=1)
-# plot_df
 
 sns.barplot(plot_df, x='data_size', y='acc', hue='name')
 
