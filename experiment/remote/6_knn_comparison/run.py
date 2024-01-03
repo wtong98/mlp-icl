@@ -77,6 +77,10 @@ for case in tqdm(all_cases):
 task = RingMatch(n_points=n_out, batch_size=1024)
 eval_cases(all_cases, task)
 
+# quick-fix purge
+for case in all_cases:
+    case.state = None
+
 df = pd.DataFrame(all_cases)
 df.to_pickle('res.pkl')
 
