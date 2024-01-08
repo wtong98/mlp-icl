@@ -84,7 +84,7 @@ plt.tight_layout()
 n_out = 6
 n_models = 5
 
-task = RingMatch(data_size=32, n_points=n_out)
+task = FreeOddballTask(data_size=128, n_choices=n_out)
 
 all_states = []
 
@@ -95,7 +95,7 @@ for _ in range(n_models):
     all_states.append(state)
 
 # <codecell>
-full_task = RingMatch(n_points=n_out, batch_size=1024)
+full_task = FreeOddballTask(n_choices=n_out, batch_size=1024)
 xs, ys = next(full_task)
 all_mlp_probs = []
 
@@ -109,7 +109,7 @@ for state in all_states:
 
 data = task.data[0].reshape(task.data_size, -1)
 labs = task.data[1]
-knn = KnnConfig(beta=3, n_classes=n_out, xs=data, ys=labs).to_model()
+knn = KnnConfig(beta=1, n_classes=n_out, xs=data, ys=labs).to_model()
 
 xs_knn = xs.reshape(1024, -1)
 knn_probs = knn(xs_knn)
@@ -120,7 +120,7 @@ knn_acc = np.mean(knn_preds == ys)
 print('KNN', knn_acc)
 
 # <codecell>
-fig_dir = Path('fig/match_knn_example_probs')
+fig_dir = Path('fig/oddball_knn_example_probs')
 if not fig_dir.exists():
     fig_dir.mkdir()
 
@@ -141,7 +141,7 @@ for idx in range(25):
 ### PLOTTING PLATEAUS
 n_iters = 3
 n_out = 6
-data_sizes = [16, 32, 64, 128]
+data_sizes = [32, 64, 128, 256]
 train_iters=10_000
 
 all_cases = []
@@ -149,17 +149,17 @@ for _ in range(n_iters):
     for size in data_sizes:
 
         common_seed = new_seed()
-        common_task_args = {'n_points': n_out, 'seed': common_seed}
+        common_task_args = {'n_choices': n_out, 'seed': common_seed}
         common_train_args = {'train_iters': train_iters, 'test_iters': 1, 'test_every': 10}
 
         curr_tasks = [
             Case('MLP', MlpConfig(n_out=n_out, n_layers=1, n_hidden=256), train_args=common_train_args),
-            KnnCase('KNN', KnnConfig(beta=3, n_classes=n_out), task_class=RingMatch, data_size=size, seed=common_seed)
+            KnnCase('KNN', KnnConfig(beta=3, n_classes=n_out), task_class=FreeOddballTask, data_size=size, seed=common_seed)
         ]
 
         for case in curr_tasks:
-            case.train_task = RingMatch(data_size=size, **common_task_args)
-            case.test_task = RingMatch(batch_size=1024, **common_task_args)
+            case.train_task = FreeOddballTask(data_size=size, **common_task_args)
+            case.test_task = FreeOddballTask(batch_size=1024, **common_task_args)
 
         all_cases.extend(curr_tasks)
 
@@ -168,12 +168,12 @@ for case in tqdm(all_cases):
     print('RUNNING', case.name)
     case.run()
 
-task = RingMatch(n_points=n_out, batch_size=1024)
+task = FreeOddballTask(n_choices=n_out, batch_size=1024)
 eval_cases(all_cases, task)
 
 
 # <codecell>
-fig_dir = summon_dir('fig/match_knn_example_loss')
+fig_dir = summon_dir('fig/oddball_knn_example_loss')
 
 for idx in range(0, len(all_cases), 2):
     train_acc = [m.accuracy for m in all_cases[idx].hist['train']]

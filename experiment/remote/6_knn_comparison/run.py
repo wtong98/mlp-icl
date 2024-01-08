@@ -17,7 +17,7 @@ from task.match import RingMatch
 
 n_iters = 3
 n_out = 6
-data_sizes = [8, 16, 32, 64, 128, 256, 512]
+data_sizes = [8, 16, 32, 64, 128, 256, 512, 1024]
 train_iters=30_000
 
 all_cases = []
@@ -32,7 +32,8 @@ for _ in range(n_iters):
                              'early_stop_n': 3, 'early_stop_key': 'accuracy', 'early_stop_decision': 'max'}
 
         curr_tasks = [
-            Case('MLP', MlpConfig(n_out=n_out, n_layers=1, n_hidden=256), train_args=common_train_args),
+            Case('MLP (full)', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), train_args=common_train_args),
+            Case('MLP (1 layer)', MlpConfig(n_out=n_out, n_layers=1, n_hidden=256), train_args=common_train_args),
             Case('MLP (early stop)', MlpConfig(n_out=n_out, n_layers=1, n_hidden=256), train_args=early_stop_train_args),
 
             Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, use_mlp_layers=True, pos_emb=True), train_args=common_train_args),

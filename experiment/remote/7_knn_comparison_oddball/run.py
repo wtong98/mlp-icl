@@ -17,7 +17,7 @@ from task.oddball import FreeOddballTask
 
 n_iters = 5
 n_out = 6
-data_sizes = [8, 16, 32, 64, 128, 256, 512]
+data_sizes = [8, 16, 32, 64, 128, 256, 512, 1024]
 train_iters=30_000
 
 all_cases = []
