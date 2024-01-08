@@ -13,29 +13,6 @@ from model.mlp import MlpConfig
 from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.match import RingMatch 
-
-
-@ dataclass
-class KnnCase:
-    name: str
-    config: KnnConfig
-    task_class: Callable
-    data_size: int
-    seed: int
-    task_args: dict = field(default_factory=dict)
-    info: dict = field(default_factory=dict)
-
-    def run(self):
-        self.task = self.task_class(data_size=self.data_size, seed=self.seed, **self.task_args)
-        self.config.xs = self.task.data[0].reshape(self.data_size, -1)
-        self.config.ys = self.task.data[1]
-        self.model = self.config.to_model()
-
-    def eval(self, task, key_name='eval_acc'):
-        xs, ys = next(task)
-        probs = self.model(xs)
-        eval_acc = np.mean(ys == probs.argmax(-1))
-        self.info[key_name] = eval_acc
     
 
 n_iters = 3
