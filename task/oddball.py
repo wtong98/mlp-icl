@@ -10,7 +10,13 @@ import numpy as np
 
 
 class FreeOddballTask:
-    def __init__(self, n_choices=6, discrim_dist=5, box_radius=10, n_dims=2, batch_size=128, data_size=None, n_retry_if_missing_labels=0, one_hot=False) -> None:
+    def __init__(self, n_choices=6, 
+                 discrim_dist=5, box_radius=10, n_dims=2, 
+                 batch_size=128, 
+                 data_size=None, n_retry_if_missing_labels=0, 
+                 one_hot=False, 
+                 seed=None, reset_rng_for_data=False) -> None:
+
         self.n_choices = n_choices
         self.discrim_dist = discrim_dist
         self.box_radius = box_radius
@@ -18,6 +24,7 @@ class FreeOddballTask:
         self.batch_size = batch_size
         self.data_size = data_size
         self.one_hot = one_hot
+        self.rng = np.random.default_rng(seed)
 
         if data_size is not None:
             self.data = self._samp_batch(data_size)
@@ -29,14 +36,17 @@ class FreeOddballTask:
 
                 print('warn: retry number', i)
                 self.data = self._samp_batch(data_size)
+        
+        if reset_rng_for_data:
+            self.rng = np.random.default_rng(None)
 
     def _samp_batch(self, size):
-        centers = np.random.uniform(-self.box_radius, self.box_radius, size=(size, 1, self.n_dims))
-        points = np.random.randn(size, self.n_choices, self.n_dims)
+        centers = self.rng.uniform(-self.box_radius, self.box_radius, size=(size, 1, self.n_dims))
+        points = self.rng.standard_normal(size=(size, self.n_choices, self.n_dims))
 
-        angles = np.random.uniform(0, 2 * np.pi, size)
+        angles = self.rng.uniform(0, 2 * np.pi, size)
         oddballs = self.discrim_dist * np.stack([np.cos(angles), np.sin(angles)], axis=1)
-        oddball_idxs = np.random.choice(self.n_choices, size=size, replace=True)
+        oddball_idxs = self.rng.choice(self.n_choices, size=size, replace=True)
 
         points[np.arange(size), oddball_idxs] += oddballs
         xs = centers + points
@@ -52,9 +62,8 @@ class FreeOddballTask:
         if self.data_size is None:
             return self._samp_batch(self.batch_size)
         else:
-            idxs = np.random.choice(self.data_size, size=self.batch_size, replace=True)
+            idxs = self.rng.choice(self.data_size, size=self.batch_size, replace=True)
             return self.data[0][idxs], self.data[1][idxs]
-            
 
     def __iter__(self):
         return self
@@ -98,13 +107,13 @@ class FixedOddballTask:
 
 
 if __name__ == '__main__':
-    task = FreeOddballTask(one_hot=True)
+    task = FreeOddballTask(seed=3, data_size=3, reset_rng_for_data=True)
     # task = LineOddballTask(n_choices=10, perp_dist=5, with_dot_product_feats=True)
     xs, ys = next(task)
-    print(ys)
 
-    # import matplotlib.pyplot as plt
-    # plt.scatter(xs[0,:,0], xs[0,:,1], c=np.arange(10))
-    # plt.gca().axis('equal')
-    # plt.colorbar()
-    # print(ys)
+    import matplotlib.pyplot as plt
+    plt.scatter(xs[0,:,0], xs[0,:,1], c=np.arange(6))
+    plt.gca().axis('equal')
+    plt.colorbar()
+    print(ys)
+    print(task.data)
