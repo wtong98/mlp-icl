@@ -1,6 +1,6 @@
 """
 Comparing behavior of models versus KNN (on finite data sizes), at the
-accuracy and logit level.
+accuracy and logit level on the match task.
 
 Observations:
 - At a high level, KNN accuracy tracks that of other models
