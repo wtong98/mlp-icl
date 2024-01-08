@@ -77,7 +77,7 @@ g = sns.barplot(plot_df, x='data_size', y='acc', hue='name')
 g.legend_.set_title(None)
 
 plt.tight_layout()
-plt.savefig('fig/match_knn_gen.png')
+# plt.savefig('fig/oddball_knn_gen.png')
 
 # <codecell>
 ### EXAMINE LOGITS MATCH
