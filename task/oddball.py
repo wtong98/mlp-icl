@@ -107,13 +107,19 @@ class FixedOddballTask:
 
 
 if __name__ == '__main__':
-    task = FreeOddballTask(seed=3, data_size=3, reset_rng_for_data=True)
-    # task = LineOddballTask(n_choices=10, perp_dist=5, with_dot_product_feats=True)
-    xs, ys = next(task)
-
     import matplotlib.pyplot as plt
-    plt.scatter(xs[0,:,0], xs[0,:,1], c=np.arange(6))
-    plt.gca().axis('equal')
-    plt.colorbar()
-    print(ys)
-    print(task.data)
+    # task = FreeOddballTask(reset_rng_for_data=True)
+    task = LineOddballTask(n_choices=6, perp_dist=4)
+
+    fig, axs = plt.subplots(2, 3, figsize=(6, 4))
+
+    for ax, (xs, ys) in zip(axs.ravel(), task):
+        c = np.zeros(6)
+        c[ys[0]] = 1
+
+        ax.scatter(xs[0,:,0], xs[0,:,1], c=c)
+        ax.axis('equal')
+        # plt.colorbar()
+    
+    plt.tight_layout()
+    plt.savefig('../experiment/fig/line_oddball_examples.png')

@@ -112,8 +112,18 @@ if __name__ == '__main__':
     # print('Match', task.idx_to_label[labs[0]])
     # print("All", task.idx_to_label)
 
-    task = RingMatch(radius=2, scramble=True, batch_size=10, data_size=3, seed=1, reset_rng_for_data=True)
-    xs, labs = next(task)
-    plt.scatter(xs[0][:,0], xs[0][:,1], c=[0, 1, 2, 3, 4, 5])
-    plt.axis('equal')
-    print(xs)
+    task = RingMatch(radius=1, batch_size=10, seed=1, reset_rng_for_data=True)
+
+    fig, axs = plt.subplots(2, 3, figsize=(6, 4))
+
+    for ax, (xs, ys) in zip(axs.ravel(), task):
+        c = np.zeros(6)
+        c[ys[0]] = 0.3
+        c[-1] = 1
+
+        ax.scatter(xs[0,:,0], xs[0,:,1], c=c)
+        ax.axis('equal')
+        # plt.colorbar()
+    
+    plt.tight_layout()
+    plt.savefig('../experiment/fig/match_examples.png')

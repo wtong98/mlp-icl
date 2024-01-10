@@ -30,7 +30,6 @@ from model.transformer import TransformerConfig
 from model.poly import PolyConfig
 from task.oddball import FreeOddballTask, LineOddballTask
 
-oddball_experiment = functools.partial(experiment, task_class=FreeOddballTask)
 
 # <codecell>
 # In-distribution performance
@@ -169,41 +168,27 @@ to the center of the cluster exactly!
 # EXPERIMENT WITH LINE ODDBALL TASK
 n_iters = 3
 n_out = 6
+train_iters = 20_000
 
-common_args = {
-    'task_class': LineOddballTask,
+task_args = {
     'linear_dist': 10
 }
+
 
 all_cases = []
 for _ in range(n_iters):
     all_cases.extend([
-        Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), oddball_experiment, 
-             experiment_args=common_args),
-        Case('MLP (dot product)', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), oddball_experiment, 
-             experiment_args=dict(
-                with_dot_product_feats=True,
-                **common_args)),
-        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, use_mlp_layers=True, pos_emb=True), oddball_experiment, 
-             experiment_args=common_args),
-        Case('MNN (short)', PolyConfig(n_out=n_out, n_layers=1, n_hidden=256), oddball_experiment, 
-             experiment_args=dict(
-                train_iters=10_000,
-                **common_args)),
-        Case('MNN (long)', PolyConfig(n_out=n_out, n_layers=1, n_hidden=256), oddball_experiment, 
-             experiment_args=dict(
-                train_iters=100_000,
-                **common_args)),
+        Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), LineOddballTask(**task_args), train_args={'train_iters': train_iters}),
+        Case('MLP (dot product)', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), LineOddballTask(**task_args), train_args={'train_iters': train_iters}),
+        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, use_mlp_layers=True, pos_emb=True), LineOddballTask(**task_args), train_args={'train_iters': train_iters}),
+        Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=256), LineOddballTask(**task_args), train_args={'train_iters': train_iters})
+        # TODO: redo long run properly with callbacks
     ])
 
 # <codecell>
 for case in tqdm(all_cases):
-    if case.state is None or 'short' in case.name:
-        case.experiment_args['train_iters'] = 10_000
-        print('CASE', case)
-        case.run()
-    else:
-        print('skip:', case.name)
+    print('CASE', case)
+    case.run()
 
 # <codecell>
 dists = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
@@ -244,7 +229,7 @@ ax = sns.barplot(plot_df, x='distance', y='acc', hue='name')
 sns.move_legend(ax, 'upper left', bbox_to_anchor=(1, 1))
 
 plt.tight_layout()
-plt.savefig('fig/line_oddball_gen.png')
+plt.savefig('fig/line_oddball_gen_longer.png')
 
 
 # <codecell>

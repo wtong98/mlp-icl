@@ -136,7 +136,7 @@ def compute_metrics(state, batch, loss='bce'):
 def train(config, data_iter, 
           test_iter=None, 
           loss='ce', 
-          train_iters=1_000, test_iters=100, test_every=100, 
+          train_iters=10_000, test_iters=100, test_every=1_000, 
           early_stop_n=None, early_stop_key='loss', early_stop_decision='min' ,
           seed=None, 
           l1_weight=0, **opt_kwargs):

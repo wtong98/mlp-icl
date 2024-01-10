@@ -42,7 +42,7 @@ def extract_plot_vals(row):
 
     return pd.Series([
         row['name'],
-        data_size,
+        int(data_size),
         row['info']['eval_acc'].item(),
     ], index=['name', 'data_size', 'acc'])
 
@@ -77,7 +77,7 @@ g = sns.barplot(plot_df, x='data_size', y='acc', hue='name')
 g.legend_.set_title(None)
 
 plt.tight_layout()
-# plt.savefig('fig/oddball_knn_gen.png')
+plt.savefig('fig/oddball_knn_gen.png')
 
 # <codecell>
 ### EXAMINE LOGITS MATCH
@@ -125,12 +125,16 @@ if not fig_dir.exists():
     fig_dir.mkdir()
 
 for idx in range(25):
-    for prob in all_mlp_probs:
-        plt.plot(prob[idx], 'o--', alpha=0.4, color='C0')
+    for i, prob in enumerate(all_mlp_probs):
+        if i == 0:
+            plt.plot(prob[idx], 'o--', alpha=0.4, color='C0', label='MLP')
+        else:
+            plt.plot(prob[idx], 'o--', alpha=0.4, color='C0')
 
-    plt.plot(knn_probs[idx], 'o--', color='C1')
+    plt.plot(knn_probs[idx], 'o--', color='C1', label='near-neigh')
     plt.xlabel('Choice')
     plt.ylabel('Probability')
+    plt.legend()
 
     plt.tight_layout()
     plt.savefig(fig_dir / f'{idx}.png')

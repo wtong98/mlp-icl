@@ -15,7 +15,7 @@ from model.transformer import TransformerConfig
 from task.match import RingMatch 
     
 
-n_iters = 3
+n_iters = 5
 n_out = 6
 data_sizes = [8, 16, 32, 64, 128, 256, 512, 1024]
 train_iters=30_000
