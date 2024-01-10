@@ -62,6 +62,13 @@ class Case:
         eval_acc = np.mean(ys == preds)
 
         self.info[key_name] = eval_acc
+    
+    def eval_mse(self, task, key_name='eval_mse'):
+        xs, ys = next(task)
+        ys_pred = self.state.apply_fn({'params': self.state.params}, xs)
+        mse = np.mean((ys - ys_pred)**2)
+
+        self.info[key_name] = mse
 
 
 @ dataclass
@@ -87,7 +94,7 @@ class KnnCase:
         self.info[key_name] = eval_acc
 
 
-def eval_cases(all_cases, eval_task, key_name='eval_acc', ignore_err=False):
+def eval_cases(all_cases, eval_task, key_name='eval_acc', use_mse=False, ignore_err=False):
     try:
         len(eval_task)
     except TypeError:
@@ -95,7 +102,10 @@ def eval_cases(all_cases, eval_task, key_name='eval_acc', ignore_err=False):
 
     for c, task in tqdm(zip(all_cases, eval_task), total=len(all_cases)):
         try:
-            c.eval(task, key_name)
+            if use_mse:
+                c.eval_mse(task, key_name)
+            else:
+                c.eval(task, key_name)
         except Exception as e:
             if ignore_err:
                 continue
