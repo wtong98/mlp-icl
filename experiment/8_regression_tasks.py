@@ -137,6 +137,28 @@ plot_extrap(w=0, save_path='fig/reg_extrap_plot_w_0.png')
 plot_extrap(w=1, save_path='fig/reg_extrap_plot_w_1.png')
 plot_extrap(w=5, save_path='fig/reg_extrap_plot_w_5.png')
 
+# <codecell>
+### HIGHER DIMENSIONS
+df = pd.read_pickle('remote/8_regression_tasks/res_dim.pkl')
+
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['train_task'].n_dims,
+        row['info']['eval_acc'].item(),
+    ], index=['name', 'data dim', 'mse'])
+
+plot_df = df.apply(extract_plot_vals, axis=1)
+
+# <codecell>
+plt.gcf().set_size_inches(6, 3)
+
+g = sns.barplot(plot_df, x='data dim', y='mse', hue='name')
+g.legend_.set_title(None)
+g.set_yscale('log')
+
+plt.tight_layout()
+plt.savefig('fig/reg_high_dims.png')
 
 # <codecell>
 task = LinearRegression(batch_size=128, n_dims=5)
