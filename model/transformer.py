@@ -39,7 +39,8 @@ class TransformerConfig:
     pos_emb: bool = True
     # softmax_att: bool = True
     # softmax_val: bool = False
-    use_mlp_layers: bool = True
+    # use_mlp_layers: bool = True
+    n_mlp_layers: int = 2
     return_final_logits_only: bool = True
     pure_linear_self_att: bool = False
 
@@ -179,14 +180,17 @@ class TransformerBlock(nn.Module):
         x = nn.MultiHeadDotProductAttention(num_heads=self.config.n_heads, 
                                             qkv_features=self.config.n_hidden)(inputs_q=inputs, inputs_kv=inputs, mask=decoder_mask)
         x = x + inputs
-        x = nn.LayerNorm()(x)
+        pre_mlp_x = nn.LayerNorm()(x)
 
-        if self.config.use_mlp_layers:
-            x = nn.Dense(features=self.config.n_hidden)(x)
-            x = nn.gelu(x)
-            x = nn.Dense(features=self.config.n_hidden)(x)
-            x = x + inputs
-            x = nn.LayerNorm()(x)
+        for i in range(self.config.n_mlp_layers):
+            if i == 0:
+                x = nn.Dense(features=self.config.n_hidden)(pre_mlp_x)
+            else:
+                x = nn.gelu(x)
+                x = nn.Dense(features=self.config.n_hidden)(x)
+        
+        x = x + pre_mlp_x
+        x = nn.LayerNorm()(x)
 
         return x
 

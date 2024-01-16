@@ -2,7 +2,10 @@
 Matching tasks, analogous to the delayed match-to-sample task of Griffiths paper (TODO: cite)
 """
 # <codecell>
+import functools
+import pathos.multiprocessing as mp
 
+import jax
 import numpy as np
 
 class RingMatch:
@@ -92,19 +95,29 @@ class LabelRingMatch:
 
 class GautamMatch:
     """Gautam's classification task (full)"""
-    def __init__(self, n_points=8, n_classes=64, n_labels=16, n_dims=2, bursty=1, prob_b=1, eps=0.1, alpha=0, batch_size=128, seed=None):
+    def __init__(self, n_points=8, n_classes=128, n_labels=32, n_dims=64,
+                 matched_target=True,
+                 bursty=1, prob_b=1, 
+                 eps=0.1, alpha=0, 
+                 batch_size=128, seed=None, reset_rng_for_data=True,
+                 n_workers=0):
         self.n_points = n_points
         self.n_classes = n_classes
         self.n_labels = n_labels
         self.n_dims = n_dims
+        self.matched_target = matched_target
         self.bursty = bursty
         self.prob_b = prob_b
         self.eps = eps
         self.alpha = alpha
         self.batch_size = batch_size
+        self.seed = seed
         self.rng = np.random.default_rng(seed)
+        self.n_workers = n_workers
 
-        # TODO: assignments happen with same RNG as sampling
+        if self.n_workers > 0:
+            self.pool = mp.ProcessPool(nodes=self.n_workers)
+
         self.idx_to_center = self.rng.normal(loc=0, scale=(1 / np.sqrt(n_dims)), size=(self.n_classes, n_dims))
         self.idx_to_label = self.rng.normal(loc=0, scale=(1 / np.sqrt(n_dims)), size=(self.n_labels, n_dims))
 
@@ -114,23 +127,40 @@ class GautamMatch:
         self.class_to_label = self.rng.permutation(self.class_to_label)
         
         assert self.n_points % self.bursty == 0, f'n_points={self.n_points} is not divisible by bursty={self.bursty}'
+
+        if reset_rng_for_data:
+            self.rng = np.random.default_rng(None)
     
-    def _sample_example(self, burst=0):
+    def resample_clusters(self, seed=None):
+        rng = np.random.default_rng(seed)
+        self.idx_to_center = rng.normal(loc=0, scale=(1 / np.sqrt(self.n_dims)), size=(self.n_classes, self.n_dims))
+
+    def swap_labels(self, seed=None):
+        rng = np.random.default_rng(seed)
+        self.class_to_label = rng.permutation(self.class_to_label)
+
+    def _sample_example(self, rng, burst=0):
         cluster_probs = np.arange(1, self.n_classes + 1)**(-self.alpha)
         cluster_probs = cluster_probs / np.sum(cluster_probs)
 
         if burst > 0:
-            cluster_idxs = self.rng.choice(self.n_classes, size=self.n_points // burst, p=cluster_probs, replace=False)
+            cluster_idxs = rng.choice(self.n_classes, size=self.n_points // burst, p=cluster_probs, replace=False)
             cluster_idxs = np.repeat(cluster_idxs, repeats=burst)
-            cluster_idxs = self.rng.permutation(cluster_idxs)
+            cluster_idxs = rng.permutation(cluster_idxs)
         else:
-            cluster_idxs = self.rng.choice(self.n_classes, size=self.n_points, p=cluster_probs, replace=True)
+            cluster_idxs = rng.choice(self.n_classes, size=self.n_points, p=cluster_probs, replace=True)
         
-        target_idx = self.rng.choice(cluster_idxs)
+        if self.matched_target:
+            target_idx = rng.choice(cluster_idxs)
+        else:
+            target_idx = rng.choice(self.n_classes)
+            while target_idx in cluster_idxs:
+                target_idx = rng.choice(self.n_classes)
+
         cluster_idxs = np.append(cluster_idxs, target_idx)
 
         centers = self.idx_to_center[cluster_idxs]
-        points = (centers + self.eps * self.rng.normal(scale=(1/np.sqrt(self.n_dims)), size=(centers.shape))) / np.sqrt(1 + self.eps**2)
+        points = (centers + self.eps * rng.normal(scale=(1/np.sqrt(self.n_dims)), size=(centers.shape))) / np.sqrt(1 + self.eps**2)
         label_idxs = self.class_to_label[cluster_idxs]
         labels = self.idx_to_label[label_idxs]
 
@@ -141,25 +171,35 @@ class GautamMatch:
     
     def __next__(self):
         n_bursty = self.rng.binomial(self.batch_size, p=self.prob_b)
-        bursty_exs = [self._sample_example(burst=self.bursty) for _ in range(n_bursty)]
-        plain_exs = [self._sample_example(burst=0) for _ in range(self.batch_size - n_bursty)]
-        all_exs = bursty_exs + plain_exs
-        xs, ys = zip(*all_exs)
+        args = np.zeros(self.batch_size, dtype=np.int32)
+        args[:n_bursty] = self.bursty
 
+        if self.n_workers == 0:
+            all_exs = [self._sample_example(self.rng, burst=a) for a in args]
+        else:
+            rngs = self.rng.spawn(self.batch_size)
+            all_exs = self.pool.map(self._sample_example, rngs, args)
+
+        xs, ys = zip(*all_exs)
         perm_idxs = self.rng.permutation(self.batch_size)
         return np.array(xs)[perm_idxs], np.array(ys)[perm_idxs]
 
     def __iter__(self):
         return self
+    
+    def close(self):
+        self.pool.close()
 
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = GautamMatch(n_points=4, n_classes=4, n_labels=2, batch_size=5, seed=50, eps=0, bursty=4)
+    task = GautamMatch(n_workers=4, n_points=4, n_classes=4, n_labels=2, batch_size=5, seed=50, eps=0, bursty=1, n_dims=2, reset_rng_for_data=False)
+    print(task.class_to_label)
     xs, ys = next(task)
     print(xs)
     print(ys)
+
 
     # task = LabelRingMatch(n_points=6, seed=1, reset_rng_for_data=True)
 
