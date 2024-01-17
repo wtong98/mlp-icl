@@ -13,7 +13,7 @@ from model.transformer import TransformerConfig
 from task.match import GautamMatch 
     
 n_iters = 3
-train_iters = 50_000
+train_iters = 150_000
 n_labels = 32
 
 iwl_args = {'bursty': 1, 'n_classes': 128}
@@ -68,7 +68,7 @@ eval_cases(all_cases, all_tasks, key_name='iwl_acc')
 
 # ICL EVALUATION (new clusters)
 all_tasks = []
-for c in all_cases:
+for case in all_cases:
     t = case.train_task
     task = GautamMatch(n_labels=t.n_labels, seed=t.seed, batch_size=1024, **icl_args)
     task.resample_clusters()

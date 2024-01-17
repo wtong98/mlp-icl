@@ -31,11 +31,11 @@ df = pd.read_pickle('remote/9_gautam_match.py/res.pkl')
 df_res = pd.DataFrame(df['info'].tolist()).astype('float')
 plot_df = df[['name']].join(df_res)
 
-plot_df = plot_df.melt(id_vars='name', var_name='type', value_name='acc')
+plot_df = plot_df.melt(id_vars='name', var_name='type', value_name='accuracy')
 plot_df.head()
 
 # <codecell>
-g = sns.barplot(plot_df, x='type', y='acc', hue='name')
+g = sns.barplot(plot_df, x='type', y='accuracy', hue='name')
 g.legend_.set_title(None)
 
 plt.tight_layout()
