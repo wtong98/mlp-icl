@@ -25,6 +25,36 @@ from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.match import GautamMatch
 
+# <codecell>
+df = pd.read_pickle('remote/9_gautam_match.py/res.pkl')
+
+df_res = pd.DataFrame(df['info'].tolist()).astype('float')
+plot_df = df[['name']].join(df_res)
+
+plot_df = plot_df.melt(id_vars='name', var_name='type', value_name='acc')
+plot_df.head()
+
+# <codecell>
+g = sns.barplot(plot_df, x='type', y='acc', hue='name')
+g.legend_.set_title(None)
+
+plt.tight_layout()
+plt.savefig('fig/match_gautam_gen.png')
+
+# <codecell>
+for i in range(6):
+    row = df.iloc[i]
+    accs = [m['accuracy'] for m in row['hist']['train']]
+    plt.plot(accs, '--', label=row['name'], alpha=0.5)
+
+plt.legend()
+plt.xlabel('Batch (x1000)')
+plt.ylabel('Accuracy')
+
+plt.tight_layout()
+plt.savefig('fig/match_gautam_acc_curve.png')
+
+# <codecell>
 
 n_labels = 32
 

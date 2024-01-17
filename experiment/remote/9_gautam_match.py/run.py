@@ -50,6 +50,11 @@ for case in tqdm(all_cases):
     print('RUNNING', case.name)
     case.run()
 
+
+# IN-DIST EVALUATION
+all_tasks = [c.train_task for c in all_cases]
+eval_cases(all_cases, all_tasks, key_name='acc')
+
 # IWL EVALUATION
 all_tasks = []
 for case in all_cases:
@@ -64,6 +69,7 @@ eval_cases(all_cases, all_tasks, key_name='iwl_acc')
 # ICL EVALUATION (new clusters)
 all_tasks = []
 for c in all_cases:
+    t = case.train_task
     task = GautamMatch(n_labels=t.n_labels, seed=t.seed, batch_size=1024, **icl_args)
     task.resample_clusters()
     all_tasks.append(task)
@@ -76,7 +82,7 @@ all_tasks = []
 for case in all_cases:
     t = case.train_task
     task = GautamMatch(n_labels=t.n_labels, seed=t.seed, batch_size=1024, **icl_args)
-    task.swap_labels
+    task.swap_labels()
     all_tasks.append(task)
 
 eval_cases(all_cases, all_tasks, key_name='icl_swap_acc')
