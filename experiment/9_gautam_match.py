@@ -56,34 +56,59 @@ plt.savefig('fig/match_gautam_acc_curve.png')
 
 # <codecell>
 
-n_labels = 32
+n_labels = 8
 
-task = GautamMatch(batch_size=128, n_labels=n_labels, bursty=1, n_classes=128, n_dims=64, seed=5)
+task = GautamMatch(width=1, batch_size=128, n_labels=n_labels, n_points=4, bursty=2, n_classes=8192, n_dims=64, seed=23, reset_rng_for_data=True, eps=0.1)
 
 config = MlpConfig(n_out=n_labels, n_layers=3, n_hidden=512)
 # config = PolyConfig(n_out=n_labels, n_layers=1, n_hidden=512, start_with_dense=True)
 # config = TransformerConfig(pos_emb=True, n_out=n_labels, n_heads=4, n_layers=3, n_hidden=256, n_mlp_layers=3)
 
-state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=5_000, lr=1e-4, l1_weight=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=20_000, lr=1e-4, l1_weight=1e-4)
 
 '''
 Initial observations
 - Transformer learns with the best sample efficiency, followed by MLP then MNN.
 It seems that all models can interpolate perfectly with sufficient time
+- It seems that any amount of fixed clusters will damage an MLPs ability to
+generalize in-context
+
+TODO: See if reduced parameters encourages MLP to learn
 
 Notes:
 - IWL params: bursty=1, n_classes=128
 - ICL params: bursty=4, n_classes=2048
 '''
 # %%
-task = GautamMatch(batch_size=128, n_labels=n_labels, bursty=1, n_classes=128, n_dims=64, seed=5)
+task = GautamMatch(width=1, batch_size=128, n_labels=n_labels, n_points=4, bursty=2, n_classes=8192, n_dims=64, seed=23, reset_rng_for_data=True, eps=0.1)
 task.batch_size = 1024
 
 # task.matched_target = False
-task.swap_labels()
+# task.swap_labels()
+# task.resample_clusters()
 
 xs, ys = next(task)
 logits = state.apply_fn({'params': state.params}, xs)
 preds = logits.argmax(-1)
 
 np.mean(preds == ys)
+
+# <codecell>
+task = GautamMatch(width=64, batch_size=128, n_labels=n_labels, n_points=4, bursty=1, n_classes=None, n_dims=2, seed=12, reset_rng_for_data=True, eps=0)
+task.batch_size = 3
+
+
+xs, ys = next(task)
+print('XS', xs[:,:,:2])
+print('YS', ys)
+
+logits = state.apply_fn({'params': state.params}, xs)
+preds = logits.argmax(-1)
+print('PREDS', preds)
+np.mean(preds == ys)
+# %%
+for l in logits:
+    plt.plot(l)
+# %%
+xs[1] @ xs[1].T
+# %%

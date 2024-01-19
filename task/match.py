@@ -98,7 +98,7 @@ class GautamMatch:
     def __init__(self, n_points=8, n_classes=128, n_labels=32, n_dims=64,
                  matched_target=True,
                  bursty=1, prob_b=1, 
-                 eps=0.1, alpha=0, 
+                 eps=0.1, alpha=0, width=1,
                  batch_size=128, seed=None, reset_rng_for_data=True,
                  n_workers=0):
         self.n_points = n_points
@@ -110,6 +110,7 @@ class GautamMatch:
         self.prob_b = prob_b
         self.eps = eps
         self.alpha = alpha
+        self.width = width
         self.batch_size = batch_size
         self.seed = seed
         self.rng = np.random.default_rng(seed)
@@ -117,14 +118,17 @@ class GautamMatch:
 
         if self.n_workers > 0:
             self.pool = mp.ProcessPool(nodes=self.n_workers)
+        
+        self.width = width
 
-        self.idx_to_center = self.rng.normal(loc=0, scale=(1 / np.sqrt(n_dims)), size=(self.n_classes, n_dims))
-        self.idx_to_label = self.rng.normal(loc=0, scale=(1 / np.sqrt(n_dims)), size=(self.n_labels, n_dims))
+        self.idx_to_label = self.rng.normal(loc=0, scale=(self.width / np.sqrt(n_dims)), size=(self.n_labels, n_dims))
+        if n_classes is not None:
+            self.idx_to_center = self.rng.normal(loc=0, scale=(self.width / np.sqrt(n_dims)), size=(self.n_classes, n_dims))
 
-        assert n_classes % n_labels == 0, f'n_classes={n_classes} is not divisible by n_labels={n_labels}'
-        n_classes_per_lab = n_classes // n_labels
-        self.class_to_label = np.repeat(np.arange(self.n_labels), repeats=n_classes_per_lab)
-        self.class_to_label = self.rng.permutation(self.class_to_label)
+            assert n_classes % n_labels == 0, f'n_classes={n_classes} is not divisible by n_labels={n_labels}'
+            n_classes_per_lab = n_classes // n_labels
+            self.class_to_label = np.repeat(np.arange(self.n_labels), repeats=n_classes_per_lab)
+            self.class_to_label = self.rng.permutation(self.class_to_label)
         
         assert self.n_points % self.bursty == 0, f'n_points={self.n_points} is not divisible by bursty={self.bursty}'
 
@@ -133,35 +137,56 @@ class GautamMatch:
     
     def resample_clusters(self, seed=None):
         rng = np.random.default_rng(seed)
-        self.idx_to_center = rng.normal(loc=0, scale=(1 / np.sqrt(self.n_dims)), size=(self.n_classes, self.n_dims))
+        self.idx_to_center = rng.normal(loc=0, scale=(self.width / np.sqrt(self.n_dims)), size=(self.n_classes, self.n_dims))
 
     def swap_labels(self, seed=None):
         rng = np.random.default_rng(seed)
         self.class_to_label = rng.permutation(self.class_to_label)
 
     def _sample_example(self, rng, burst=0):
-        cluster_probs = np.arange(1, self.n_classes + 1)**(-self.alpha)
-        cluster_probs = cluster_probs / np.sum(cluster_probs)
+        if self.n_classes is not None:
+            cluster_probs = np.arange(1, self.n_classes + 1)**(-self.alpha)
+            cluster_probs = cluster_probs / np.sum(cluster_probs)
 
-        if burst > 0:
-            cluster_idxs = rng.choice(self.n_classes, size=self.n_points // burst, p=cluster_probs, replace=False)
-            cluster_idxs = np.repeat(cluster_idxs, repeats=burst)
-            cluster_idxs = rng.permutation(cluster_idxs)
-        else:
-            cluster_idxs = rng.choice(self.n_classes, size=self.n_points, p=cluster_probs, replace=True)
-        
-        if self.matched_target:
-            target_idx = rng.choice(cluster_idxs)
-        else:
-            target_idx = rng.choice(self.n_classes)
-            while target_idx in cluster_idxs:
+            if burst > 0:
+                cluster_idxs = rng.choice(self.n_classes, size=self.n_points // burst, p=cluster_probs, replace=False)
+                cluster_idxs = np.repeat(cluster_idxs, repeats=burst)
+                cluster_idxs = rng.permutation(cluster_idxs)
+            else:
+                cluster_idxs = rng.choice(self.n_classes, size=self.n_points, p=cluster_probs, replace=True)
+            
+            if self.matched_target:
+                target_idx = rng.choice(cluster_idxs)
+            else:
                 target_idx = rng.choice(self.n_classes)
+                while self.class_to_label[target_idx] in self.class_to_label[cluster_idxs]:
+                    target_idx = rng.choice(self.n_classes)
 
-        cluster_idxs = np.append(cluster_idxs, target_idx)
+            cluster_idxs = np.append(cluster_idxs, target_idx)
+            label_idxs = self.class_to_label[cluster_idxs]
+            centers = self.idx_to_center[cluster_idxs]
+        else:
+            centers = rng.normal(loc=0, scale=(self.width / np.sqrt(self.n_dims)), size=(self.n_points + 1, self.n_dims))
 
-        centers = self.idx_to_center[cluster_idxs]
+            if burst > 0:
+                label_idxs = rng.choice(self.n_labels, size=self.n_points // burst, replace=False)
+                label_idxs = np.repeat(label_idxs, repeats=burst)
+                label_idxs = rng.permutation(label_idxs)
+            else:
+                label_idxs = rng.choice(self.n_classes, size=self.n_points, replace=True)
+
+            if self.matched_target:
+                target = rng.choice(self.n_points - 1)
+                centers[-1] = centers[target]
+                label_idxs = np.append(label_idxs, label_idxs[target])
+            else:
+                target_idx = self.rng.choice(self.n_labels)
+                while target_idx in label_idxs:
+                    target_idx = self.rng.choice(self.n_labels)
+
+                label_idxs = np.append(label_idxs, target_idx)
+
         points = (centers + self.eps * rng.normal(scale=(1/np.sqrt(self.n_dims)), size=(centers.shape))) / np.sqrt(1 + self.eps**2)
-        label_idxs = self.class_to_label[cluster_idxs]
         labels = self.idx_to_label[label_idxs]
 
         xs = np.empty((2 * self.n_points + 1, self.n_dims))
@@ -194,11 +219,13 @@ class GautamMatch:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = GautamMatch(n_workers=4, n_points=4, n_classes=4, n_labels=2, batch_size=5, seed=50, eps=0, bursty=1, n_dims=2, reset_rng_for_data=False)
-    print(task.class_to_label)
+    task = GautamMatch(matched_target=False, width=4, n_points=4, n_classes=100, n_labels=10, batch_size=2, seed=50, eps=0, bursty=2, n_dims=2, reset_rng_for_data=True)
+    # print(task.idx_to_label)
+    # print(task.class_to_label)
     xs, ys = next(task)
     print(xs)
     print(ys)
+
 
 
     # task = LabelRingMatch(n_points=6, seed=1, reset_rng_for_data=True)
@@ -235,3 +262,4 @@ if __name__ == '__main__':
     
     # plt.tight_layout()
     # plt.savefig('../experiment/fig/match_examples.png')
+# %%

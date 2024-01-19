@@ -3,7 +3,7 @@
 #SBATCH -t 1-00:00:00
 #SBATCH -p seas_gpu,kempner,pehlevan_gpu,gpu
 #SBATCH --gres=gpu:1
-#SBATCH --mem=32000
+#SBATCH --mem=16000
 #SBATCH -o run.%j.out
 #SBATCH -e run.%j.err
 #SBATCH --mail-type=END
