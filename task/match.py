@@ -136,10 +136,16 @@ class GautamMatch:
             self.rng = np.random.default_rng(None)
     
     def resample_clusters(self, seed=None):
+        if self.n_classes is None:
+            return
+
         rng = np.random.default_rng(seed)
         self.idx_to_center = rng.normal(loc=0, scale=(self.width / np.sqrt(self.n_dims)), size=(self.n_classes, self.n_dims))
 
     def swap_labels(self, seed=None):
+        if self.n_classes is None:
+            return
+
         rng = np.random.default_rng(seed)
         self.class_to_label = rng.permutation(self.class_to_label)
 

@@ -11,7 +11,7 @@ from model.mlp import MlpConfig
 from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.match import GautamMatch 
-    
+
 n_iters = 3
 train_iters = 40_000
 n_labels = 8
