@@ -12,11 +12,20 @@ from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.match import GautamMatch 
 
+# mini config
+# n_iters = 3
+# train_iters = 40_000
+# n_labels = 8
+# n_points = 4
+# bursty = 2
+# n_classes = [8, 32, 128, 512, 2048, 8192, None]
+
+# big config
 n_iters = 3
-train_iters = 40_000
+train_iters = 80_000
 n_labels = 8
-n_points = 4
-bursty = 2
+n_points = 8
+bursty = 4
 n_classes = [8, 32, 128, 512, 2048, 8192, None]
 
 all_cases = []

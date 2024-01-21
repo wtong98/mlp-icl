@@ -27,6 +27,23 @@ from task.match import GautamMatch
 
 # <codecell>
 df = pd.read_pickle('remote/9_gautam_match.py/res.pkl')
+df_res = pd.DataFrame(df['info'].tolist())
+df_args = pd.DataFrame(df_res['task_args'].tolist())
+df_res = df_res.drop('task_args', axis='columns').join(df_args).astype('float')
+df = df.drop('info', axis='columns').join(df_res)
+plot_df = df[['name', 'acc', 'iwl_acc', 'icl_resamp_acc', 'icl_swap_acc', 'n_classes']] \
+            .melt(id_vars=['name', 'n_classes'], var_name='acc_type', value_name='accuracy') \
+            .fillna(float("inf"))
+
+plot_df.head()
+
+# <codecell>
+sns.catplot(plot_df, x='n_classes', y='accuracy', hue='name', row='acc_type', kind='bar', height=1.5, aspect=3.5)
+plt.savefig('fig/match_gautam_n_class_labs_8_pts_4_burst_2.png')
+
+# <codecell>
+### OLD res.pkl plotting  v
+df = pd.read_pickle('remote/9_gautam_match.py/res.pkl')
 
 df_res = pd.DataFrame(df['info'].tolist()).astype('float')
 plot_df = df[['name']].join(df_res)
