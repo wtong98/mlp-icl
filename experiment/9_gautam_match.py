@@ -2,6 +2,17 @@
 Probing the abilities of each model on an exact implementation of Gautam's
 in-context classification task (Reddy 2023)
 
+Initial observations
+- Transformer learns with the best sample efficiency, followed by MLP then MNN.
+It seems that all models can interpolate perfectly with sufficient time
+- MLPs will generalize with sufficiently many fixed clusters (just like transformers).
+For small number of labels and/or points, MLPs seem to match transformers in
+terms of generalizing with clusters.
+
+To test:
+- Will increasing labels or points slow the MLP's generalization as compared to the transformers?
+
+
 author: William Tong (wtong@g.harvard.edu)
 """
 # <codecell>
@@ -84,13 +95,6 @@ config = MlpConfig(n_out=n_labels, n_layers=3, n_hidden=512)
 state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=20_000, lr=1e-4, l1_weight=1e-4)
 
 '''
-Initial observations
-- Transformer learns with the best sample efficiency, followed by MLP then MNN.
-It seems that all models can interpolate perfectly with sufficient time
-- It seems that any amount of fixed clusters will damage an MLPs ability to
-generalize in-context
-
-TODO: See if reduced parameters encourages MLP to learn
 
 Notes:
 - IWL params: bursty=1, n_classes=128
