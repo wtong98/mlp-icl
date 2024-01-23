@@ -67,7 +67,7 @@ def parse_loss_name(loss):
     elif loss == 'ce':
         loss_func = optax.softmax_cross_entropy_with_integer_labels
     elif loss == 'mse':
-        loss_func = optax.l2_loss
+        loss_func = optax.squared_error
     else:
         raise ValueError(f'unrecognized loss name: {loss}')
     return loss_func

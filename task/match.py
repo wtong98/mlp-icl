@@ -181,6 +181,7 @@ class GautamMatch:
             else:
                 label_idxs = rng.choice(self.n_classes, size=self.n_points, replace=True)
 
+            # NOTE: matching cluster values may be important here, not simply matching labels (has impact on final training)
             if self.matched_target:
                 target = rng.choice(self.n_points - 1)
                 centers[-1] = centers[target]
