@@ -180,7 +180,7 @@ for _ in range(n_iters):
     all_cases.extend([
         Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), LineOddballTask(**task_args), train_args={'train_iters': train_iters}),
         Case('MLP (dot product)', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), LineOddballTask(**task_args), train_args={'train_iters': train_iters}),
-        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, use_mlp_layers=True, pos_emb=True), LineOddballTask(**task_args), train_args={'train_iters': train_iters}),
+        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, n_mlp_layers=2, pos_emb=True), LineOddballTask(**task_args), train_args={'train_iters': train_iters}),
         Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=256), LineOddballTask(**task_args), train_args={'train_iters': train_iters})
         # TODO: redo long run properly with callbacks
     ])

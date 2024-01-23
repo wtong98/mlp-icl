@@ -72,13 +72,6 @@ n_dims = 2
 
 n_ws = [4, 32, 128, 512, 2048, 8192]
 
-n_iters = 1
-train_iters = 2_000
-batch_size = 256
-n_dims = 2
-
-n_ws = [128]
-
 all_cases = []
 for _ in range(n_iters):
     common_task_args = {'n_dims': n_dims, 'seed': new_seed()}
