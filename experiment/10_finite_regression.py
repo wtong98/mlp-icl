@@ -7,6 +7,8 @@ author: William Tong (wtong@g.harvard.edu)
 
 # <codecell>
 import jax
+import jax.numpy as jnp
+import flax.linen as nn
 from flax.serialization import from_state_dict
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +22,7 @@ import sys
 sys.path.append('../')
 from train import train, create_train_state
 from model.knn import KnnConfig
-from model.mlp import MlpConfig
+from model.mlp import MlpConfig, RfConfig
 from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression, LinearRegression
@@ -46,10 +48,13 @@ plot_df = df.apply(extract_plot_vals, axis=1)
 
 # <codecell>
 task = FiniteLinearRegression(n_ws=128, batch_size=256, n_dims=2)
+dummy_xs, _ = next(task)
+dummy_xs = dummy_xs.reshape(dummy_xs.shape[0], -1)
 
-# config = MlpConfig(n_out=1, n_layers=3, n_hidden=512)
+# config = MlpConfig(n_out=1, n_layers=2, n_hidden=512)
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
 config = TransformerConfig(pos_emb=True, n_out=1, n_layers=3, n_hidden=256, n_mlp_layers=2)
+# config = RfConfig(n_in=dummy_xs.shape[1], n_out=1, scale=1, n_hidden=512, use_quadratic_activation=True)
 
 state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4, l1_weight=1e-4)
 

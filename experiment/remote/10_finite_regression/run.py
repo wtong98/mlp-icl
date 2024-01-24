@@ -1,4 +1,6 @@
 # <codecell>
+import dill
+import jax.numpy as jnp
 from flax.serialization import to_state_dict
 import numpy as np
 import pandas as pd
@@ -8,7 +10,7 @@ import sys
 sys.path.append('../../')
 sys.path.append('../../../')
 from common import *
-from model.mlp import MlpConfig
+from model.mlp import MlpConfig, RfConfig
 from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression 
 
@@ -47,6 +49,10 @@ def estimate_ridge(task, xs, ys, x_q, sig=0.5):
     return (x_q @ w_ridge).squeeze()
 
 
+def identity(x):
+    return x
+
+
 @dataclass
 class FunctionCase:
     name: str
@@ -69,7 +75,6 @@ n_iters = 3
 train_iters = 100_000
 batch_size = 256
 n_dims = 2
-
 n_ws = [4, 32, 128, 512, 2048, 8192, None]
 
 all_cases = []
@@ -80,7 +85,12 @@ for _ in range(n_iters):
 
         curr_tasks = [
             Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=common_train_args),
-            Case('Transformer', TransformerConfig(n_out=1, n_layers=3, n_heads=4, n_hidden=512, n_mlp_layers=3), train_args=common_train_args),
+            Case('MLP (id)', MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn=identity), train_args=common_train_args),
+            Case('MLP (2-layer, relu)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048), train_args=common_train_args),
+            Case('MLP (2-layer, quad)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048, act_fn=jnp.square), train_args=common_train_args),
+            Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
+
+            # Case('Transformer', TransformerConfig(n_out=1, n_layers=3, n_heads=4, n_hidden=512, n_mlp_layers=3), train_args=common_train_args),
             FunctionCase('dMMSE', estimate_dmmse),
             FunctionCase('Ridge', estimate_ridge),
         ]
@@ -109,8 +119,9 @@ eval_cases(all_cases, true_tasks, key_name='mse_true', use_mse=True)
 for case in all_cases:
     case.state = None
 
-df = pd.DataFrame(all_cases)
-df.to_pickle('res.pkl')
+# <codecell>
+with open('res_mlp.pkl', 'wb') as fp:
+    dill.dump(all_cases, fp)
 
 print('done!')
 
