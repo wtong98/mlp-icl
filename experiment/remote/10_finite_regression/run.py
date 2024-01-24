@@ -70,26 +70,27 @@ train_iters = 100_000
 batch_size = 256
 n_dims = 2
 
-n_ws = [4, 32, 128, 512, 2048, 8192]
+n_ws = [4, 32, 128, 512, 2048, 8192, None]
 
 all_cases = []
 for _ in range(n_iters):
-    common_task_args = {'n_dims': n_dims, 'seed': new_seed()}
-    common_train_args = {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
+    for n_w in n_ws:
+        common_task_args = {'n_ws': n_w, 'n_dims': n_dims, 'seed': new_seed()}
+        common_train_args = {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
 
-    curr_tasks = [
-        Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=common_train_args),
-        Case('Transformer', TransformerConfig(n_out=1, n_layers=3, n_heads=4, n_hidden=512, n_mlp_layers=3), train_args=common_train_args),
-        FunctionCase('dMMSE', estimate_dmmse),
-        FunctionCase('Ridge', estimate_ridge),
-    ]
+        curr_tasks = [
+            Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=common_train_args),
+            Case('Transformer', TransformerConfig(n_out=1, n_layers=3, n_heads=4, n_hidden=512, n_mlp_layers=3), train_args=common_train_args),
+            FunctionCase('dMMSE', estimate_dmmse),
+            FunctionCase('Ridge', estimate_ridge),
+        ]
 
-    for case in curr_tasks:
-        case.train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args)
-        case.test_task = FiniteLinearRegression(batch_size=1024, **common_task_args)
-        case.info['common_task_args'] = common_task_args
+        for case in curr_tasks:
+            case.train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args)
+            case.test_task = FiniteLinearRegression(batch_size=1024, **common_task_args)
+            case.info['common_task_args'] = common_task_args
 
-    all_cases.extend(curr_tasks)
+        all_cases.extend(curr_tasks)
 
 for case in tqdm(all_cases):
     print('RUNNING', case.name)

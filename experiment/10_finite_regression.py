@@ -25,6 +25,24 @@ from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression, LinearRegression
 
+# dummies
+def estimate_dmmse():
+    pass
+
+def estimate_ridge():
+    pass
+
+# <codecell>
+df = pd.read_pickle('remote/10_finite_regression/res.pkl')
+
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['train_task'].n_dims,
+        row['info']['eval_acc'].item(),
+    ], index=['name', 'data dim', 'mse'])
+
+plot_df = df.apply(extract_plot_vals, axis=1)
 
 # <codecell>
 task = FiniteLinearRegression(n_ws=128, batch_size=256, n_dims=2)
