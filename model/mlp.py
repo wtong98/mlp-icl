@@ -5,6 +5,16 @@ import jax
 import numpy as np
 from flax import linen as nn, struct
 
+def parse_act_fn(fn: str):
+    if fn == 'relu':
+        return jax.nn.relu
+    elif fn == 'linear':
+        return lambda x: x
+    elif fn =='quadratic':
+        return lambda x: x**2
+    else:
+        raise ValueError(f'function not recognized: {fn}')
+
 
 @struct.dataclass
 class MlpConfig:
@@ -14,7 +24,7 @@ class MlpConfig:
     n_emb: int = 64
     n_hidden: int = 128
     n_out: int = 1
-    act_fn: str = jax.nn.relu
+    act_fn: str = 'relu'
 
     def to_model(self):
         return MLP(self)
@@ -26,6 +36,8 @@ class MLP(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        act_fn = parse_act_fn(self.config.act_fn)
+
         if self.config.vocab_size is not None:
             x = nn.Embed(
                 num_embeddings=self.config.vocab_size,
@@ -35,7 +47,7 @@ class MLP(nn.Module):
 
         for _ in range(self.config.n_layers):
             x = nn.Dense(self.config.n_hidden)(x)
-            x = self.config.act_fn(x)
+            x = act_fn(x)
     
         out = nn.Dense(self.config.n_out)(x)
 
@@ -73,7 +85,7 @@ class RF(nn.Module):
         x = x.reshape(x.shape[0], -1)
         x = x @ self.w_rf1
         # x = nn.relu(x)
-        x = x @ self.w_rf2
+        # x = x @ self.w_rf2
 
         if self.config.use_quadratic_activation:
             x = x**2

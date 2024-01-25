@@ -6,6 +6,7 @@ author: William Tong (wtong@g.harvard.edu)
 """
 
 # <codecell>
+import dill
 import jax
 import jax.numpy as jnp
 import flax.linen as nn
@@ -35,6 +36,14 @@ def estimate_ridge():
     pass
 
 # <codecell>
+with open('remote/10_finite_regression/res_mlp.pkl', 'rb') as fp:
+    cases = dill.load(fp)
+
+cases
+
+# <codecell>
+
+
 df = pd.read_pickle('remote/10_finite_regression/res.pkl')
 
 def extract_plot_vals(row):
