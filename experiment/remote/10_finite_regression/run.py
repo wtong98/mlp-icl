@@ -91,9 +91,11 @@ for _ in range(n_iters):
             Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
 
             # Case('Transformer', TransformerConfig(n_out=1, n_layers=3, n_heads=4, n_hidden=512, n_mlp_layers=3), train_args=common_train_args),
-            FunctionCase('dMMSE', estimate_dmmse),
             FunctionCase('Ridge', estimate_ridge),
         ]
+
+        if n_w is not None:
+            curr_tasks.append(FunctionCase('dMMSE', estimate_dmmse))
 
         for case in curr_tasks:
             case.train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args)
