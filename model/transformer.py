@@ -37,9 +37,9 @@ class TransformerConfig:
     n_out: int = 1
     max_len: int = 32
     pos_emb: bool = True
-    # softmax_att: bool = True
-    # softmax_val: bool = False
-    # use_mlp_layers: bool = True
+    use_single_head_module: bool = False # TODO: stopgap for linear transformer
+    softmax_att: bool = True
+    layer_norm: bool = True
     n_mlp_layers: int = 2
     return_final_logits_only: bool = True
     pure_linear_self_att: bool = False
@@ -115,9 +115,6 @@ class SingleHeadSelfAttention(nn.Module):
             attn_weights = jax.nn.softmax(attn_weights)
         self.sow('intermediates', 'attention_weights', attn_weights)
 
-        if self.config.softmax_val:
-            value = jax.nn.softmax(value)
-
         attn_out = attn_weights @ value
         return attn_out
 
@@ -176,12 +173,17 @@ class TransformerBlock(nn.Module):
                 idxs=None):
 
         assert inputs.ndim == 3
-        # x = SingleHeadSelfAttention(self.config)(inputs, decoder_mask, idxs=idxs)
-        x = nn.MultiHeadDotProductAttention(num_heads=self.config.n_heads, 
-                                            qkv_features=self.config.n_hidden)(inputs_q=inputs, inputs_kv=inputs, mask=decoder_mask)
-        x = x + inputs
-        pre_mlp_x = nn.LayerNorm()(x)
 
+        if self.config.use_single_head_module:
+            x = SingleHeadSelfAttention(self.config)(inputs, decoder_mask, idxs=idxs)
+        else:
+            x = nn.MultiHeadDotProductAttention(num_heads=self.config.n_heads, 
+                                                qkv_features=self.config.n_hidden)(inputs_q=inputs, inputs_kv=inputs, mask=decoder_mask)
+        x = x + inputs
+        if self.config.layer_norm:
+            x = nn.LayerNorm()(x)
+        
+        pre_mlp_x = x
         for i in range(self.config.n_mlp_layers):
             if i == 0:
                 x = nn.Dense(features=self.config.n_hidden)(pre_mlp_x)
@@ -191,7 +193,9 @@ class TransformerBlock(nn.Module):
         
         if self.config.n_mlp_layers > 0:
             x = x + pre_mlp_x
-            x = nn.LayerNorm()(x)
+
+            if self.config.layer_norm:
+                x = nn.LayerNorm()(x)
 
         return x
 
