@@ -35,7 +35,8 @@ def estimate_ridge():
     pass
 
 # <codecell>
-# df = pd.read_pickle('remote/10_finite_regression/res_mlp.pkl')
+### PLOTTING MLP CURVES
+df = pd.read_pickle('remote/10_finite_regression/res_mlp.pkl')
 len(df.iloc[-1].train_task.ws) or None
 
 #<codecell>
@@ -67,6 +68,44 @@ plt.savefig('fig/reg_finite_mlp_dim2.png')
 
 
 # <codecell>
+### PLOTTING TRANSFORMER CURVES
+pkl_path = Path('remote/10_finite_regression/rep')
+dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
+df = pd.concat(dfs)
+
+def extract_plot_vals(row):
+    n_ws = row.train_task.ws
+    if n_ws is not None:
+        n_ws = len(n_ws)
+    else:
+        n_ws = float('inf')
+    
+    return pd.Series([
+        row['name'],
+        n_ws,
+        row['info']['mse_pretrain'].item(),
+        row['info']['mse_true'].item(),
+    ], index=['name', 'n_betas', 'mse_pretrain', 'mse_true'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .melt(id_vars=['name', 'n_betas'], var_name='mse_type', value_name='mse')
+plot_df
+
+# <codecell>
+g = sns.catplot(plot_df, x='n_betas', y='mse', hue='name', row='mse_type', kind='point')
+[ax.set_yscale('log') for ax in g.axes.ravel()]
+g.figure.set_size_inches(8, 6)
+plt.savefig('fig/reg_finite_transformer_dim2.png')
+
+
+
+# <codecell>
+'''
+TODO: rather than larger dimension spaces, may want to consider finer resolution with n_dims=2
+Hypothesis: the sample complexity of an MLP scales extremely poorly with dimensionality
+'''
+
+
 task = FiniteLinearRegression(n_points=64, n_ws=128, batch_size=256, n_dims=8)
 dummy_xs, _ = next(task)
 dummy_xs = dummy_xs.reshape(dummy_xs.shape[0], -1)

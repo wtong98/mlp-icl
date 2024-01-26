@@ -74,7 +74,7 @@ n_iters = 1
 train_iters = 50_000
 batch_size = 256
 n_dims = 2
-n_ws = [4, 32, 128, 512, 2048, 8192, None]
+n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, None]
 
 # n_iters = 1
 # train_iters = 1_000
@@ -89,14 +89,14 @@ for _ in range(n_iters):
         common_train_args = {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
 
         curr_tasks = [
-            # Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=common_train_args),
+            Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=common_train_args),
             # Case('MLP (id)', MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='linear'), train_args=common_train_args),
-            # Case('MLP (2-layer, relu)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048), train_args=common_train_args),
+            Case('MLP (2-layer, relu)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048), train_args=common_train_args),
             # Case('MLP (2-layer, quad)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048, act_fn='quadratic'), train_args=common_train_args),
             # Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
 
             Case('Transformer (softmax)', TransformerConfig(n_out=1, n_layers=4, n_heads=4, n_hidden=512, n_mlp_layers=3), train_args=common_train_args),
-            Case('Transformer (linear)', TransformerConfig(n_out=1, n_layers=4, use_single_head_module=True, n_hidden=512, n_mlp_layers=3, softmax_att=False), train_args=common_train_args),
+            # Case('Transformer (linear)', TransformerConfig(n_out=1, n_layers=4, use_single_head_module=True, n_hidden=512, n_mlp_layers=3, softmax_att=False), train_args=common_train_args),
             FunctionCase('Ridge', estimate_ridge),
         ]
 
