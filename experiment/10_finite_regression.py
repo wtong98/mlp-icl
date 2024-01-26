@@ -68,7 +68,7 @@ plt.savefig('fig/reg_finite_mlp_dim2.png')
 
 
 # <codecell>
-### PLOTTING TRANSFORMER CURVES
+### PLOTTING REP'd CURVES
 pkl_path = Path('remote/10_finite_regression/rep')
 dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
 df = pd.concat(dfs)
@@ -95,24 +95,26 @@ plot_df
 g = sns.catplot(plot_df, x='n_betas', y='mse', hue='name', row='mse_type', kind='point')
 [ax.set_yscale('log') for ax in g.axes.ravel()]
 g.figure.set_size_inches(8, 6)
-plt.savefig('fig/reg_finite_transformer_dim2.png')
+plt.savefig('fig/reg_finite_dim2_finer.png')
 
 
 
 # <codecell>
 '''
 TODO: rather than larger dimension spaces, may want to consider finer resolution with n_dims=2
+TODO: plot loss curves
 Hypothesis: the sample complexity of an MLP scales extremely poorly with dimensionality
 '''
 
 
-task = FiniteLinearRegression(n_points=64, n_ws=128, batch_size=256, n_dims=8)
+task = FiniteLinearRegression(n_points=16, n_ws=128, batch_size=256, n_dims=4)
 dummy_xs, _ = next(task)
 dummy_xs = dummy_xs.reshape(dummy_xs.shape[0], -1)
 
-config = MlpConfig(n_out=1, n_layers=3, n_hidden=512)
+# config = MlpConfig(n_out=1, n_layers=3, n_hidden=512)
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
 # config = TransformerConfig(pos_emb=True, n_out=1, n_layers=4, n_hidden=512, n_mlp_layers=3, layer_norm=True, use_single_head_module=True, softmax_att=False)
+config = TransformerConfig(pos_emb=True, n_out=1, n_layers=4, n_heads=2, n_hidden=512, n_mlp_layers=3, layer_norm=True)
 # config = RfConfig(n_in=dummy_xs.shape[1], n_out=1, scale=1, n_hidden=512, use_quadratic_activation=True)
 
 state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4, l1_weight=1e-4)
