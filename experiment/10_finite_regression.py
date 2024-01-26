@@ -35,27 +35,45 @@ def estimate_ridge():
     pass
 
 # <codecell>
+# df = pd.read_pickle('remote/10_finite_regression/res_mlp.pkl')
+len(df.iloc[-1].train_task.ws) or None
 
-
-df = pd.read_pickle('remote/10_finite_regression/res.pkl')
+#<codecell>
 
 def extract_plot_vals(row):
+    n_ws = row.train_task.ws
+    if n_ws is not None:
+        n_ws = len(n_ws)
+    else:
+        n_ws = float('inf')
+    
     return pd.Series([
         row['name'],
-        row['train_task'].n_dims,
-        row['info']['eval_acc'].item(),
-    ], index=['name', 'data dim', 'mse'])
+        n_ws,
+        row['info']['mse_pretrain'].item(),
+        row['info']['mse_true'].item(),
+    ], index=['name', 'n_betas', 'mse_pretrain', 'mse_true'])
 
-plot_df = df.apply(extract_plot_vals, axis=1)
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .melt(id_vars=['name', 'n_betas'], var_name='mse_type', value_name='mse')
+
+plot_df
 
 # <codecell>
-task = FiniteLinearRegression(n_points=16, n_ws=128, batch_size=256, n_dims=2)
+g = sns.catplot(plot_df, x='n_betas', y='mse', hue='name', row='mse_type', kind='point')
+[ax.set_yscale('log') for ax in g.axes.ravel()]
+g.figure.set_size_inches(8, 6)
+plt.savefig('fig/reg_finite_mlp_dim2.png')
+
+
+# <codecell>
+task = FiniteLinearRegression(n_points=64, n_ws=128, batch_size=256, n_dims=8)
 dummy_xs, _ = next(task)
 dummy_xs = dummy_xs.reshape(dummy_xs.shape[0], -1)
 
-# config = MlpConfig(n_out=1, n_layers=2, n_hidden=512)
+config = MlpConfig(n_out=1, n_layers=3, n_hidden=512)
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
-config = TransformerConfig(pos_emb=True, n_out=1, n_layers=4, n_hidden=512, n_mlp_layers=3, layer_norm=True, use_single_head_module=True, softmax_att=False)
+# config = TransformerConfig(pos_emb=True, n_out=1, n_layers=4, n_hidden=512, n_mlp_layers=3, layer_norm=True, use_single_head_module=True, softmax_att=False)
 # config = RfConfig(n_in=dummy_xs.shape[1], n_out=1, scale=1, n_hidden=512, use_quadratic_activation=True)
 
 state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4, l1_weight=1e-4)

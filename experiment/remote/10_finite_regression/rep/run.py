@@ -70,7 +70,7 @@ class FunctionCase:
         self.info[key_name] = mse
     
 
-n_iters = 3
+n_iters = 1
 train_iters = 50_000
 batch_size = 256
 n_dims = 2

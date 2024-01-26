@@ -67,29 +67,31 @@ class FunctionCase:
     
 
 n_iters = 3
-train_iters = 100_000
+train_iters = 1_000_000
 batch_size = 256
-n_dims = 2
+n_points = 64
+n_dims = 8
 n_ws = [4, 32, 128, 512, 2048, 8192, None]
 
 # n_iters = 1
-# train_iters = 2_000
+# train_iters = 1_000
 # batch_size = 256
-# n_dims = 2
+# n_points = 64
+# n_dims = 8
 # n_ws = [4, None]
 
 all_cases = []
 for _ in range(n_iters):
     for n_w in n_ws:
-        common_task_args = {'n_ws': n_w, 'n_dims': n_dims, 'seed': new_seed()}
+        common_task_args = {'n_ws': n_w, 'n_points': n_points, 'n_dims': n_dims, 'seed': new_seed()}
         common_train_args = {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
 
         curr_tasks = [
             Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=common_train_args),
-            Case('MLP (id)', MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='linear'), train_args=common_train_args),
+            # Case('MLP (id)', MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='linear'), train_args=common_train_args),
             Case('MLP (2-layer, relu)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048), train_args=common_train_args),
-            Case('MLP (2-layer, quad)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048, act_fn='quadratic'), train_args=common_train_args),
-            Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
+            # Case('MLP (2-layer, quad)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048, act_fn='quadratic'), train_args=common_train_args),
+            # Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
 
             # Case('Transformer', TransformerConfig(n_out=1, n_layers=3, n_heads=4, n_hidden=512, n_mlp_layers=3), train_args=common_train_args),
             FunctionCase('Ridge', estimate_ridge),
@@ -123,7 +125,7 @@ for case in all_cases:
     case.state = None
 
 df = pd.DataFrame(all_cases)
-df.to_pickle('res_mlp.pkl')
+# df.to_pickle('res_mlp.pkl')
 
 print('done!')
 

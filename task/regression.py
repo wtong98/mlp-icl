@@ -44,6 +44,7 @@ class FiniteLinearRegression:
         self.noise_scale = noise_scale
         self.batch_size = batch_size
         self.rng = np.random.default_rng(seed)
+        self.n_ws = n_ws
 
         self.ws = None
         if n_ws is not None:
