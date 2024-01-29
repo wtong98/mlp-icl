@@ -68,10 +68,10 @@ class FunctionCase:
 
 n_iters = 3
 train_iters = 1_000_000
-batch_size = 256
-n_points = 64
+batch_size = 128
+n_points = 16
 n_dims = 8
-n_ws = [4, 32, 128, 512, 2048, 8192, None]
+n_ws = [8, 32, 128, 512, 2048, 8192, None]
 
 # n_iters = 1
 # train_iters = 1_000

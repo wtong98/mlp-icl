@@ -56,13 +56,14 @@ def estimate_ridge(task, xs, ys, x_q, sig=0.5):
     w_ridge = np.linalg.pinv(t(xs) @ xs + sig**2 * np.identity(n_dims)) @ t(xs) @ ys
     return (x_q @ w_ridge).squeeze()
 
-# task = FiniteLinearRegression(stack_y=False, n_ws=2, n_dims=4)
-# xs, ys = next(task)
+task = FiniteLinearRegression(stack_y=False, n_ws=2, n_dims=8)
+xs, ys = next(task)
 
-# y_pred = estimate_ridge(task, *uninterleave(xs))
+y_pred = estimate_ridge(task, *uninterleave(xs))
 # y_pred = estimate_dmmse(task, *uninterleave(xs))
-# np.mean((y_pred - ys)**2)
+np.mean((y_pred - ys)**2)
 
+# <codecell>
 
 @dataclass
 class FunctionCase:
@@ -83,7 +84,7 @@ class FunctionCase:
     
 
 n_iters = 1
-train_iters = 250_000
+train_iters = 500_000
 batch_size = 128
 n_dims = 4
 n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, None]
@@ -108,7 +109,7 @@ for _ in range(n_iters):
         curr_tasks = [
             Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=train_args(train_iters)),
             # Case('MLP (id)', MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='linear'), train_args=common_train_args),
-            Case('MLP (2-layer, relu)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048), train_args=train_args(train_iters)),
+            Case('MLP (1-layer, relu)', MlpConfig(n_out=1, n_layers=1, n_hidden=4096), train_args=train_args(train_iters)),
             # Case('MLP (2-layer, quad)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048, act_fn='quadratic'), train_args=common_train_args),
             # Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
 

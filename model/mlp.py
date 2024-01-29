@@ -10,6 +10,8 @@ def parse_act_fn(fn: str):
         return jax.nn.relu
     elif fn == 'linear':
         return lambda x: x
+    elif fn == 'gelu':
+        return jax.nn.gelu
     elif fn =='quadratic':
         return lambda x: x**2
     else:

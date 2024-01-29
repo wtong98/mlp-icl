@@ -122,11 +122,12 @@ TODO: plot loss curves --> confound with sample complexity and true expressivity
 Hypothesis: the sample complexity of an MLP scales extremely poorly with dimensionality
 '''
 
-task = FiniteLinearRegression(n_points=16, n_ws=4, batch_size=256, n_dims=2)
+task = FiniteLinearRegression(n_points=16, n_ws=None, batch_size=128, n_dims=4)
 dummy_xs, _ = next(task)
 dummy_xs = dummy_xs.reshape(dummy_xs.shape[0], -1)
 
-config = MlpConfig(n_out=1, n_layers=3, n_hidden=512)
+# config = MlpConfig(n_out=1, n_layers=3, n_hidden=512)
+config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='quadratic')
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
 # config = TransformerConfig(pos_emb=False, n_out=1, n_layers=1, n_hidden=512, n_mlp_layers=0, layer_norm=False, use_single_head_module=True, softmax_att=False)
 # config = TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3, layer_norm=True)
