@@ -122,17 +122,17 @@ TODO: plot loss curves --> confound with sample complexity and true expressivity
 Hypothesis: the sample complexity of an MLP scales extremely poorly with dimensionality
 '''
 
-task = FiniteLinearRegression(n_points=16, n_ws=None, batch_size=128, n_dims=4)
+task = FiniteLinearRegression(n_points=16, n_ws=None, batch_size=128, n_dims=8)
 dummy_xs, _ = next(task)
 dummy_xs = dummy_xs.reshape(dummy_xs.shape[0], -1)
 
-# config = MlpConfig(n_out=1, n_layers=3, n_hidden=512)
-config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='quadratic')
+# config = MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='gelu')
+config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='gelu')
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
 # config = TransformerConfig(pos_emb=False, n_out=1, n_layers=1, n_hidden=512, n_mlp_layers=0, layer_norm=False, use_single_head_module=True, softmax_att=False)
 # config = TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3, layer_norm=True)
 
-state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4, l1_weight=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=500_000, lr=1e-4, l1_weight=1e-4)
 
 # <codecell>
 from optax import squared_error

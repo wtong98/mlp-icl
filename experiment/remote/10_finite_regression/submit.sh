@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -c 8
 #SBATCH -t 2-00:00:00
-#SBATCH -p seas_gpu,kempner,pehlevan_gpu,gpu
+#SBATCH -p kempner,pehlevan_gpu,seas_gpu,gpu
 #SBATCH --gres=gpu:1
 #SBATCH --mem=64000
 #SBATCH -o run.%j.out

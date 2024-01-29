@@ -18,11 +18,17 @@ def t(xs):
     return np.swapaxes(xs, -2, -1)
 
 
-# TODO: test
-def uninterleave(interl_xs):
-    xs = interl_xs[:,0::2]
-    ys = interl_xs[:,1::2,[0]]
-    xs, x_q = xs[:,:-1], xs[:,[-1]]
+# def uninterleave(interl_xs):
+#     xs = interl_xs[:,0::2]
+#     ys = interl_xs[:,1::2,[0]]
+#     xs, x_q = xs[:,:-1], xs[:,[-1]]
+#     return xs, ys, x_q
+
+
+def unpack(pack_xs):
+    xs = pack_xs[:,:-1,:-1]
+    ys = pack_xs[:,:-1,[-1]]
+    x_q = pack_xs[:,[-1],:-1]
     return xs, ys, x_q
 
 
@@ -61,13 +67,13 @@ class FunctionCase:
     
     def eval_mse(self, task, key_name='eval_mse'):
         xs, ys = next(task)
-        ys_pred = self.func(self.train_task, *uninterleave(xs), sig=task.noise_scale)
+        ys_pred = self.func(self.train_task, *unpack(xs), sig=task.noise_scale)
         mse = np.mean((ys - ys_pred)**2)
         self.info[key_name] = mse
     
 
-n_iters = 3
-train_iters = 1_000_000
+n_iters = 1
+train_iters = 1_500_000
 batch_size = 128
 n_points = 16
 n_dims = 8
@@ -75,8 +81,8 @@ n_ws = [8, 32, 128, 512, 2048, 8192, None]
 
 # n_iters = 1
 # train_iters = 1_000
-# batch_size = 256
-# n_points = 64
+# batch_size = 128
+# n_points = 16
 # n_dims = 8
 # n_ws = [4, None]
 
@@ -89,7 +95,7 @@ for _ in range(n_iters):
         curr_tasks = [
             Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=common_train_args),
             # Case('MLP (id)', MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='linear'), train_args=common_train_args),
-            Case('MLP (2-layer, relu)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048), train_args=common_train_args),
+            Case('MLP (2-layer, relu)', MlpConfig(n_out=1, n_layers=1, n_hidden=4096), train_args=common_train_args),
             # Case('MLP (2-layer, quad)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048, act_fn='quadratic'), train_args=common_train_args),
             # Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
 
@@ -125,6 +131,6 @@ for case in all_cases:
     case.state = None
 
 df = pd.DataFrame(all_cases)
-# df.to_pickle('res_mlp.pkl')
+df.to_pickle('res_mlp.pkl')
 
 print('done!')
