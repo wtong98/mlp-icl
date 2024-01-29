@@ -95,14 +95,30 @@ plot_df
 g = sns.catplot(plot_df, x='n_betas', y='mse', hue='name', row='mse_type', kind='point')
 [ax.set_yscale('log') for ax in g.axes.ravel()]
 g.figure.set_size_inches(8, 6)
-plt.savefig('fig/reg_finite_dim2_finer.png')
+# plt.savefig('fig/reg_finite_dim4_bug.png')
 
+# <codecell>
+# PLOT LOSSES
+for i in range(3):
+    row = df.iloc[i]
+    accs = [m['loss'] for m in row['hist']['train']]
+    plt.plot(accs, '--', label=row['name'], alpha=0.5)
+
+plt.legend()
+plt.xlabel('Batch (x1000)')
+plt.ylabel('MSE')
+
+# plt.yscale('log')
+# plt.xscale('log')
+
+plt.tight_layout()
+plt.savefig('fig/reg_finite_dim4_curve_n_ws_2.png')
 
 
 # <codecell>
 '''
 TODO: rather than larger dimension spaces, may want to consider finer resolution with n_dims=2
-TODO: plot loss curves
+TODO: plot loss curves --> confound with sample complexity and true expressivity
 Hypothesis: the sample complexity of an MLP scales extremely poorly with dimensionality
 '''
 

@@ -107,6 +107,7 @@ for _ in range(n_iters):
         if n_w is not None:
             curr_tasks.append(FunctionCase('dMMSE', estimate_dmmse))
 
+        # TODO: ensure seeds are shared between tasks
         for case in curr_tasks:
             case.train_task = FiniteLinearRegression(batch_size=batch_size, **make_common_task_args())
             case.test_task = FiniteLinearRegression(batch_size=1024, **make_common_task_args())
