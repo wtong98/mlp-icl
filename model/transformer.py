@@ -183,15 +183,15 @@ class TransformerBlock(nn.Module):
         if self.config.layer_norm:
             x = nn.LayerNorm()(x)
         
-        pre_mlp_x = x
-        for i in range(self.config.n_mlp_layers):
-            if i == 0:
-                x = nn.Dense(features=self.config.n_hidden)(pre_mlp_x)
-            else:
-                x = nn.gelu(x)
-                x = nn.Dense(features=self.config.n_hidden)(x)
-        
         if self.config.n_mlp_layers > 0:
+            pre_mlp_x = x
+            for i in range(self.config.n_mlp_layers):
+                if i == 0:
+                    x = nn.Dense(features=self.config.n_hidden)(pre_mlp_x)
+                else:
+                    x = nn.gelu(x)
+                    x = nn.Dense(features=self.config.n_hidden)(x)
+            
             x = x + pre_mlp_x
 
             if self.config.layer_norm:

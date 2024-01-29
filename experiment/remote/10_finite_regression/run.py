@@ -128,4 +128,3 @@ df = pd.DataFrame(all_cases)
 # df.to_pickle('res_mlp.pkl')
 
 print('done!')
-

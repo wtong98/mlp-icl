@@ -43,6 +43,7 @@ class FiniteLinearRegression:
         self.n_dims = n_dims
         self.noise_scale = noise_scale
         self.batch_size = batch_size
+        self.seed = seed
         self.rng = np.random.default_rng(seed)
         self.n_ws = n_ws
         self.stack_y = stack_y

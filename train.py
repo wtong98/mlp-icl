@@ -52,6 +52,7 @@ class TrainState(train_state.TrainState):
 def create_train_state(rng, model, dummy_input, lr=1e-4, **opt_kwargs):
     params = model.init(rng, dummy_input)['params']
     tx = optax.adamw(learning_rate=lr, **opt_kwargs)
+    # tx = optax.sgd(learning_rate=lr, **opt_kwargs)
 
     return TrainState.create(
         apply_fn=model.apply,
