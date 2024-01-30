@@ -95,7 +95,6 @@ for _ in range(n_iters):
             common_task_args = {'n_ws': n_w, 'n_dims': n_dim}
 
             def train_args(train_iters):
-                train_iters = 100
                 return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
 
             curr_tasks = [
