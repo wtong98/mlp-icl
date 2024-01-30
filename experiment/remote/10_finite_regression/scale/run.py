@@ -87,7 +87,7 @@ def run_dimwise():
     train_iters = 500_000
     batch_size = 128
     n_points = 16
-    n_dims = [1, 2, 4, 8, 16, 32]
+    n_dims = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
     n_ws = None
 
     all_cases = []
@@ -103,7 +103,7 @@ def run_dimwise():
                 Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=train_args(train_iters)),
                 Case('MLP (1-layer, relu)', MlpConfig(n_out=1, n_layers=1, n_hidden=4096), train_args=train_args(train_iters)),
                 Case('Transformer (softmax)', TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3), train_args=train_args(50_000)),
-                Case('Transformer (linear)', TransformerConfig(pos_emb=False, n_out=1, n_layers=1, use_single_head_module=True, n_hidden=512, n_mlp_layers=0, layer_norm=False, softmax_att=False), train_args=train_args(100_000)),
+                Case('Transformer (linear)', TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, use_single_head_module=True, n_hidden=512, n_mlp_layers=0, layer_norm=False, softmax_att=False), train_args=train_args(100_000)),
                 FunctionCase('Ridge', estimate_ridge),
             ]
 
@@ -143,8 +143,8 @@ def run_pointwise():
     n_iters = 1
     train_iters = 500_000
     batch_size = 128
-    n_points = [2, 4, 8, 16, 32, 64]
-    n_dims = 4
+    n_points = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+    n_dims = 8
     n_ws = None
 
     all_cases = []
@@ -159,7 +159,7 @@ def run_pointwise():
                 Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=train_args(train_iters)),
                 Case('MLP (1-layer, relu)', MlpConfig(n_out=1, n_layers=1, n_hidden=4096), train_args=train_args(train_iters)),
                 Case('Transformer (softmax)', TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3), train_args=train_args(50_000)),
-                Case('Transformer (linear)', TransformerConfig(pos_emb=False, n_out=1, n_layers=1, use_single_head_module=True, n_hidden=512, n_mlp_layers=0, layer_norm=False, softmax_att=False), train_args=train_args(100_000)),
+                Case('Transformer (linear)', TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, use_single_head_module=True, n_hidden=512, n_mlp_layers=0, layer_norm=False, softmax_att=False), train_args=train_args(100_000)),
                 FunctionCase('Ridge', estimate_ridge),
             ]
 

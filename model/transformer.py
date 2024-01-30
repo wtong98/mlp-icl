@@ -181,6 +181,7 @@ class TransformerBlock(nn.Module):
             x = nn.MultiHeadDotProductAttention(num_heads=self.config.n_heads, 
                                                 qkv_features=self.config.n_hidden)(inputs_q=inputs, inputs_kv=inputs, mask=decoder_mask)
         x = x + inputs
+
         if self.config.layer_norm:
             x = nn.LayerNorm()(x)
         
@@ -200,13 +201,25 @@ class TransformerBlock(nn.Module):
 
         return x
 
+def t(xs):
+    return np.swapaxes(xs, -2, -1)
 
 class PureLinearSelfAttentionBlock(nn.Module):
     
     @nn.compact
-    def __call__(self, inputs, decoder_mask=None, idxs=None):
-        att = jnp.einsum('...qd,...kd->...qk', inputs, inputs)
-        return att.reshape(inputs.shape[0], 1, -1)
+    def __call__(self, inputs):
+        # att = jnp.einsum('...qd,...kd->...qk', inputs, inputs)
+        # return att.reshape(inputs.shape[0], 1, -1)
+        depth = inputs.shape[2]
+
+        Z = inputs
+        V = self.param('V', nn.initializers.lecun_normal(), (depth, depth))
+        W = self.param('W', nn.initializers.lecun_normal(), (depth, depth))
+        out = V @ t(Z) @ Z @ W @ t(Z)
+
+        return t(out)
+
+
 
 
 class Transformer(nn.Module):

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 8
-#SBATCH -t 1-12:00:00
+#SBATCH -t 2-00:00:00
 #SBATCH -p kempner,pehlevan_gpu,seas_gpu,gpu
 #SBATCH --gres=gpu:1
 #SBATCH --mem=8000

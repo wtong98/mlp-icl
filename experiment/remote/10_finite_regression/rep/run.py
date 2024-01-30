@@ -63,8 +63,6 @@ y_pred = estimate_ridge(task, *uninterleave(xs))
 # y_pred = estimate_dmmse(task, *uninterleave(xs))
 np.mean((y_pred - ys)**2)
 
-# <codecell>
-
 @dataclass
 class FunctionCase:
     name: str
@@ -86,48 +84,42 @@ class FunctionCase:
 n_iters = 1
 train_iters = 500_000
 batch_size = 128
-n_dims = 4
-n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, None]
-
-# n_iters = 1
-# train_iters = 1_000
-# lesser_train_iters = 10
-# batch_size = 256
-# n_dims = 4
-# n_ws = [2, None]
+n_dims = [8, 16]
+n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, None]
 
 
 all_cases = []
 for _ in range(n_iters):
-    for n_w in n_ws:
-        common_task_args = {'n_ws': n_w, 'n_dims': n_dims}
+    for n_dim in n_dims:
+        for n_w in n_ws:
+            common_task_args = {'n_ws': n_w, 'n_dims': n_dim}
 
-        def train_args(train_iters):
-            # train_iters = 100
-            return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
+            def train_args(train_iters):
+                train_iters = 100
+                return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
 
-        curr_tasks = [
-            Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=train_args(train_iters)),
-            # Case('MLP (id)', MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='linear'), train_args=common_train_args),
-            Case('MLP (1-layer, relu)', MlpConfig(n_out=1, n_layers=1, n_hidden=4096), train_args=train_args(train_iters)),
-            # Case('MLP (2-layer, quad)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048, act_fn='quadratic'), train_args=common_train_args),
-            # Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
+            curr_tasks = [
+                Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=train_args(train_iters)),
+                # Case('MLP (id)', MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='linear'), train_args=common_train_args),
+                Case('MLP (1-layer, relu)', MlpConfig(n_out=1, n_layers=1, n_hidden=4096), train_args=train_args(train_iters)),
+                # Case('MLP (2-layer, quad)', MlpConfig(n_out=1, n_layers=2, n_hidden=2048, act_fn='quadratic'), train_args=common_train_args),
+                # Case('RF (quad)', RfConfig(n_in=31*n_dims, n_hidden=2048, use_quadratic_activation=True), train_args=common_train_args),
 
-            Case('Transformer (softmax)', TransformerConfig(pos_emb=False, n_out=1, n_layers=4, n_heads=4, n_hidden=512, n_mlp_layers=3), train_args=train_args(50_000)),
-            Case('Transformer (linear)', TransformerConfig(pos_emb=False, n_out=1, n_layers=1, use_single_head_module=True, n_hidden=512, n_mlp_layers=0, layer_norm=False, softmax_att=False), train_args=train_args(100_000)),
-            FunctionCase('Ridge', estimate_ridge),
-        ]
+                Case('Transformer (softmax)', TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3), train_args=train_args(50_000)),
+                Case('Transformer (linear)', TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, use_single_head_module=True, n_hidden=512, n_mlp_layers=0, layer_norm=False, softmax_att=False), train_args=train_args(100_000)),
+                FunctionCase('Ridge', estimate_ridge),
+            ]
 
-        if n_w is not None:
-            curr_tasks.append(FunctionCase('dMMSE', estimate_dmmse))
+            if n_w is not None:
+                curr_tasks.append(FunctionCase('dMMSE', estimate_dmmse))
 
-        for case in curr_tasks:
-            seed = new_seed()
-            case.train_task = FiniteLinearRegression(batch_size=batch_size, seed=seed, **common_task_args)
-            case.test_task = FiniteLinearRegression(batch_size=1024, seed=seed, **common_task_args)
-            case.info['common_task_args'] = common_task_args
+            for case in curr_tasks:
+                seed = new_seed()
+                case.train_task = FiniteLinearRegression(batch_size=batch_size, seed=seed, **common_task_args)
+                case.test_task = FiniteLinearRegression(batch_size=1024, seed=seed, **common_task_args)
+                case.info['common_task_args'] = common_task_args
 
-        all_cases.extend(curr_tasks)
+            all_cases.extend(curr_tasks)
 
 for case in tqdm(all_cases):
     print('RUNNING', case.name)
