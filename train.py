@@ -49,9 +49,9 @@ class TrainState(train_state.TrainState):
     metrics: Metrics
 
 
-def create_train_state(rng, model, dummy_input, lr=1e-4, **opt_kwargs):
+def create_train_state(rng, model, dummy_input, lr=1e-4, optim=optax.adamw, **opt_kwargs):
     params = model.init(rng, dummy_input)['params']
-    tx = optax.adamw(learning_rate=lr, **opt_kwargs)
+    tx = optim(learning_rate=lr, **opt_kwargs)
     # tx = optax.sgd(learning_rate=lr, **opt_kwargs)
 
     return TrainState.create(
@@ -139,6 +139,7 @@ def train(config, data_iter,
           loss='ce', 
           train_iters=10_000, test_iters=100, test_every=1_000, 
           early_stop_n=None, early_stop_key='loss', early_stop_decision='min' ,
+          optim=optax.adamw,
           seed=None, 
           l1_weight=0, **opt_kwargs):
     if seed is None:
@@ -151,7 +152,7 @@ def train(config, data_iter,
     model = config.to_model()
 
     samp_x, _ = next(data_iter)
-    state = create_train_state(init_rng, model, samp_x, **opt_kwargs)
+    state = create_train_state(init_rng, model, samp_x, optim=optim, **opt_kwargs)
 
     hist = {
         'train': [],

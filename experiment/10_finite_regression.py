@@ -10,6 +10,7 @@ import jax
 import jax.numpy as jnp
 import flax.linen as nn
 from flax.serialization import from_state_dict
+import optax
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -37,7 +38,6 @@ def estimate_ridge():
 # <codecell>
 ### PLOTTING MLP CURVES
 df = pd.read_pickle('remote/10_finite_regression/res_mlp.pkl')
-len(df.iloc[-1].train_task.ws) or None
 
 #<codecell>
 
@@ -64,7 +64,7 @@ plot_df
 g = sns.catplot(plot_df, x='n_betas', y='mse', hue='name', row='mse_type', kind='point')
 [ax.set_yscale('log') for ax in g.axes.ravel()]
 g.figure.set_size_inches(8, 6)
-plt.savefig('fig/reg_finite_mlp_dim2.png')
+plt.savefig('fig/reg_finite_mlp_dim8.png')
 
 
 # <codecell>
@@ -95,14 +95,15 @@ plot_df
 g = sns.catplot(plot_df, x='n_betas', y='mse', hue='name', row='mse_type', kind='point')
 [ax.set_yscale('log') for ax in g.axes.ravel()]
 g.figure.set_size_inches(8, 6)
-# plt.savefig('fig/reg_finite_dim4_bug.png')
+plt.savefig('fig/reg_finite_dim4.png')
 
 # <codecell>
 # PLOT LOSSES
-for i in range(3):
-    row = df.iloc[i]
-    accs = [m['loss'] for m in row['hist']['train']]
-    plt.plot(accs, '--', label=row['name'], alpha=0.5)
+for i in range(len(df)):
+    row = df.iloc[-i]
+    if not pd.isna(row['hist']):
+        accs = [m['loss'] for m in row['hist']['train']]
+        plt.plot(accs, '--', label=row['name'], alpha=0.5)
 
 plt.legend()
 plt.xlabel('Batch (x1000)')
@@ -112,7 +113,7 @@ plt.ylabel('MSE')
 # plt.xscale('log')
 
 plt.tight_layout()
-plt.savefig('fig/reg_finite_dim4_curve_n_ws_2.png')
+# plt.savefig('fig/reg_finite_dim4_curve_n_ws_2.png')
 
 
 # <codecell>
@@ -127,12 +128,12 @@ dummy_xs, _ = next(task)
 dummy_xs = dummy_xs.reshape(dummy_xs.shape[0], -1)
 
 # config = MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='gelu')
-config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='gelu')
+# config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='gelu')
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
-# config = TransformerConfig(pos_emb=False, n_out=1, n_layers=1, n_hidden=512, n_mlp_layers=0, layer_norm=False, use_single_head_module=True, softmax_att=False)
+config = TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, n_hidden=512, n_mlp_layers=0, layer_norm=False, use_single_head_module=True, softmax_att=False)
 # config = TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3, layer_norm=True)
 
-state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=500_000, lr=1e-4, l1_weight=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=500_000, lr=1e-4, optim=optax.adamw)
 
 # <codecell>
 from optax import squared_error

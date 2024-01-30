@@ -38,6 +38,7 @@ class TransformerConfig:
     max_len: int = 32
     pos_emb: bool = True
     use_single_head_module: bool = False # TODO: stopgap for linear transformer
+    use_last_index_output: bool = False
     softmax_att: bool = True
     layer_norm: bool = True
     n_mlp_layers: int = 2
@@ -246,6 +247,9 @@ class Transformer(nn.Module):
                     config=config)(
                             y,
                             decoder_mask=decoder_mask)
+        
+        if config.use_last_index_output:
+            return y[:,-1,-1]
 
         logits = nn.Dense(config.n_out)(y)
         if config.return_final_logits_only:
