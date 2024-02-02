@@ -56,12 +56,16 @@ def estimate_ridge(task, xs, ys, x_q, sig=0.5):
     w_ridge = np.linalg.pinv(t(xs) @ xs + sig**2 * np.identity(n_dims)) @ t(xs) @ ys
     return (x_q @ w_ridge).squeeze()
 
-task = FiniteLinearRegression(stack_y=False, n_ws=2, n_dims=8)
-xs, ys = next(task)
+task = FiniteLinearRegression(stack_y=False, n_ws=128000, n_dims=8)
 
-y_pred = estimate_ridge(task, *uninterleave(xs))
-# y_pred = estimate_dmmse(task, *uninterleave(xs))
+new_task = FiniteLinearRegression(stack_y=False, n_ws=None, n_dims=8)
+xs, ys = next(new_task)
+
+# y_pred = estimate_ridge(task, *uninterleave(xs))
+y_pred = estimate_dmmse(task, *uninterleave(xs))
 np.mean((y_pred - ys)**2)
+
+# <codecell>
 
 @dataclass
 class FunctionCase:

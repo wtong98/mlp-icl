@@ -143,7 +143,7 @@ def run_pointwise():
     n_iters = 1
     train_iters = 500_000
     batch_size = 128
-    n_points = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+    n_points = [2, 4, 8, 16, 32, 64, 128, 256, 512]
     n_dims = 8
     n_ws = None
 
@@ -195,6 +195,6 @@ def run_pointwise():
     return df
 
 
-run_dimwise()
+# run_dimwise()
 run_pointwise()
 

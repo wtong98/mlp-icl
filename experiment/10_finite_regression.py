@@ -2,11 +2,23 @@
 Testing transition to ICL in MLPs and Transformers (and MNNs, perhaps), using
 the construction given in Raventos et al. 2023
 
+
+Early observations:
+- MLP transition to ICL seems to scale inversely with depth --> capacity limit pushes generalization
+- MLP (1-layer and deep, also linear transformer) converge to same suboptimal MSE
+    - where does this MSE come from? (roughly half of null-model MSE (mse = n_dims))
+
+TODO: plot loss curves --> confound with sample complexity and true expressivity
+TODO: examine pattern of errors --> guesses at least the right sign?
+Hypothesis: the sample complexity of an MLP scales extremely poorly with dimensionality
+
 author: William Tong (wtong@g.harvard.edu)
 """
 
 # <codecell>
 import jax
+jax.config.update('jax_platform_name', 'cpu')
+
 import jax.numpy as jnp
 import flax.linen as nn
 from flax.serialization import from_state_dict
@@ -83,19 +95,35 @@ def extract_plot_vals(row):
     return pd.Series([
         row['name'],
         n_ws,
+        row.train_task.n_dims,
         row['info']['mse_pretrain'].item(),
         row['info']['mse_true'].item(),
-    ], index=['name', 'n_betas', 'mse_pretrain', 'mse_true'])
+    ], index=['name', 'n_betas', 'n_dims', 'mse_pretrain', 'mse_true'])
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
-            .melt(id_vars=['name', 'n_betas'], var_name='mse_type', value_name='mse')
+            .melt(id_vars=['name', 'n_betas', 'n_dims'], var_name='mse_type', value_name='mse')
 plot_df
 
 # <codecell>
-g = sns.catplot(plot_df, x='n_betas', y='mse', hue='name', row='mse_type', kind='point')
+g = sns.catplot(plot_df[plot_df.n_dims == 8], x='n_betas', y='mse', hue='name', row='mse_type', kind='point')
 [ax.set_yscale('log') for ax in g.axes.ravel()]
-g.figure.set_size_inches(8, 6)
-plt.savefig('fig/reg_finite_dim4.png')
+g.figure.set_size_inches(12, 6)
+plt.savefig('fig/reg_finite_dim8.png')
+
+
+# <codecell>
+### COMPARISON TO KNN SOLUTIONS
+nd = 1
+
+task = Finite(FiniteLinearRegression(n_ws=None, n_dims=nd), data_size=2048)
+c = KnnCase('test', KnnConfig(beta=7), train_task=task)
+
+c.run()
+
+test_task = FiniteLinearRegression(n_ws=None, batch_size=256, n_dims=nd)
+c.eval_mse(test_task)
+c.info['eval_mse']
+
 
 # <codecell>
 ### PLOTTING SCALE CURVES
@@ -166,11 +194,8 @@ plt.tight_layout()
 
 
 # <codecell>
-'''
-TODO: rather than larger dimension spaces, may want to consider finer resolution with n_dims=2
-TODO: plot loss curves --> confound with sample complexity and true expressivity
-Hypothesis: the sample complexity of an MLP scales extremely poorly with dimensionality
-'''
+### TRAINING PLAYGROUND
+
 
 task = FiniteLinearRegression(n_points=16, n_ws=None, batch_size=128, n_dims=8)
 dummy_xs, _ = next(task)

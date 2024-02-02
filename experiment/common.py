@@ -75,16 +75,13 @@ class Case:
 class KnnCase:
     name: str
     config: dataclass
-    task_class: Callable
-    data_size: int
-    seed: int
-    task_args: dict = field(default_factory=dict)
+    train_task: Iterable | None = None
     info: dict = field(default_factory=dict)
 
     def run(self):
-        self.task = self.task_class(data_size=self.data_size, seed=self.seed, **self.task_args)
-        self.config.xs = self.task.data[0].reshape(self.data_size, -1)
-        self.config.ys = self.task.data[1]
+        data_size = self.train_task.data[0].shape[0]
+        self.config.xs = self.train_task.data[0].reshape(data_size, -1)
+        self.config.ys = self.train_task.data[1]
         self.model = self.config.to_model()
 
     def eval(self, task, key_name='eval_acc'):
@@ -92,6 +89,13 @@ class KnnCase:
         probs = self.model(xs)
         eval_acc = np.mean(ys == probs.argmax(-1))
         self.info[key_name] = eval_acc
+
+    def eval_mse(self, task, key_name='eval_mse'):
+        xs, ys = next(task)
+        ys_pred = self.model(xs)
+        mse = np.mean((ys - ys_pred)**2)
+
+        self.info[key_name] = mse
 
 
 def eval_cases(all_cases, eval_task, key_name='eval_acc', use_mse=False, ignore_err=False):
