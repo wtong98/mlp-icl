@@ -144,9 +144,13 @@ plot_df = df.apply(extract_plot_vals, axis=1) \
 plot_df
 
 # <codecell>
+dims = 2**np.arange(10)
+
 g = sns.catplot(plot_df, x='n_dims', y='mse', hue='name', row='mse_type', kind='point')
+[ax.plot(np.arange(10), dims + 0.25, '--', color='magenta', label='Null') for ax in g.axes.ravel()]
 [ax.set_yscale('log') for ax in g.axes.ravel()]
 g.figure.set_size_inches(8, 6)
+
 plt.savefig('fig/reg_finite_dim_scale_icl.png')
 
 # <codecell>
@@ -168,6 +172,7 @@ plot_df
 
 # <codecell>
 g = sns.catplot(plot_df, x='n_points', y='mse', hue='name', row='mse_type', kind='point')
+[ax.plot(np.arange(9),  np.ones(9) * 8.25, '--', color='magenta', label='Null') for ax in g.axes.ravel()]
 [ax.set_yscale('log') for ax in g.axes.ravel()]
 g.figure.set_size_inches(8, 6)
 plt.savefig('fig/reg_finite_points_scale_icl.png')
@@ -195,20 +200,17 @@ plt.tight_layout()
 
 # <codecell>
 ### TRAINING PLAYGROUND
+task = FiniteLinearRegression(n_points=16, n_ws=None, batch_size=128, n_dims=8, enforce_orth_x=True, noise_scale=0)
 
-
-task = FiniteLinearRegression(n_points=16, n_ws=None, batch_size=128, n_dims=8)
-dummy_xs, _ = next(task)
-dummy_xs = dummy_xs.reshape(dummy_xs.shape[0], -1)
-
-# config = MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='gelu')
+# TODO: check if MSE on identity-covariance model matches <-- STOPPED HERE
+config = MlpConfig(n_out=1, n_layers=3, n_hidden=1024, act_fn='relu')
 # config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='gelu')
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
 # config = TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, n_hidden=512, n_mlp_layers=0, layer_norm=False, use_single_head_module=True, softmax_att=False)
-config = TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, pure_linear_self_att=True)
+# config = TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, pure_linear_self_att=True)
 # config = TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3, layer_norm=True)
 
-state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=500_000, lr=5e-5, optim=optax.sgd)
+state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=500_000, lr=1e-4)
 
 # <codecell>
 from optax import squared_error

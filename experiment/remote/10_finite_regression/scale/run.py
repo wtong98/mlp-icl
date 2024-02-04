@@ -163,6 +163,8 @@ def run_pointwise():
                 FunctionCase('Ridge', estimate_ridge),
             ]
 
+            # TODO: include dMMSE in pointwise plot
+
             for case in curr_tasks:
                 seed = new_seed()
                 case.train_task = FiniteLinearRegression(batch_size=batch_size, seed=seed, **common_task_args)
