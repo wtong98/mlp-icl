@@ -7,6 +7,7 @@ Early observations:
 - MLP transition to ICL seems to scale inversely with depth --> capacity limit pushes generalization
 - MLP (1-layer and deep, also linear transformer) converge to same suboptimal MSE
     - where does this MSE come from? (roughly half of null-model MSE (mse = n_dims))
+- KNN solution does not work beyond chance level
 
 TODO: plot loss curves --> confound with sample complexity and true expressivity
 TODO: examine pattern of errors --> guesses at least the right sign?
@@ -113,6 +114,7 @@ plt.savefig('fig/reg_finite_dim8.png')
 
 # <codecell>
 ### COMPARISON TO KNN SOLUTIONS
+### result does not work beyond chance
 nd = 1
 
 task = Finite(FiniteLinearRegression(n_ws=None, n_dims=nd), data_size=2048)
@@ -123,6 +125,31 @@ c.run()
 test_task = FiniteLinearRegression(n_ws=None, batch_size=256, n_dims=nd)
 c.eval_mse(test_task)
 c.info['eval_mse']
+
+
+# <codecell>
+### COMPARISON TO IDENTITY APPROX LIN REG MODEL
+### result: abject failure. Linear covariance is a very poor approximation.
+### model still learns some significant covariance structure
+
+def t(x):
+    return np.swapaxes(x, -2, -1)
+
+task = FiniteLinearRegression(n_ws=None, n_dims=64, noise_scale=0.5, enforce_orth_x=False)
+xs, ys = next(task)
+
+x = xs[:,:-1,:-1]
+y = xs[:,:-1,[-1]]
+x_q = xs[:,[-1],:-1]
+
+# inv_cov = np.linalg.pinv(t(x) @ x)
+inv_cov = np.identity(x.shape[-1])
+
+pred = (x_q @ (inv_cov @ t(x) @ y)).squeeze()
+
+np.mean((ys - pred)**2)
+
+
 
 
 # <codecell>

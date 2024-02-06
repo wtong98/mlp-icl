@@ -17,8 +17,13 @@ import sys
 sys.path.append('../')
 from train import train
 
+
 def new_seed():
     return np.random.randint(0, np.iinfo(np.int32).max)
+
+
+def t(xs):
+    return np.swapaxes(xs, -2, -1)
 
 
 class Finite:
