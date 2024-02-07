@@ -41,13 +41,6 @@ from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression, LinearRegression
 
-# dummies
-def estimate_dmmse():
-    pass
-
-def estimate_ridge():
-    pass
-
 # <codecell>
 ### PLOTTING MLP CURVES
 df = pd.read_pickle('remote/10_finite_regression/res_mlp.pkl')
@@ -205,6 +198,83 @@ g.figure.set_size_inches(8, 6)
 plt.savefig('fig/reg_finite_points_scale_icl.png')
 
 
+# <codecell>
+### PLOTTING SCALING LAWS
+pkl_path = Path('remote/10_finite_regression/scale_param')
+dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
+df = pd.concat(dfs)
+
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['config']['n_layers'],
+        row['config']['n_hidden'],
+        row['info']['size'],
+        f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
+        row['train_args']['train_iters'],
+        row['info']['eval_mse'].item(),
+    ], index=['name', 'depth', 'width', 'size', 'arch', 'train_iters', 'mse'])
+
+plot_df = df.apply(extract_plot_vals, axis=1)
+
+task = FiniteLinearRegression(None, n_points=16, n_dims=8, batch_size=10_000)
+xs, ys = next(task)
+pred = estimate_ridge(None, *unpack(xs))
+ridge_mse = np.mean((ys - pred)**2)
+
+plot_df
+# <codecell>
+mlp_df = plot_df[plot_df['name'] == 'MLP']
+
+g = sns.lineplot(data=mlp_df, x='size', y='mse', hue='train_iters', markers=True, marker='o')
+g.set_yscale('log')
+g.set_xscale('log')
+
+g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
+g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
+
+plt.tight_layout()
+plt.savefig('fig/reg_finite_scale_pt16_dim8_mlp_sizewise.png')
+
+# <codecell>
+mlp_df = plot_df[plot_df['name'] == 'MLP']
+
+g = sns.lineplot(data=mlp_df, x='train_iters', y='mse', hue='arch', markers=True, marker='o')
+g.set_yscale('log')
+g.set_xscale('log')
+
+g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
+g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
+
+plt.tight_layout()
+plt.savefig('fig/reg_finite_scale_pt16_dim8_mlp_iterwise_arch.png')
+
+# <codecell>
+mlp_df = plot_df[plot_df['name'] == 'Transformer']
+
+g = sns.lineplot(data=mlp_df, x='size', y='mse', hue='train_iters', markers=True, marker='o')
+g.set_yscale('log')
+g.set_xscale('log')
+
+g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
+g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
+
+plt.tight_layout()
+plt.savefig('fig/reg_finite_scale_pt16_dim8_transf_sizewise.png')
+
+# <codecell>
+curr_df = plot_df[plot_df['name'] == 'Transformer']
+
+g = sns.lineplot(data=curr_df, x='train_iters', y='mse', hue='size', markers=True, marker='o')
+g.set_yscale('log')
+g.set_xscale('log')
+
+g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
+g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
+
+# plt.legend()
+plt.tight_layout()
+plt.savefig('fig/reg_finite_scale_pt16_dim8_transf_iterwise_size.png')
 
 # <codecell>
 # PLOT LOSSES

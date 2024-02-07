@@ -131,3 +131,39 @@ def summon_dir(path: str, clear_if_exists=False):
             shutil.rmtree(item)
     
     return new_dir
+
+
+def uninterleave(interl_xs):
+    xs = interl_xs[:,0::2]
+    ys = interl_xs[:,1::2,[0]]
+    xs, x_q = xs[:,:-1], xs[:,[-1]]
+    return xs, ys, x_q
+
+
+def unpack(pack_xs):
+    xs = pack_xs[:,:-1,:-1]
+    ys = pack_xs[:,:-1,[-1]]
+    x_q = pack_xs[:,[-1],:-1]
+    return xs, ys, x_q
+
+
+def estimate_dmmse(task, xs, ys, x_q, sig=0.5):
+    '''
+    xs: N x P x D
+    ys: N x P x 1
+    x_q: N x 1 x D
+    ws: F x D
+    '''
+    ws = task.ws
+    
+    weights = np.exp(-(1 / (2 * sig**2)) * np.sum((ys - xs @ ws.T)**2, axis=1))  # N x F
+    probs = weights / (np.sum(weights, axis=1, keepdims=True) + 1e-32)
+    w_dmmse = np.expand_dims(probs, axis=-1) * ws  # N x F x D
+    w_dmmse = np.sum(w_dmmse, axis=1, keepdims=True)  # N x 1 x D
+    return (x_q @ t(w_dmmse)).squeeze()
+
+
+def estimate_ridge(task, xs, ys, x_q, sig=0.5):
+    n_dims = xs.shape[-1]
+    w_ridge = np.linalg.pinv(t(xs) @ xs + sig**2 * np.identity(n_dims)) @ t(xs) @ ys
+    return (x_q @ w_ridge).squeeze()
