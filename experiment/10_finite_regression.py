@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
+from scipy.optimize import minimize
 
 from common import *
 
@@ -225,7 +226,22 @@ ridge_mse = np.mean((ys - pred)**2)
 plot_df
 # <codecell>
 mlp_df = plot_df[plot_df['name'] == 'MLP']
+target_df = mlp_df[mlp_df['train_iters'] == 1024000]
 
+def scaling_law(x, consts):
+    a, b, c, d = consts
+    return a + b * (x + c)**(-d)
+
+def get_law(target_df, feat):
+    def loss(consts):
+        result = scaling_law(target_df[feat], consts)
+        return np.mean((result - target_df['mse'])**2)
+
+    out = minimize(loss, np.zeros(4))
+    return out
+
+out = get_law(target_df, 'size')
+# <codecell>
 g = sns.lineplot(data=mlp_df, x='size', y='mse', hue='train_iters', markers=True, marker='o')
 g.set_yscale('log')
 g.set_xscale('log')
@@ -233,21 +249,40 @@ g.set_xscale('log')
 g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
 g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
 
+xs = np.sort(target_df['size'])
+g.plot(xs, scaling_law(xs, out.x), '--', color='red')
+
+a, b, c, d = out.x
+g.text(10**6, 1, fr'${a:.2f} + {b:.2f} (x {c:.2f})^\wedge (-{d:.2f})$', color='red')
+
+plt.title('MLP')
 plt.tight_layout()
 plt.savefig('fig/reg_finite_scale_pt16_dim8_mlp_sizewise.png')
 
 # <codecell>
-mlp_df = plot_df[plot_df['name'] == 'MLP']
+form = 'size'
 
-g = sns.lineplot(data=mlp_df, x='train_iters', y='mse', hue='arch', markers=True, marker='o')
+mlp_df = plot_df[plot_df['name'] == 'MLP']
+target_df = mlp_df[mlp_df['arch'] == '4-2048']
+
+out = get_law(target_df, 'train_iters')
+# <codecell>
+g = sns.lineplot(data=mlp_df, x='train_iters', y='mse', hue=form, markers=True, marker='o')
 g.set_yscale('log')
 g.set_xscale('log')
 
 g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
 g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
 
+xs = np.sort(target_df['train_iters'])
+g.plot(xs, scaling_law(xs, out.x), '--', color='red')
+
+a, b, c, d = out.x
+g.text(5 * 10**4, 1, fr'${a:.2f} + {b:.2f} (x {c:.2f})^\wedge (-{d:.2f})$', color='red')
+
+plt.title('MLP')
 plt.tight_layout()
-plt.savefig('fig/reg_finite_scale_pt16_dim8_mlp_iterwise_arch.png')
+plt.savefig(f'fig/reg_finite_scale_pt16_dim8_mlp_iterwise_{form}.png')
 
 # <codecell>
 mlp_df = plot_df[plot_df['name'] == 'Transformer']
@@ -259,22 +294,68 @@ g.set_xscale('log')
 g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
 g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
 
+plt.title('Transformer')
 plt.tight_layout()
 plt.savefig('fig/reg_finite_scale_pt16_dim8_transf_sizewise.png')
 
 # <codecell>
-curr_df = plot_df[plot_df['name'] == 'Transformer']
+mlp_df = plot_df[(plot_df['name'] == 'Transformer') & (plot_df['width'] == 512)]
+target_df = mlp_df[mlp_df['train_iters'] == 128000]
+spread = np.min(target_df['size'])
 
-g = sns.lineplot(data=curr_df, x='train_iters', y='mse', hue='size', markers=True, marker='o')
+target_df.loc[:,'size'] = target_df['size'] / spread
+out = get_law(target_df, 'size')
+
+target_df.loc[:,'size'] = target_df['size'] * spread
+out.x[1] *= spread**out.x[3]
+out.x[2] *= spread
+
+out
+# <codecell>
+g = sns.lineplot(data=mlp_df, x='size', y='mse', hue='train_iters', markers=True, marker='o')
 g.set_yscale('log')
 g.set_xscale('log')
 
 g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
 g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
 
-# plt.legend()
+xs = np.sort(target_df['size'])
+g.plot(xs, scaling_law(xs, out.x), '--', color='red')
+
+a, b, c, d = out.x
+g.text(3 * 10**6, 0.6, fr'${a:.2f} + {b:.2f} (x {c:.2f})^\wedge (-{d:.2f})$', color='red')
+
+plt.title('Transformer')
 plt.tight_layout()
-plt.savefig('fig/reg_finite_scale_pt16_dim8_transf_iterwise_size.png')
+plt.savefig('fig/reg_finite_scale_pt16_dim8_transf_sizewise.png')
+
+# <codecell>
+form = 'size'
+
+curr_df = plot_df[plot_df['name'] == 'Transformer']
+target_df = curr_df[curr_df['arch'] == '8-512']
+
+out = get_law(target_df, 'train_iters')
+out
+
+# <codecell>
+g = sns.lineplot(data=curr_df, x='train_iters', y='mse', hue=form, markers=True, marker='o')
+g.set_yscale('log')
+g.set_xscale('log')
+
+g.axhline(y=8.25, linestyle='dashed', color='magenta', label='null', alpha=0.5)
+g.axhline(y=ridge_mse, linestyle='dashed', color='red', label='ridge', alpha=0.5)
+
+xs = np.sort(target_df['train_iters'])
+g.plot(xs, scaling_law(xs, out.x), '--', color='red')
+
+a, b, c, d = out.x
+g.text(1 * 10**3, 0.6, fr'${a:.2f} + {b:.2f} (x + {c:.2f})^\wedge (-{d:.2f})$', color='red')
+
+# plt.legend()
+plt.title('Transformer')
+plt.tight_layout()
+plt.savefig(f'fig/reg_finite_scale_pt16_dim8_transf_iterwise_{form}.png')
 
 # <codecell>
 # PLOT LOSSES
