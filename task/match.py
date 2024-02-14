@@ -3,7 +3,6 @@ Matching tasks, analogous to the delayed match-to-sample task of Griffiths paper
 """
 # <codecell>
 import functools
-import pathos.multiprocessing as mp
 
 import jax
 import numpy as np
@@ -99,8 +98,7 @@ class GautamMatch:
                  matched_target=True,
                  bursty=1, prob_b=1, 
                  eps=0.1, alpha=0, width=1,
-                 batch_size=128, seed=None, reset_rng_for_data=True,
-                 n_workers=0):
+                 batch_size=128, seed=None, reset_rng_for_data=True):
         self.n_points = n_points
         self.n_classes = n_classes
         self.n_labels = n_labels
@@ -114,11 +112,7 @@ class GautamMatch:
         self.batch_size = batch_size
         self.seed = seed
         self.rng = np.random.default_rng(seed)
-        self.n_workers = n_workers
 
-        if self.n_workers > 0:
-            self.pool = mp.ProcessPool(nodes=self.n_workers)
-        
         self.width = width
 
         self.idx_to_label = self.rng.normal(loc=0, scale=(self.width / np.sqrt(n_dims)), size=(self.n_labels, n_dims))
@@ -205,12 +199,7 @@ class GautamMatch:
         n_bursty = self.rng.binomial(self.batch_size, p=self.prob_b)
         args = np.zeros(self.batch_size, dtype=np.int32)
         args[:n_bursty] = self.bursty
-
-        if self.n_workers == 0:
-            all_exs = [self._sample_example(self.rng, burst=a) for a in args]
-        else:
-            rngs = self.rng.spawn(self.batch_size)
-            all_exs = self.pool.map(self._sample_example, rngs, args)
+        all_exs = [self._sample_example(self.rng, burst=a) for a in args]
 
         xs, ys = zip(*all_exs)
         perm_idxs = self.rng.permutation(self.batch_size)
