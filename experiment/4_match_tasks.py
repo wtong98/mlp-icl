@@ -35,29 +35,34 @@ from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.match import RingMatch, LabelRingMatch
 
-match_experiment = functools.partial(experiment, task_class=RingMatch)
-
 # <codecell>
 # W/W_OUT SCRAMBLE GENERALIZATION
-n_iters = 3
+n_iters = 1
 n_out = 6
+train_iters = 20_000
 
-common_args = {'train_iters': 20_000}
+common_args = {'n_points': n_out}
 scramble_args = dict(scramble=True, **common_args)
 
 all_cases = []
 for _ in range(n_iters):
-    all_cases.extend([
-        Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), match_experiment, experiment_args=common_args),
-        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, use_mlp_layers=True, pos_emb=True), match_experiment, experiment_args=common_args),
-        Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=256), match_experiment, experiment_args=common_args),
+    for args in [common_args, scramble_args]:
+        curr_cases = [
+            Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256)),
+            Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, n_mlp_layers=3, pos_emb=True))
+        ]
 
-        Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=256), match_experiment, experiment_args=scramble_args),
-        Case('Transformer', TransformerConfig(n_out=n_out, n_layers=3, n_hidden=256, use_mlp_layers=True, pos_emb=True), match_experiment, experiment_args=scramble_args),
-        Case('MNN', PolyConfig(n_out=n_out, n_layers=1, n_hidden=256), match_experiment, experiment_args=scramble_args),
-    ])
+        for c in curr_cases:
+            c.train_args = {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'}
+            c.train_task = RingMatch(**args)
+            c.test_task = RingMatch(batch_size=1024, **args)
+            c.info['task_args'] = args
+        
+        all_cases.extend(curr_cases)
+
 
 for case in tqdm(all_cases):
+    print(case.name)
     case.run()
 
 # <codecell>
@@ -67,22 +72,64 @@ eval_cases(all_cases, key_name='scramble_eval', eval_task=RingMatch(scramble=Tru
 
 # <codecell>
 df = pd.DataFrame(all_cases)
-df_info = pd.DataFrame(df['info'].tolist())
-df_exp = pd.DataFrame(df['experiment_args'].tolist())
-df_exp['scramble'][df_exp['scramble'].isna()] = False
 
-df = df[['name']].join(df_exp[['scramble']]).join(df_info)
-df = df.melt(id_vars=['name', 'scramble'], value_name='acc')
-df['acc'] = df['acc'].astype('float')
-df
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['info']['task_args'].get('scramble', False),
+        row['info']['in_dist_eval'].astype(float),
+        row['info']['radius_eval'].astype(float),
+        row['info']['scramble_eval'].astype(float),
+    ], index=['name', 'scramble', 'in_dist_acc', 'radius_acc', 'scramble_acc'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .melt(id_vars=['name', 'scramble'], var_name='acc_type', value_name='acc')
+
+plot_df['acc'] = plot_df['acc'].astype('float')
+plot_df
 
 # <codecell>
-g = sns.FacetGrid(df, col='variable')
-g.map_dataframe(sns.barplot, x='scramble', y='acc', hue='name')
-g.add_legend()
+g = sns.catplot(plot_df, x='scramble', y='acc', col='acc_type', hue='name', kind='bar')
 
 # plt.tight_layout()
-plt.savefig('fig/match_gen.png')
+plt.savefig('fig/match_gen_simple.png')
+
+# <codecell>
+### RADIUS GENERALIZATION ON PLAIN MATCH TASK
+n_iters = 1
+n_out = 6
+train_iters = 5_000
+
+common_args = {'n_points': n_out, 'scramble': True}
+# scramble_args = dict(scramble=True, **common_args)
+
+all_cases = []
+for _ in range(n_iters):
+    for args in [common_args]:
+        curr_cases = [
+            # Case('MLP', MlpConfig(n_out=n_out, n_layers=3, n_hidden=16)),
+            Case('Transformer', TransformerConfig(n_out=n_out, n_layers=8, n_hidden=256, n_mlp_layers=3, pos_emb=True))
+        ]
+
+        for c in curr_cases:
+            c.train_args = {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'}
+            c.train_task = RingMatch(**args)
+            c.test_task = RingMatch(batch_size=1024, **args)
+            c.info['task_args'] = args
+        
+        all_cases.extend(curr_cases)
+
+
+for case in tqdm(all_cases):
+    print('TRAINING', case.name)
+    case.run()
+
+# <codecell>
+eval_cases(all_cases, key_name='radius_eval', eval_task=RingMatch(radius=2, batch_size=1024))
+
+df = pd.DataFrame(all_cases)
+df['info'].tolist()
+
 
 # <codecell>
 # WIDTH PERFORMANCE
