@@ -204,7 +204,9 @@ plt.savefig('fig/reg_finite_points_scale_icl.png')
 pkl_path = Path('remote/10_finite_regression/scale_param')
 dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
 df = pd.concat(dfs)
+df.head()
 
+# <codecell>
 def extract_plot_vals(row):
     return pd.Series([
         row['name'],
@@ -213,8 +215,10 @@ def extract_plot_vals(row):
         row['info']['size'],
         f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
         row['train_args']['train_iters'],
-        row['info']['eval_mse'].item(),
-    ], index=['name', 'depth', 'width', 'size', 'arch', 'train_iters', 'mse'])
+        row['info']['common_task_args']['n_ws'],
+        row['info']['mse_pretrain'].item(),
+        row['info']['mse_true'].item(),
+    ], index=['name', 'depth', 'width', 'size', 'arch', 'train_iters', 'n_ws', 'mse_pretrain', 'mse_true'])
 
 plot_df = df.apply(extract_plot_vals, axis=1)
 
@@ -224,25 +228,31 @@ pred = estimate_ridge(None, *unpack(xs))
 ridge_mse = np.mean((ys - pred)**2)
 
 plot_df
+
+# <codecell>
+# SUBSET N_WS
+plot_df = plot_df[plot_df['n_ws'] == 4]
+plot_df  # TODO: should plot out for different settings of n_ws?
+
 # <codecell>
 mlp_df = plot_df[plot_df['name'] == 'MLP']
-target_df = mlp_df[mlp_df['train_iters'] == 4096000]
+target_df = mlp_df[mlp_df['train_iters'] == 1024000]
 
 def scaling_law(x, consts):
     a, b, c, d = consts
     return a + b * (x + c)**(-d)
 
-def get_law(target_df, feat):
+def get_law(target_df, feat, response='mse'):
     def loss(consts):
         result = scaling_law(target_df[feat], consts)
-        return np.mean((result - target_df['mse'])**2)
+        return np.mean((result - target_df[response])**2)
 
     out = minimize(loss, np.zeros(4))
     return out
 
-out = get_law(target_df, 'size')
+out = get_law(target_df, 'size', 'mse_pretrain')
 # <codecell>
-g = sns.lineplot(data=mlp_df, x='size', y='mse', hue='train_iters', markers=True, marker='o')
+g = sns.lineplot(data=mlp_df, x='size', y='mse_pretrain', hue='train_iters', markers=True, marker='o')
 g.set_yscale('log')
 g.set_xscale('log')
 
@@ -253,11 +263,11 @@ xs = np.sort(target_df['size'])
 g.plot(xs, scaling_law(xs, out.x), '--', color='red')
 
 a, b, c, d = out.x
-g.text(10**6, 1, fr'${a:.2f} + {b:.2f} (x {c:.2f})^\wedge (-{d:.2f})$', color='red')
+g.text(10**6, 1, fr'${a:.2f} + {b:.2f} (x + {c:.2f})^\wedge (-{d:.2f})$', color='red')
 
 plt.title('MLP')
 plt.tight_layout()
-plt.savefig('fig/reg_finite_scale_pt16_dim8_mlp_sizewise.png')
+# plt.savefig('fig/reg_finite_scale_pt16_dim8_mlp_sizewise.png')
 
 # <codecell>
 form = 'size'

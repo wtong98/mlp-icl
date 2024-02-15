@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
+from scipy.optimize import minimize
 
 from common import *
 
@@ -129,6 +130,66 @@ eval_cases(all_cases, key_name='radius_eval', eval_task=RingMatch(radius=2, batc
 
 df = pd.DataFrame(all_cases)
 df['info'].tolist()
+
+# <codecell>
+### PLOTTING POTENTIAL SCALING IN RADIUS GENERALIZATION
+pkl_path = Path('remote/4_match_tasks/scale')
+dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
+df = pd.concat(dfs)
+
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['train_args']['train_iters'],
+        row['config']['n_layers'],
+        row['config']['n_hidden'],
+        row['info']['size'],
+        f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
+        row['info']['radius_0.5'].item(),
+        row['info']['radius_1'].item(),
+        row['info']['radius_2'].item()
+    ], index=['name', 'train_iters', 'depth', 'width', 'size', 'arch', 0.5, 1, 2])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .melt(id_vars=['name', 'train_iters', 'depth', 'width', 'size', 'arch'], value_vars=[0.5, 1, 2], var_name='radius', value_name='acc')
+plot_df
+
+# <codecell>
+def scaling_law(x, consts):
+    a, b, c, d = consts
+    return a + b * (x + c)**(-d)
+
+def get_law(target_df, feat, response='mse'):
+    def loss(consts):
+        result = scaling_law(target_df[feat], consts)
+        return np.mean((result - target_df[response])**2)
+
+    out = minimize(loss, np.zeros(4))
+    return out
+
+
+curr_df = plot_df[plot_df['name'] == 'MLP']
+g = sns.catplot(data=curr_df, x='size', y='acc', hue='train_iters', col='radius', kind='point', height=3, aspect=1.25)
+plt.savefig('fig/match_scale_mlp_sizewise.png')
+plt.show()
+
+# <codecell>
+curr_df = plot_df[plot_df['name'] == 'MLP']
+g = sns.catplot(data=curr_df, x='train_iters', y='acc', hue='arch', col='radius', kind='point', height=3, aspect=1.25)
+plt.savefig('fig/match_scale_mlp_archwise.png')
+plt.show()
+
+# <codecell>
+curr_df = plot_df[plot_df['name'] == 'Transformer']
+g = sns.catplot(data=curr_df, x='size', y='acc', hue='train_iters', col='radius', kind='point', height=3, aspect=1.25)
+plt.savefig('fig/match_scale_tranf_sizewise.png')
+plt.show()
+
+# <codecell>
+curr_df = plot_df[plot_df['name'] == 'Transformer']
+g = sns.catplot(data=curr_df, x='train_iters', y='acc', hue='arch', col='radius', kind='point', height=3, aspect=1.25)
+plt.savefig('fig/match_scale_transf_archwise.png')
+plt.show()
 
 
 # <codecell>
