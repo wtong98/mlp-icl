@@ -22,6 +22,31 @@ class PointTask:
         return self
 
 
+class LinearTask:
+    def __init__(self, n_dims=16, seed=None, reset_rng_for_data=True, tokenize=False, batch_size=128) -> None:
+        self.n_dims = n_dims
+        self.seed = seed
+        self.batch_size = batch_size
+        self.tokenize = tokenize
+
+        self.rng = np.random.default_rng(seed)
+        self.weights = self.rng.standard_normal(size=(self.n_dims, 1))
+
+        if reset_rng_for_data:
+            self.rng = np.random.default_rng(None)
+    
+    def __next__(self):
+        xs = self.rng.standard_normal(size=(self.batch_size, self.n_dims))
+        ys = xs @ self.weights
+
+        if self.tokenize:
+            xs = np.expand_dims(xs, axis=-1)
+        return xs, ys.flatten()
+
+    def __iter__(self):
+        return self
+
+
 class MultiplicationTask:
     def __init__(self, domain, batch_size=128) -> None:
         self.lower, self.upper = domain
@@ -53,10 +78,6 @@ class DotProductTask:
         return self
 
 
-class TripleScalarProductTask:
-    pass
-
-
 class AttentionTask:
     def __init__(self, domain, n_dims=5, batch_size=128):
         self.lower, self.upper = domain
@@ -73,18 +94,17 @@ class AttentionTask:
     
 
 if __name__ == '__main__':
-    points = [(0, 0), (1, 2)]
-    task = PointTask(points, batch_size=5)
-    xs, y = next(task)
-    print(xs)
-    print(y)
-    # task = DotProductTask(domain=(-5, 5))
-    # xs, ys = next(iter(task))
+    import matplotlib.pyplot as plt
 
-    # print('XS', xs.shape)
-    # print('YS', ys.shape)
-    # print(ys[1])
-    # print(xs[1,[0]] @ xs[1, [1]].T)
+    task = LinearTask(n_dims=2, batch_size=1024, seed=3)
+    print(task.weights)
+    xs, ys = next(task)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+
+    ax.scatter(xs[:,0], xs[:,1], ys, alpha=0.3)
+    
 
 
 # %%

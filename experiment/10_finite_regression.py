@@ -376,7 +376,6 @@ plt.tight_layout()
 ### TRAINING PLAYGROUND
 task = FiniteLinearRegression(n_points=16, n_ws=None, batch_size=128, n_dims=8, enforce_orth_x=True, noise_scale=0)
 
-# TODO: check if MSE on identity-covariance model matches <-- STOPPED HERE
 config = MlpConfig(n_out=1, n_layers=3, n_hidden=1024, act_fn='relu')
 # config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='gelu')
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)

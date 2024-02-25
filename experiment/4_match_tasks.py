@@ -137,6 +137,7 @@ pkl_path = Path('remote/4_match_tasks/scale')
 dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
 df = pd.concat(dfs)
 
+# <codecell>
 def extract_plot_vals(row):
     return pd.Series([
         row['name'],
@@ -147,11 +148,12 @@ def extract_plot_vals(row):
         f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
         row['info']['radius_0.5'].item(),
         row['info']['radius_1'].item(),
-        row['info']['radius_2'].item()
-    ], index=['name', 'train_iters', 'depth', 'width', 'size', 'arch', 0.5, 1, 2])
+        row['info']['radius_2'].item(),
+        row['hist']['train'][-1]['loss'].item() if len(row['hist']['train']) > 0 else None
+    ], index=['name', 'train_iters', 'depth', 'width', 'size', 'arch', 0.5, 1, 2, 'loss'])
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
-            .melt(id_vars=['name', 'train_iters', 'depth', 'width', 'size', 'arch'], value_vars=[0.5, 1, 2], var_name='radius', value_name='acc')
+            # .melt(id_vars=['name', 'train_iters', 'depth', 'width', 'size', 'arch'], value_vars=[0.5, 1, 2], var_name='radius', value_name='acc')
 plot_df
 
 # <codecell>
@@ -168,15 +170,111 @@ def get_law(target_df, feat, response='mse'):
     return out
 
 
-curr_df = plot_df[plot_df['name'] == 'MLP']
-g = sns.catplot(data=curr_df, x='size', y='acc', hue='train_iters', col='radius', kind='point', height=3, aspect=1.25)
-plt.savefig('fig/match_scale_mlp_sizewise.png')
+curr_df = plot_df[(plot_df['name'] == 'MLP') & (~pd.isna(plot_df['loss']))]
+td = curr_df[curr_df['train_iters'] == 512000]
+out = get_law(td, 'size', 'loss')
+print(out)
+
+g = sns.lineplot(curr_df, x='size', y='loss', hue='train_iters', markers=True, marker='o')
+
+xs = np.sort(td['size'])
+g.plot(xs, scaling_law(xs, out.x), '--', color='red')
+a, b, c, d = out.x
+g.text(10**5, 5e-2, fr'${a:.2f} + {b:.2f} (x + {c:.2f})^\wedge (-{d:.2f})$', color='red')
+
+g.set_yscale('log')
+g.set_xscale('log')
+plt.tight_layout()
+plt.savefig('fig/match_scale_mlp_sizewise_loss.png')
+plt.show()
+
+# <codecell>
+curr_df = plot_df[(plot_df['name'] == 'MLP') & (~pd.isna(plot_df['loss']))]
+td = curr_df[curr_df['arch'] == '2-1024']
+out = get_law(td, 'train_iters', 'loss')
+print(out)
+
+g = sns.lineplot(curr_df, x='train_iters', y='loss', hue='size', markers=True, marker='o')
+
+xs = np.sort(td['train_iters'])
+g.plot(xs, scaling_law(xs, out.x), '--', color='red')
+a, b, c, d = out.x
+g.text(10**5, 5e-2, fr'${a:.2f} + {b:.2f} (x + {c:.2f})^\wedge (-{d:.2f})$', color='red')
+
+g.set_yscale('log')
+g.set_xscale('log')
+plt.tight_layout()
+plt.savefig('fig/match_scale_mlp_iterwisewise_loss.png')
+plt.show()
+
+# <codecell>
+curr_df = plot_df[(plot_df['name'] == 'MLP') & (~pd.isna(plot_df['loss']))]
+g = sns.lineplot(curr_df, x='train_iters', y='loss', hue='arch', markers=True, marker='o')
+
+g.set_yscale('log')
+g.set_xscale('log')
+plt.tight_layout()
+plt.savefig('fig/match_scale_mlp_archwisewise_loss.png')
+plt.show()
+
+# <codecell>
+curr_df = plot_df[(plot_df['name'] == 'Transformer') & (~pd.isna(plot_df['loss']))]
+g = sns.lineplot(curr_df, x='size', y='loss', hue='train_iters', markers=True, marker='o')
+
+# td = curr_df[curr_df['train_iters'] == 512000]
+# out = get_law(td, 'size', 'loss')
+# print(out)
+# xs = np.sort(td['size'])
+# g.plot(xs, scaling_law(xs, out.x), '--', color='red')
+# a, b, c, d = out.x
+# g.text(10**5, 5e-2, fr'${a:.2f} + {b:.2f} (x + {c:.2f})^\wedge (-{d:.2f})$', color='red')
+
+g.set_yscale('log')
+g.set_xscale('log')
+plt.tight_layout()
+plt.savefig('fig/match_scale_transf_sizewise_loss.png')
+plt.show()
+
+# <codecell>
+curr_df = plot_df[(plot_df['name'] == 'Transformer') & (~pd.isna(plot_df['loss']))]
+g = sns.lineplot(curr_df, x='train_iters', y='loss', hue='size', markers=True, marker='o')
+
+td = curr_df[curr_df['arch'] == '4-64']
+out = get_law(td, 'train_iters', 'loss')
+print(out)
+xs = np.sort(td['train_iters'])
+g.plot(xs, scaling_law(xs, out.x), '--', color='red')
+a, b, c, d = out.x
+g.text(10**5, 5e-2, fr'${a:.2f} + {b:.2f} (x + {c:.2f})^\wedge (-{d:.2f})$', color='red')
+
+g.set_yscale('log')
+g.set_xscale('log')
+
+plt.tight_layout()
+plt.savefig('fig/match_scale_transf_iterwise_loss.png')
+plt.show()
+
+# <codecell>
+curr_df = plot_df[(plot_df['name'] == 'Transformer') & (~pd.isna(plot_df['loss']))]
+g = sns.lineplot(curr_df, x='train_iters', y='loss', hue='arch', markers=True, marker='o')
+g.set_yscale('log')
+g.set_xscale('log')
+plt.tight_layout()
+plt.savefig('fig/match_scale_transf_archwise_loss.png')
 plt.show()
 
 # <codecell>
 curr_df = plot_df[plot_df['name'] == 'MLP']
-g = sns.catplot(data=curr_df, x='train_iters', y='acc', hue='arch', col='radius', kind='point', height=3, aspect=1.25)
-plt.savefig('fig/match_scale_mlp_archwise.png')
+g = sns.catplot(data=curr_df, x='size', y='loss', hue='train_iters', col='radius', kind='point', height=3, aspect=1.25)
+plt.savefig('fig/match_scale_mlp_sizewise.png')
+plt.show()
+
+# <codecell>
+form = 'size'
+
+curr_df = plot_df[plot_df['name'] == 'MLP']
+g = sns.catplot(data=curr_df, x='train_iters', y='acc', hue=form, col='radius', kind='point', height=3, aspect=1.25)
+plt.savefig(f'fig/match_scale_mlp_{form}wise.png')
 plt.show()
 
 # <codecell>
@@ -186,9 +284,11 @@ plt.savefig('fig/match_scale_tranf_sizewise.png')
 plt.show()
 
 # <codecell>
+form = 'size'
+
 curr_df = plot_df[plot_df['name'] == 'Transformer']
-g = sns.catplot(data=curr_df, x='train_iters', y='acc', hue='arch', col='radius', kind='point', height=3, aspect=1.25)
-plt.savefig('fig/match_scale_transf_archwise.png')
+g = sns.catplot(data=curr_df, x='train_iters', y='acc', hue=form, col='radius', kind='point', height=3, aspect=1.25)
+plt.savefig(f'fig/match_scale_transf_{form}wise.png')
 plt.show()
 
 

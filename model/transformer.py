@@ -35,7 +35,7 @@ class TransformerConfig:
     n_hidden: int = 128
     n_heads: int = 1
     n_out: int = 1
-    max_len: int = 32
+    max_len: int = 128
     pos_emb: bool = True
     use_single_head_module: bool = False # TODO: stopgap for linear transformer
     use_last_index_output: bool = False
