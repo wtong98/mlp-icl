@@ -22,13 +22,13 @@ print('RUN ID', run_id)
 
 batch_size = 128
 
-train_iters_mlp = [125, 500, 2_000, 8_000, 32_000]
+train_iters_mlp = [125, 256, 500, 1_000, 2_000, 4_000, 8_000, 16_000]
 depths_mlp = [1, 2, 4]
-widths_mlp = [16, 64, 256]
+widths_mlp = [16, 32, 64, 128, 256]
 
-train_iters_trans = [125, 500, 2_000, 8_000, 32_000]
-depths_trans = [1, 2, 4]
-widths_trans = [16, 64, 256]
+train_iters_trans = [500, 2_000, 8_000, 32_000]
+depths_trans = [1, 2, 3, 4, 6, 8]
+widths_trans = [64, 128]
 
 n_dims = 64
 all_cases = []
@@ -52,7 +52,7 @@ for train_iters in train_iters_trans:
             common_args = {'n_dims': n_dims, 'tokenize': True, 'seed': new_seed()}
 
             all_cases.append(
-                Case('Transformer', TransformerConfig(n_out=1, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=3),
+                Case('Transformer', TransformerConfig(n_out=1, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),
                     train_args={'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
                     train_task = LinearTask(batch_size=batch_size, **common_args),
                     test_task=LinearTask(batch_size=1024, **common_args))
