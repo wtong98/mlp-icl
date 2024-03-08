@@ -51,6 +51,7 @@ def plot_panel(name, feat, hue, save_path):
 
     g.set_yscale('log')
     g.set_xscale('log')
+    g.set_title(name)
     plt.tight_layout()
     plt.savefig(save_path)
     plt.show()
@@ -89,7 +90,7 @@ def plot_law_sizewise(df, out, model_idx=-1, x=0, y=0):
     xs =  np.sort(target_df['size'])
     g.plot(xs, full_scaling_law((xs, target), out.x), '--', color='red')
     a, b, c, d, e = out.x
-    g.text(x, y, fr'${a:.2f} + {b:.2f} x^\wedge (-{c:.3f}) + {d:.2f} x^\wedge (-{e:.3f})$', color='red')
+    g.text(x, y, fr'${a:.2f} + {b:.2f} N^\wedge (-{c:.3f}) + {d:.2f} B^\wedge (-{e:.3f})$', color='red')
 
 
 def plot_law_iterwise(df, out, model_size_idx=-1, x=0, y=0):
@@ -101,7 +102,7 @@ def plot_law_iterwise(df, out, model_size_idx=-1, x=0, y=0):
     xs =  np.sort(target_df['train_iters'])
     g.plot(xs, full_scaling_law((model_size, xs), out.x), '--', color='red')
     a, b, c, d, e = out.x
-    g.text(x, y, fr'${a:.2f} + {b:.2f} x^\wedge (-{c:.3f}) + {d:.2f} x^\wedge (-{e:.3f})$', color='red')
+    g.text(x, y, fr'${a:.2f} + {b:.2f} N^\wedge (-{c:.3f}) + {d:.2f} B^\wedge (-{e:.3f})$', color='red')
 
 # <codecell>
 curr_df = plot_df[plot_df['name'] == 'MLP']
@@ -112,14 +113,16 @@ out = get_law(full_scaling_law,
               curr_df['size'],
               curr_df['train_iters'])
 
-plot_law_iterwise(curr_df, out, x=10**3, y=40)
+plot_law_iterwise(curr_df, out, x=10**3, y=1)
 plt.title('MLP')
+plt.tight_layout()
 plt.savefig('fig/linreg_scale/linreg_scale_mlp_full_law_iterwise.png')
 plt.show()
 
 # <codecell>
-plot_law_sizewise(curr_df, out, x=10**3, y=40)
+plot_law_sizewise(curr_df, out, x=10**3, y=1)
 plt.title('MLP')
+plt.tight_layout()
 plt.savefig('fig/linreg_scale/linreg_scale_mlp_full_law_sizewise.png')
 plt.show()
 
@@ -135,13 +138,13 @@ out = get_law(full_scaling_law,
 print(out)
 
 # <codecell>
-plot_law_iterwise(curr_df, out, x=10**2, y=-25)
+plot_law_iterwise(curr_df, out, x=10**3, y=1)
 plt.title('Transformer')
 plt.tight_layout()
 plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_iterwise.png')
 
 # <codecell>
-plot_law_sizewise(curr_df, out, x=10**4, y=-25)
+plot_law_sizewise(curr_df, out, x=10**5, y=0.8)
 plt.title('Transformer')
 plt.tight_layout()
 plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_sizewise.png')
