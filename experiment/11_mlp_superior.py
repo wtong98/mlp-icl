@@ -38,11 +38,63 @@ def extract_plot_vals(row):
         row['config']['n_hidden'],
         row['info']['size'],
         f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
+        row['info']['size'] * row['train_args']['train_iters'],
         row['info']['mse'].item(),
-    ], index=['name', 'train_iters', 'depth', 'width', 'size', 'arch', 'mse'])
+    ], index=['name', 'train_iters', 'depth', 'width', 'size', 'arch', 'compute', 'mse'])
 
 plot_df = df.apply(extract_plot_vals, axis=1)
 plot_df
+
+# <codecell>
+### Make compute scaling laws plots
+def law(xs, consts):
+    N, B, compute = xs
+    a, b, c, d, e = consts
+    return a + b/((compute)**c)
+
+
+def get_law(law, init, resp, *feats):
+    def loss(consts):
+        result = law(feats, consts)
+        return np.sum(huber(1e-3, (result-resp)))
+        # return np.mean((result - resp)**2)
+
+    out = minimize(loss, init)
+    return out
+
+def make_plot(name):
+    curr_df = plot_df[(plot_df['name'] == name)]
+    plt.gcf().set_size_inches(8, 6)
+
+    target_size = np.unique(np.sort((curr_df['size'])))[-1]
+
+    g = sns.lineplot(curr_df, x='compute', y='mse', hue='size', marker='o')
+    g.legend()
+    g.legend_.set_title('size (N)')
+
+    t_df = curr_df[curr_df['size'] == target_size]
+    out = get_law(law, np.zeros(5), t_df['mse'], t_df['size'], t_df['train_iters'], t_df['compute'])
+    print(out)
+
+    xs = np.unique(t_df['compute'])
+    g.plot(xs, law((0, 0, xs), out.x), '--', color='red')
+    a, b, c, d, e = out.x
+    g.text(10**7, 1, fr'${a:.2f} + {b:.2f} \cdot C^\wedge (-{c:.3f})$', color='red')
+
+    g.set_xscale('log')
+    g.set_title(name)
+    plt.tight_layout()
+
+    return g
+
+make_plot('MLP')
+plt.savefig('fig/linreg_scale/linreg_scale_mlp_computewise.png')
+plt.show()
+
+make_plot('Transformer')
+plt.savefig('fig/linreg_scale/linreg_scale_transf_computewise.png')
+plt.show()
+
 
 # <codecell>
 def plot_panel(name, feat, hue, save_path):
@@ -70,12 +122,14 @@ def full_scaling_law(xs, consts):
     model_size, data_size = xs
     a, b, c, d, e = consts
     return a + b / (model_size**c) + d / (data_size**e)
+    # return 0.05 + d / (data_size**e)
 
 
 def get_law(law, init, resp, *feats):
     def loss(consts):
         result = law(feats, consts)
         return np.sum(huber(1e-3, (result-resp)))
+        # return np.mean((result - resp)**2)
 
     out = minimize(loss, init)
     return out
@@ -105,7 +159,11 @@ def plot_law_iterwise(df, out, model_size_idx=-1, x=0, y=0):
     g.text(x, y, fr'${a:.2f} + {b:.2f} N^\wedge (-{c:.3f}) + {d:.2f} B^\wedge (-{e:.3f})$', color='red')
 
 # <codecell>
-curr_df = plot_df[plot_df['name'] == 'MLP']
+# TODO: attempt just compute-wise or perhaps sigmoidal fit <-- STOPPED HERE
+# NOTE: effectively fix number of parameters, plot fit to training iterations as correct demo
+
+# curr_df = plot_df[plot_df['name'] == 'MLP']  
+curr_df = plot_df[(plot_df['name'] == 'MLP') & (plot_df['size'] == 4225)]
 out = get_law(full_scaling_law,
               np.zeros(5),
               curr_df['mse'],
@@ -113,10 +171,13 @@ out = get_law(full_scaling_law,
               curr_df['size'],
               curr_df['train_iters'])
 
-plot_law_iterwise(curr_df, out, x=10**3, y=1)
+print(out)
+
+# <codecell>
+plot_law_iterwise(curr_df, out, x=10**3, y=1, model_size_idx=-1)
 plt.title('MLP')
 plt.tight_layout()
-plt.savefig('fig/linreg_scale/linreg_scale_mlp_full_law_iterwise.png')
+# plt.savefig('fig/linreg_scale/linreg_scale_mlp_full_law_iterwise.png')
 plt.show()
 
 # <codecell>
@@ -144,7 +205,7 @@ plt.tight_layout()
 plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_iterwise.png')
 
 # <codecell>
-plot_law_sizewise(curr_df, out, x=10**5, y=0.8)
+plot_law_sizewise(curr_df, out, x=10**3, y=0.8)
 plt.title('Transformer')
 plt.tight_layout()
 plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_sizewise.png')
@@ -153,8 +214,8 @@ plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_sizewise.png')
 ### TRAINING PLAYGROUND
 
 task = LinearTask(n_dims=64, seed=5, tokenize=True)
-# config = MlpConfig(n_out=1, n_layers=3, n_hidden=128, act_fn='relu')
-config = TransformerConfig(pos_emb=True, n_out=1, n_layers=3, n_heads=2, n_hidden=256, n_mlp_layers=3, layer_norm=True, max_len=128)
+config = MlpConfig(n_out=1, n_layers=1, n_hidden=1, act_fn='relu')
+# config = TransformerConfig(pos_emb=True, n_out=1, n_layers=3, n_heads=2, n_hidden=256, n_mlp_layers=3, layer_norm=True, max_len=128)
 
-state, hist = train(config, data_iter=iter(task), loss='mse', test_every=100, train_iters=5000, lr=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4)
 # %%

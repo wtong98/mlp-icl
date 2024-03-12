@@ -22,12 +22,12 @@ print('RUN ID', run_id)
 
 batch_size = 128
 
-train_iters_mlp = [31, 62, 125, 256, 500, 1_000, 2_000, 4_000, 8_000]
+train_iters_mlp = [5, 15, 31, 62, 125, 250, 500, 1_000, 2_000, 4_000, 8_000, 16_000, 32_000]
 depths_mlp = [1, 2, 4]
-widths_mlp = [4, 8, 16, 32, 64, 128]
+widths_mlp = [1, 4, 16, 64, 256]
 
-train_iters_trans = [500, 2_000, 8_000, 32_000, 64_000]
-depths_trans = [1, 2, 3, 4, 6, 8]
+train_iters_trans = [62, 125, 250, 500, 2_000, 8_000, 32_000, 64_000, 128_000, 256_000]
+depths_trans = [1, 2, 4, 8]
 widths_trans = [8, 32]
 
 n_dims = 64
