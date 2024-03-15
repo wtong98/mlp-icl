@@ -22,10 +22,11 @@ class PointTask:
         return self
 
 
-class LinearTask:
-    def __init__(self, n_dims=16, eta=0.05, seed=None, reset_rng_for_data=True, tokenize=False, batch_size=128) -> None:
+class PowerTask:
+    def __init__(self, n_dims=16, eta=0.05, power=1, seed=None, reset_rng_for_data=True, tokenize=False, batch_size=128) -> None:
         self.n_dims = n_dims
         self.eta = eta
+        self.power = power
         self.seed = seed
         self.batch_size = batch_size
         self.tokenize = tokenize
@@ -38,7 +39,7 @@ class LinearTask:
     
     def __next__(self):
         xs = self.rng.standard_normal(size=(self.batch_size, self.n_dims))
-        ys = xs @ self.weights + self.rng.standard_normal(size=(self.batch_size, 1)) * np.sqrt(self.eta)
+        ys = (xs @ self.weights)**self.power + self.rng.standard_normal(size=(self.batch_size, 1)) * np.sqrt(self.eta)
 
         if self.tokenize:
             xs = np.expand_dims(xs, axis=-1)
@@ -97,7 +98,7 @@ class AttentionTask:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = LinearTask(n_dims=2, batch_size=4096, seed=None, reset_rng_for_data=True, eta=0)
+    task = PowerTask(n_dims=64, power=3, batch_size=4096, seed=None, reset_rng_for_data=True, eta=0)
     # print(task.weights)
     xs, ys = next(task)
 

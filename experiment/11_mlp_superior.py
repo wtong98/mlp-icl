@@ -19,7 +19,7 @@ import sys
 sys.path.append('../')
 from model.mlp import MlpConfig
 from model.transformer import TransformerConfig
-from task.function import LinearTask
+from task.function import PowerTask
 
 
 # <codecell>
@@ -47,10 +47,14 @@ plot_df
 
 # <codecell>
 ### Make compute scaling laws plots
+
+# TODO: try sigmoidal fit
 def law(xs, consts):
     N, B, compute = xs
     a, b, c, d, e = consts
-    return a + b/((compute)**c)
+    # return a + b/((compute)**c)
+    log_C = np.log(compute)
+    return a + b/(1 + np.exp(c * log_C - d))
 
 
 def get_law(law, init, resp, *feats):
@@ -79,7 +83,9 @@ def make_plot(name):
     xs = np.unique(t_df['compute'])
     g.plot(xs, law((0, 0, xs), out.x), '--', color='red')
     a, b, c, d, e = out.x
-    g.text(10**7, 1, fr'${a:.2f} + {b:.2f} \cdot C^\wedge (-{c:.3f})$', color='red')
+    # g.text(10**7, 1, fr'${a:.2f} + {b:.2f} \cdot C^\wedge (-{c:.3f})$', color='red')
+    d_fac = np.exp(-d)
+    g.text(10**7, 1.2, fr'${a:.2f} + {b:.2f} / (1 + (e^\wedge -{d:.2f}) \cdot C^\wedge {c:.3f})$', color='red')
 
     g.set_xscale('log')
     g.set_title(name)
@@ -213,9 +219,9 @@ plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_sizewise.png')
 # <codecell>
 ### TRAINING PLAYGROUND
 
-task = LinearTask(n_dims=64, seed=5, tokenize=True)
-config = MlpConfig(n_out=1, n_layers=1, n_hidden=1, act_fn='relu')
-# config = TransformerConfig(pos_emb=True, n_out=1, n_layers=3, n_heads=2, n_hidden=256, n_mlp_layers=3, layer_norm=True, max_len=128)
+task = PowerTask(n_dims=64, power=3, seed=5, tokenize=True)
+# config = MlpConfig(n_out=1, n_layers=2, n_hidden=128, act_fn='relu')
+config = TransformerConfig(pos_emb=True, n_out=1, n_layers=3, n_heads=2, n_hidden=256, n_mlp_layers=3, layer_norm=True, max_len=128)
 
 state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4)
 # %%
