@@ -49,6 +49,34 @@ class PowerTask:
         return self
 
 
+class ClassificationTask:
+    def __init__(self, n_classes=2, n_dims=16, seed=None, reset_rng_for_data=True, tokenize=False, batch_size=128) -> None:
+        self.n_classes = n_classes
+        self.n_dims = n_dims
+        self.seed = seed
+        self.reset_rng_for_data = reset_rng_for_data
+        self.tokenize = tokenize
+        self.batch_size = batch_size
+        self.rng = np.random.default_rng(seed)
+
+        self.centers = self.rng.standard_normal(size=(self.n_classes, self.n_dims)) / np.sqrt(self.n_dims)
+
+        if reset_rng_for_data:
+            self.rng = np.random.default_rng(None)
+    
+    def __next__(self):
+        xs = self.rng.standard_normal(size=(self.batch_size, self.n_dims))
+        dists = np.linalg.norm(np.expand_dims(xs, axis=1) - self.centers, axis=-1)  # n_batches x n_classes
+        ys = np.argmin(dists, axis=-1)
+
+        if self.tokenize:
+            xs = np.expand_dims(xs, axis=-1)
+        return xs, ys
+
+    def __iter__(self):
+        return self
+
+
 class MultiplicationTask:
     def __init__(self, domain, batch_size=128) -> None:
         self.lower, self.upper = domain
@@ -98,17 +126,13 @@ class AttentionTask:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = PowerTask(n_dims=64, power=3, batch_size=4096, seed=None, reset_rng_for_data=True, eta=0)
-    # print(task.weights)
+    task = ClassificationTask(n_dims=2, n_classes=5)
     xs, ys = next(task)
-
-    # fig = plt.figure()
-    # ax = fig.add_subplot(projection='3d')
-
-    # ax.scatter(xs[:,0], xs[:,1], ys, alpha=0.3)
-
-    print(np.mean(ys**2))
     
+    plt.scatter(xs[:,0], xs[:,1], c=ys)
+    plt.scatter(task.centers[:,0], task.centers[:,1], color='red')
+    
+    print(task.centers)
 
 
 # %%

@@ -19,7 +19,7 @@ import sys
 sys.path.append('../')
 from model.mlp import MlpConfig
 from model.transformer import TransformerConfig
-from task.function import PowerTask
+from task.function import PowerTask, ClassificationTask
 
 
 # <codecell>
@@ -34,13 +34,14 @@ def extract_plot_vals(row):
     return pd.Series([
         row['name'],
         row['train_args']['train_iters'],
+        row['train_task'].power,
         row['config']['n_layers'],
         row['config']['n_hidden'],
         row['info']['size'],
         f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
         row['info']['size'] * row['train_args']['train_iters'],
         row['info']['mse'].item(),
-    ], index=['name', 'train_iters', 'depth', 'width', 'size', 'arch', 'compute', 'mse'])
+    ], index=['name', 'train_iters', 'power', 'depth', 'width', 'size', 'arch', 'compute', 'mse'])
 
 plot_df = df.apply(extract_plot_vals, axis=1)
 plot_df
@@ -66,8 +67,8 @@ def get_law(law, init, resp, *feats):
     out = minimize(loss, init)
     return out
 
-def make_plot(name):
-    curr_df = plot_df[(plot_df['name'] == name)]
+def make_plot(name, power):
+    curr_df = plot_df[(plot_df['name'] == name) & (plot_df['power'] == power)]
     plt.gcf().set_size_inches(8, 6)
 
     target_size = np.unique(np.sort((curr_df['size'])))[-1]
@@ -76,30 +77,30 @@ def make_plot(name):
     g.legend()
     g.legend_.set_title('size (N)')
 
-    t_df = curr_df[curr_df['size'] == target_size]
-    out = get_law(law, np.zeros(5), t_df['mse'], t_df['size'], t_df['train_iters'], t_df['compute'])
-    print(out)
+    # t_df = curr_df[curr_df['size'] == target_size]
+    # out = get_law(law, np.zeros(5), t_df['mse'], t_df['size'], t_df['train_iters'], t_df['compute'])
+    # print(out)
 
-    xs = np.unique(t_df['compute'])
-    g.plot(xs, law((0, 0, xs), out.x), '--', color='red')
-    a, b, c, d, e = out.x
+    # xs = np.unique(t_df['compute'])
+    # g.plot(xs, law((0, 0, xs), out.x), '--', color='red')
+    # a, b, c, d, e = out.x
     # g.text(10**7, 1, fr'${a:.2f} + {b:.2f} \cdot C^\wedge (-{c:.3f})$', color='red')
-    d_fac = np.exp(-d)
-    g.text(10**7, 1.2, fr'${a:.2f} + {b:.2f} / (1 + (e^\wedge -{d:.2f}) \cdot C^\wedge {c:.3f})$', color='red')
+    # g.text(10**7, 1.2, fr'${a:.2f} + {b:.2f} / (1 + (e^\wedge -{d:.2f}) \cdot C^\wedge {c:.3f})$', color='red')
 
     g.set_xscale('log')
-    g.set_title(name)
+    g.set_title(f'{name} (power = {power})')
     plt.tight_layout()
 
     return g
 
-make_plot('MLP')
-plt.savefig('fig/linreg_scale/linreg_scale_mlp_computewise.png')
-plt.show()
+for p in [1,2,3]:
+    make_plot('MLP', power=p)
+    plt.savefig(f'fig/linreg_scale/linreg_scale_mlp_computewise_p_{p}.png')
+    plt.show()
 
-make_plot('Transformer')
-plt.savefig('fig/linreg_scale/linreg_scale_transf_computewise.png')
-plt.show()
+    make_plot('Transformer', power=p)
+    plt.savefig(f'fig/linreg_scale/linreg_scale_transf_computewise_p_{p}.png')
+    plt.show()
 
 
 # <codecell>
@@ -165,7 +166,6 @@ def plot_law_iterwise(df, out, model_size_idx=-1, x=0, y=0):
     g.text(x, y, fr'${a:.2f} + {b:.2f} N^\wedge (-{c:.3f}) + {d:.2f} B^\wedge (-{e:.3f})$', color='red')
 
 # <codecell>
-# TODO: attempt just compute-wise or perhaps sigmoidal fit <-- STOPPED HERE
 # NOTE: effectively fix number of parameters, plot fit to training iterations as correct demo
 
 # curr_df = plot_df[plot_df['name'] == 'MLP']  
@@ -218,10 +218,17 @@ plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_sizewise.png')
 
 # <codecell>
 ### TRAINING PLAYGROUND
+n_out = 2
+task = ClassificationTask(n_dims=64, n_classes=n_out, seed=5, tokenize=True)
+# config = MlpConfig(n_out=n_out, n_layers=2, n_hidden=128, act_fn='relu')
+config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
 
-task = PowerTask(n_dims=64, power=3, seed=5, tokenize=True)
-# config = MlpConfig(n_out=1, n_layers=2, n_hidden=128, act_fn='relu')
-config = TransformerConfig(pos_emb=True, n_out=1, n_layers=3, n_heads=2, n_hidden=256, n_mlp_layers=3, layer_norm=True, max_len=128)
+state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=100_000, lr=1e-4)
 
-state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4)
+
+'''
+Basic observations for classification:
+- Transformer handles complexity better (more classes)
+- MLP handles dimensionality better (more points)
+'''
 # %%
