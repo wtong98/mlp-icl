@@ -163,7 +163,7 @@ def train(config, data_iter,
         state = train_step(state, batch, loss=loss, l1_weight=l1_weight)
         state = compute_metrics(state, batch, loss=loss)
 
-        if (step + 1) % test_every == 0:
+        if ((step + 1) % test_every == 0) or ((step + 1) == train_iters):
             hist['train'].append(state.metrics)
 
             state = state.replace(metrics=Metrics.empty())

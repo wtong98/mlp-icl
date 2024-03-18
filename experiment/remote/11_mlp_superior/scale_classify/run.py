@@ -54,8 +54,8 @@ for train_iters in train_iters_mlp:
                 common_args = {'n_dims': n_dims, 'seed': new_seed(), 'n_classes': c}
 
                 all_cases.append(
-                    Case('MLP', MlpConfig(n_out=1, n_layers=depth, n_hidden=width),
-                        train_args={'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+                    Case('MLP', MlpConfig(n_out=c, n_layers=depth, n_hidden=width),
+                        train_args={'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
                         train_task = ClassificationTask(batch_size=batch_size, **common_args),
                         test_task=ClassificationTask(batch_size=1024, **common_args))
                 )
@@ -68,8 +68,8 @@ for train_iters in train_iters_trans:
                 common_args = {'n_dims': n_dims, 'tokenize': True, 'seed': new_seed(), 'n_classes': c}
 
                 all_cases.append(
-                    Case('Transformer', TransformerConfig(n_out=1, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),
-                        train_args={'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+                    Case('Transformer', TransformerConfig(n_out=c, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),
+                        train_args={'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
                         train_task=ClassificationTask(batch_size=batch_size, **common_args),
                         test_task=ClassificationTask(batch_size=1024, **common_args))
                 )
@@ -80,11 +80,12 @@ for case in tqdm(all_cases):
 
 
 test_tasks = [c.test_task for c in all_cases]
-eval_cases(all_cases, eval_task=test_tasks, key_name='mse', use_mse=True)
+eval_cases(all_cases, eval_task=test_tasks, key_name='acc', use_mse=False)
 
 
 for case in all_cases:
     case.info['size'] = sum(x.size for x in jax.tree_util.tree_leaves(case.state.params))
+    case.info['loss'] = case.hist['test'][-1].loss
     case.state = None
     case.hist = None
 

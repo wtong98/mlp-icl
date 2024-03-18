@@ -104,6 +104,86 @@ for p in [1,2,3]:
 
 
 # <codecell>
+### SCALE CLASSIFY
+pkl_path = Path('remote/11_mlp_superior/scale_classify')
+dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
+df = pd.concat(dfs)
+df
+
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['train_args']['train_iters'],
+        row['train_task'].n_classes,
+        row['config']['n_layers'],
+        row['config']['n_hidden'],
+        row['info']['size'],
+        f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
+        row['info']['size'] * row['train_args']['train_iters'],
+        row['info']['mse'].item(),
+    ], index=['name', 'train_iters', 'n_classes', 'depth', 'width', 'size', 'arch', 'compute', 'mse'])
+
+plot_df = df.apply(extract_plot_vals, axis=1)
+plot_df
+
+# <codecell>
+### Make compute scaling laws plots
+
+# TODO: try sigmoidal fit
+def law(xs, consts):
+    N, B, compute = xs
+    a, b, c, d, e = consts
+    # return a + b/((compute)**c)
+    log_C = np.log(compute)
+    return a + b/(1 + np.exp(c * log_C - d))
+
+
+def get_law(law, init, resp, *feats):
+    def loss(consts):
+        result = law(feats, consts)
+        return np.sum(huber(1e-3, (result-resp)))
+        # return np.mean((result - resp)**2)
+
+    out = minimize(loss, init)
+    return out
+
+def make_plot(name, power):
+    curr_df = plot_df[(plot_df['name'] == name) & (plot_df['power'] == power)]
+    plt.gcf().set_size_inches(8, 6)
+
+    target_size = np.unique(np.sort((curr_df['size'])))[-1]
+
+    g = sns.lineplot(curr_df, x='compute', y='mse', hue='size', marker='o')
+    g.legend()
+    g.legend_.set_title('size (N)')
+
+    # t_df = curr_df[curr_df['size'] == target_size]
+    # out = get_law(law, np.zeros(5), t_df['mse'], t_df['size'], t_df['train_iters'], t_df['compute'])
+    # print(out)
+
+    # xs = np.unique(t_df['compute'])
+    # g.plot(xs, law((0, 0, xs), out.x), '--', color='red')
+    # a, b, c, d, e = out.x
+    # g.text(10**7, 1, fr'${a:.2f} + {b:.2f} \cdot C^\wedge (-{c:.3f})$', color='red')
+    # g.text(10**7, 1.2, fr'${a:.2f} + {b:.2f} / (1 + (e^\wedge -{d:.2f}) \cdot C^\wedge {c:.3f})$', color='red')
+
+    g.set_xscale('log')
+    g.set_title(f'{name} (power = {power})')
+    plt.tight_layout()
+
+    return g
+
+for p in [1,2,3]:
+    make_plot('MLP', power=p)
+    plt.savefig(f'fig/linreg_scale/linreg_scale_mlp_computewise_p_{p}.png')
+    plt.show()
+
+    make_plot('Transformer', power=p)
+    plt.savefig(f'fig/linreg_scale/linreg_scale_transf_computewise_p_{p}.png')
+    plt.show()
+
+
+# <codecell>
 def plot_panel(name, feat, hue, save_path):
     curr_df = plot_df[(plot_df['name'] == name)]
     g = sns.lineplot(curr_df, x=feat, y='mse', hue=hue, markers=True, marker='o')
