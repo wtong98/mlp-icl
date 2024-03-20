@@ -42,7 +42,11 @@ class PowerTask:
         ys = (xs @ self.weights)**self.power + self.rng.standard_normal(size=(self.batch_size, 1)) * np.sqrt(self.eta)
 
         if self.tokenize:
-            xs = np.expand_dims(xs, axis=-1)
+            try:
+                xs = np.reshape(xs, (self.batch_size, -1, self.tokenize))
+            except TypeError:  # self.tokenize is not an integer
+                xs = np.expand_dims(xs, axis=-1)
+
         return xs, ys.flatten()
 
     def __iter__(self):
@@ -70,7 +74,11 @@ class ClassificationTask:
         ys = np.argmin(dists, axis=-1)
 
         if self.tokenize:
-            xs = np.expand_dims(xs, axis=-1)
+            try:
+                xs = np.reshape(xs, (self.batch_size, -1, self.tokenize))
+            except TypeError:  # self.tokenize is not an integer
+                xs = np.expand_dims(xs, axis=-1)
+
         return xs, ys
 
     def __iter__(self):
@@ -126,8 +134,11 @@ class AttentionTask:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = ClassificationTask(n_dims=2, n_classes=5)
+    task = ClassificationTask(n_dims=2, n_classes=5, tokenize=2)
     xs, ys = next(task)
+    print(xs.shape)
+
+    xs = xs.reshape(128, -1)
     
     plt.scatter(xs[:,0], xs[:,1], c=ys)
     plt.scatter(task.centers[:,0], task.centers[:,1], color='red')

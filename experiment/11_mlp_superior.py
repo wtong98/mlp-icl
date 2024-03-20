@@ -120,8 +120,9 @@ def extract_plot_vals(row):
         row['info']['size'],
         f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
         row['info']['size'] * row['train_args']['train_iters'],
-        row['info']['mse'].item(),
-    ], index=['name', 'train_iters', 'n_classes', 'depth', 'width', 'size', 'arch', 'compute', 'mse'])
+        1 - row['info']['acc'].item(),
+        row['info']['loss'].item(),
+    ], index=['name', 'train_iters', 'n_classes', 'depth', 'width', 'size', 'arch', 'compute', 'err', 'loss'])
 
 plot_df = df.apply(extract_plot_vals, axis=1)
 plot_df
@@ -147,13 +148,13 @@ def get_law(law, init, resp, *feats):
     out = minimize(loss, init)
     return out
 
-def make_plot(name, power):
-    curr_df = plot_df[(plot_df['name'] == name) & (plot_df['power'] == power)]
+def make_plot(name, n_classes):
+    curr_df = plot_df[(plot_df['name'] == name) & (plot_df['n_classes'] == n_classes)]
     plt.gcf().set_size_inches(8, 6)
 
     target_size = np.unique(np.sort((curr_df['size'])))[-1]
 
-    g = sns.lineplot(curr_df, x='compute', y='mse', hue='size', marker='o')
+    g = sns.lineplot(curr_df, x='compute', y='err', hue='size', marker='o')
     g.legend()
     g.legend_.set_title('size (N)')
 
@@ -168,18 +169,18 @@ def make_plot(name, power):
     # g.text(10**7, 1.2, fr'${a:.2f} + {b:.2f} / (1 + (e^\wedge -{d:.2f}) \cdot C^\wedge {c:.3f})$', color='red')
 
     g.set_xscale('log')
-    g.set_title(f'{name} (power = {power})')
+    g.set_title(f'{name} (n_classes = {n_classes})')
     plt.tight_layout()
 
     return g
 
-for p in [1,2,3]:
-    make_plot('MLP', power=p)
-    plt.savefig(f'fig/linreg_scale/linreg_scale_mlp_computewise_p_{p}.png')
+for n_classes in [2, 8, 32, 128]:
+    make_plot('MLP', n_classes=n_classes)
+    plt.savefig(f'fig/linreg_scale/classify_scale_mlp_computewise_nc_{n_classes}.png')
     plt.show()
 
-    make_plot('Transformer', power=p)
-    plt.savefig(f'fig/linreg_scale/linreg_scale_transf_computewise_p_{p}.png')
+    make_plot('Transformer', n_classes=n_classes)
+    plt.savefig(f'fig/linreg_scale/classify_scale_transf_computewise_nc_{n_classes}.png')
     plt.show()
 
 
@@ -298,17 +299,21 @@ plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_sizewise.png')
 
 # <codecell>
 ### TRAINING PLAYGROUND
-n_out = 2
-task = ClassificationTask(n_dims=64, n_classes=n_out, seed=5, tokenize=True)
+n_out = 1
+task = ClassificationTask(n_dims=64, n_classes=n_out, seed=5, tokenize=64)
+# task = PowerTask(n_dims=64, power=1, seed=5, tokenize=64)
 # config = MlpConfig(n_out=n_out, n_layers=2, n_hidden=128, act_fn='relu')
 config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
 
-state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=100_000, lr=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4)
 
 
 '''
 Basic observations for classification:
 - Transformer handles complexity better (more classes)
 - MLP handles dimensionality better (more points)
+- Manually patchifying input to transformer improves it vastly (larger tokens => better performance)
+    perhaps mostly because it sidesteps the attention mechanism and skips straight to MLP
+    (thought its still surprisingly competent at regression with n_mlp_layers=0 / less so with classification, so not always true)
 '''
 # %%

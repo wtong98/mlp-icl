@@ -31,6 +31,7 @@ depths_trans = [1, 2, 4]
 widths_trans = [8, 32]
 
 n_dims = 64
+tokens = n_dims
 powers = [1, 2, 3]
 
 ### START TEST CONFIGS
@@ -66,7 +67,7 @@ for train_iters in train_iters_trans:
     for depth in depths_trans:
         for width in widths_trans:
             for p in powers:
-                common_args = {'n_dims': n_dims, 'tokenize': True, 'seed': new_seed(), 'power': p}
+                common_args = {'n_dims': n_dims, 'tokenize': tokens, 'seed': new_seed(), 'power': p}
 
                 all_cases.append(
                     Case('Transformer', TransformerConfig(n_out=1, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),

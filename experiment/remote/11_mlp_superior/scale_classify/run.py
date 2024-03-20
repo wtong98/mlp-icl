@@ -30,7 +30,8 @@ depths_trans = [1, 2, 4]
 widths_trans = [8, 32]
 
 n_dims = 32
-n_classes = [2, 8, 32, 128]
+tokens = n_dims
+n_classes = [2, 8, 32]
 
 ### START TEST CONFIGS
 # train_iters_mlp = [5]
@@ -65,7 +66,7 @@ for train_iters in train_iters_trans:
     for depth in depths_trans:
         for width in widths_trans:
             for c in n_classes:
-                common_args = {'n_dims': n_dims, 'tokenize': True, 'seed': new_seed(), 'n_classes': c}
+                common_args = {'n_dims': n_dims, 'tokenize': tokens, 'seed': new_seed(), 'n_classes': c}
 
                 all_cases.append(
                     Case('Transformer', TransformerConfig(n_out=c, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),
