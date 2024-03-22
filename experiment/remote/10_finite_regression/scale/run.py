@@ -9,7 +9,7 @@ import sys
 sys.path.append('../../../')
 sys.path.append('../../../../')
 from common import *
-from model.mlp import MlpConfig, RfConfig
+from model.mlp import MlpConfig, RfConfig, SpatialMLP
 from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression 
 
@@ -158,12 +158,11 @@ def run_pointwise():
             curr_tasks = [
                 Case('MLP', MlpConfig(n_out=1, n_layers=3, n_hidden=512), train_args=train_args(train_iters)),
                 Case('MLP (1-layer, relu)', MlpConfig(n_out=1, n_layers=1, n_hidden=4096), train_args=train_args(train_iters)),
+                Case('MLP (spatial)', SpatialMLP(n_out=1, n_layers=6, n_hidden=128, n_channels=128, layer_norm=True), train_args=train_args(250_000)),
                 Case('Transformer (softmax)', TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3), train_args=train_args(50_000)),
                 Case('Transformer (linear)', TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, use_single_head_module=True, n_hidden=512, n_mlp_layers=0, layer_norm=False, softmax_att=False), train_args=train_args(100_000)),
                 FunctionCase('Ridge', estimate_ridge),
             ]
-
-            # TODO: include dMMSE in pointwise plot
 
             for case in curr_tasks:
                 seed = new_seed()

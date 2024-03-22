@@ -95,11 +95,11 @@ def make_plot(name, power):
 
 for p in [1,2,3]:
     make_plot('MLP', power=p)
-    plt.savefig(f'fig/linreg_scale/linreg_scale_mlp_computewise_p_{p}.png')
+    # plt.savefig(f'fig/linreg_scale/linreg_scale_mlp_computewise_p_{p}.png')
     plt.show()
 
     make_plot('Transformer', power=p)
-    plt.savefig(f'fig/linreg_scale/linreg_scale_transf_computewise_p_{p}.png')
+    plt.savefig(f'fig/linreg_scale/linreg_scale_transf_computewise_p_{p}_full_patched.png')
     plt.show()
 
 
@@ -152,7 +152,7 @@ def make_plot(name, n_classes):
     curr_df = plot_df[(plot_df['name'] == name) & (plot_df['n_classes'] == n_classes)]
     plt.gcf().set_size_inches(8, 6)
 
-    target_size = np.unique(np.sort((curr_df['size'])))[-1]
+    # target_size = np.unique(np.sort((curr_df['size'])))[-1]
 
     g = sns.lineplot(curr_df, x='compute', y='err', hue='size', marker='o')
     g.legend()
@@ -174,13 +174,13 @@ def make_plot(name, n_classes):
 
     return g
 
-for n_classes in [2, 8, 32, 128]:
+for n_classes in [2, 8, 32]:
     make_plot('MLP', n_classes=n_classes)
-    plt.savefig(f'fig/linreg_scale/classify_scale_mlp_computewise_nc_{n_classes}.png')
+    # plt.savefig(f'fig/linreg_scale/classify_scale_mlp_computewise_nc_{n_classes}.png')
     plt.show()
 
     make_plot('Transformer', n_classes=n_classes)
-    plt.savefig(f'fig/linreg_scale/classify_scale_transf_computewise_nc_{n_classes}.png')
+    plt.savefig(f'fig/linreg_scale/classify_scale_transf_computewise_nc_{n_classes}_full_patched.png')
     plt.show()
 
 

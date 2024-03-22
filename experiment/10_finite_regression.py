@@ -18,7 +18,6 @@ author: William Tong (wtong@g.harvard.edu)
 
 # <codecell>
 import jax
-jax.config.update('jax_platform_name', 'cpu')
 
 import jax.numpy as jnp
 import flax.linen as nn
@@ -37,7 +36,7 @@ import sys
 sys.path.append('../')
 from train import train, create_train_state
 from model.knn import KnnConfig
-from model.mlp import MlpConfig, RfConfig
+from model.mlp import MlpConfig, RfConfig, SpatialMlpConfig
 from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression, LinearRegression
@@ -374,14 +373,15 @@ plt.tight_layout()
 
 # <codecell>
 ### TRAINING PLAYGROUND
-task = FiniteLinearRegression(n_points=16, n_ws=None, batch_size=128, n_dims=8, enforce_orth_x=True, noise_scale=0)
+task = FiniteLinearRegression(n_points=256, n_ws=None, batch_size=128, n_dims=8, noise_scale=0)
 
-config = MlpConfig(n_out=1, n_layers=3, n_hidden=1024, act_fn='relu')
+# config = MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='relu', layer_norm=True)
 # config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='gelu')
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
 # config = TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, n_hidden=512, n_mlp_layers=0, layer_norm=False, use_single_head_module=True, softmax_att=False)
-# config = TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, pure_linear_self_att=True)
-# config = TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=512, n_mlp_layers=3, layer_norm=True)
+# config = TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True)
+config = SpatialMlpConfig(n_layers=6, n_hidden=128, n_channels=128, layer_norm=True)
+
 
 state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=500_000, lr=1e-4)
 
