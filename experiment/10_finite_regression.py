@@ -195,7 +195,7 @@ g = sns.catplot(plot_df, x='n_points', y='mse', hue='name', row='mse_type', kind
 [ax.plot(np.arange(9),  np.ones(9) * 8.25, '--', color='magenta', label='Null') for ax in g.axes.ravel()]
 [ax.set_yscale('log') for ax in g.axes.ravel()]
 g.figure.set_size_inches(8, 6)
-plt.savefig('fig/reg_finite_points_scale_icl.png')
+plt.savefig('fig/reg_finite_points_scale_icl_spatial.png')
 
 
 # <codecell>
@@ -373,7 +373,7 @@ plt.tight_layout()
 
 # <codecell>
 ### TRAINING PLAYGROUND
-task = FiniteLinearRegression(n_points=256, n_ws=None, batch_size=128, n_dims=8, noise_scale=0)
+task = FiniteLinearRegression(n_points=256, n_ws=None, batch_size=128, n_dims=8)
 
 # config = MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='relu', layer_norm=True)
 # config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='gelu')
