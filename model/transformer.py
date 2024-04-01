@@ -244,7 +244,7 @@ class Transformer(nn.Module):
                         num_embeddings=config.vocab_size,
                         features=config.n_emb)(y)
             else:
-                y = nn.Dense(features=config.n_hidden)(y) # project to correct hidden dim
+                y = nn.Dense(features=config.n_hidden)(y)  # project to correct hidden dim
 
             if config.pos_emb:
                 y = AddPositionEmbs(config=config)(y)

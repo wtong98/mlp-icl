@@ -370,7 +370,75 @@ plt.ylabel('MSE')
 plt.tight_layout()
 # plt.savefig('fig/reg_finite_dim4_curve_n_ws_2.png')
 
+# <codecell>
+##### PLOTTING COMBINED POINTWISE AND DIMWISE SCALING
+pkl_path = Path('remote/10_finite_regression/scale_pd')
+dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
+df = pd.concat(dfs)
 
+# <codecell>
+def extract_ridge(row):
+    return pd.Series([
+        row.train_task.n_dims,
+        row.train_task.n_points,
+        row['info']['mse_true'].item(),
+    ], index=['n_dims', 'n_points', 'mse_true'])
+ridge_df = df[df['name'] == 'Ridge'].apply(extract_ridge, axis=1)
+
+def extract_plot_vals(row):
+    n_dims = row.train_task.n_dims
+    n_pts = row.train_task.n_points
+    rdf = ridge_df[(ridge_df['n_dims'] == n_dims) & (ridge_df['n_points'] == n_pts)]
+    ridge_mse = np.mean(rdf['mse_true'])
+
+    hist = [m['loss'] for m in row['hist']['test']]
+    l = len(hist)
+    slices = [
+        hist[0].item(),
+        hist[int(0.01 * l)].item(),
+        hist[int(0.05 * l)].item(),
+        hist[int(0.1 * l)].item(),
+        hist[int(0.2 * l)].item(),
+        hist[int(0.5 * l)].item(),
+        hist[int(0.75 * l)].item(),
+        hist[-1].item(),
+    ]
+    slices = [max(s - ridge_mse, 0) for s in slices]
+
+    names = [
+        't_0',
+        't_0.01',
+        't_0.05',
+        't_0.1',
+        't_0.2',
+        't_0.5',
+        't_0.75',
+        't_1',
+    ]
+
+    return pd.Series([
+        row['name'],
+        n_dims,
+        n_pts,
+        # row['info']['mse_pretrain'].item(),
+        row['info']['mse_true'].item(),
+        # max(row['info']['mse_true'].item() - ridge_mse, 0),
+    ] + slices, index=['name', 'n_dims', 'n_points', 'mse_true'] + names)
+
+plot_df = df[df['name'] != 'Ridge'].apply(extract_plot_vals, axis=1) \
+            .melt(id_vars=['name', 'n_dims', 'n_points', 'mse_true'], var_name='time', value_name='mse_excess')
+plot_df
+
+# <codecell>
+g = sns.FacetGrid(plot_df, col='n_points', row='time')
+g.map_dataframe(sns.lineplot, x='n_dims', y='mse_excess', hue='name', marker='o')
+g.add_legend()
+
+for ax in g.axes.ravel():
+    ax.axhline(y=0.95, linestyle='dashed', color='red')
+
+g.tight_layout()
+plt.savefig('fig/reg_finite_pd_x_dims.png')
 # <codecell>
 ### TRAINING PLAYGROUND
 task = FiniteLinearRegression(n_points=256, n_ws=None, batch_size=128, n_dims=8)

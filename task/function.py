@@ -23,16 +23,18 @@ class PointTask:
 
 
 class PowerTask:
-    def __init__(self, n_dims=16, eta=0.05, power=1, seed=None, reset_rng_for_data=True, tokenize=False, batch_size=128) -> None:
+    def __init__(self, n_dims=16, eta=0.05, power=1, seed=None, reset_rng_for_data=True, tokenize=False, apply_random_token_proj=False, batch_size=128) -> None:
         self.n_dims = n_dims
         self.eta = eta
         self.power = power
         self.seed = seed
         self.batch_size = batch_size
         self.tokenize = tokenize
+        self.apply_random_token_proj = apply_random_token_proj
 
         self.rng = np.random.default_rng(seed)
         self.weights = self.rng.standard_normal(size=(self.n_dims, 1)) / np.sqrt(self.n_dims)
+        self.rand_proj = self.rng.standard_normal(size=(1, 128)) / np.sqrt(128)
 
         if reset_rng_for_data:
             self.rng = np.random.default_rng(None)
@@ -44,6 +46,9 @@ class PowerTask:
         if self.tokenize:
             try:
                 xs = np.reshape(xs, (self.batch_size, -1, self.tokenize))
+                if self.apply_random_token_proj:
+                    xs = xs @ self.rand_proj
+
             except TypeError:  # self.tokenize is not an integer
                 xs = np.expand_dims(xs, axis=-1)
 
@@ -134,16 +139,20 @@ class AttentionTask:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = ClassificationTask(n_dims=2, n_classes=5, tokenize=2)
+    task = PowerTask(apply_random_token_proj=False, tokenize=1)
     xs, ys = next(task)
     print(xs.shape)
 
-    xs = xs.reshape(128, -1)
+    # task = ClassificationTask(n_dims=2, n_classes=5, tokenize=2)
+    # xs, ys = next(task)
+    # print(xs.shape)
+
+    # xs = xs.reshape(128, -1)
     
-    plt.scatter(xs[:,0], xs[:,1], c=ys)
-    plt.scatter(task.centers[:,0], task.centers[:,1], color='red')
+    # plt.scatter(xs[:,0], xs[:,1], c=ys)
+    # plt.scatter(task.centers[:,0], task.centers[:,1], color='red')
     
-    print(task.centers)
+    # print(task.centers)
 
 
 # %%

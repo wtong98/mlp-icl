@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 import sys
 sys.path.append('../')
-from train import train
+from train import train, train_step
 
 
 def new_seed():
@@ -24,6 +24,16 @@ def new_seed():
 
 def t(xs):
     return np.swapaxes(xs, -2, -1)
+
+
+def get_flops(fn, *args, **kwargs):
+    """Borrowed from flax.nn.tabulate"""
+    e = fn.lower(*args, **kwargs)
+    cost = e.cost_analysis()
+    if cost is None:
+        return 0
+    flops = int(cost['flops']) if 'flops' in cost else 0
+    return flops
 
 
 class Finite:
@@ -59,6 +69,9 @@ class Case:
 
     def run(self):
         self.state, self.hist = train(self.config, data_iter=self.train_task, test_iter=self.test_task, **self.train_args)
+    
+    def get_flops(self):
+        return get_flops(train_step, self.state, next(self.train_task))
     
     def eval(self, task, key_name='eval_acc'):
         xs, ys = next(task)
@@ -147,7 +160,7 @@ def unpack(pack_xs):
     return xs, ys, x_q
 
 
-def estimate_dmmse(task, xs, ys, x_q, sig=0.5):
+def estimate_dmmse(task, xs, ys, x_q, sig2=0.05):
     '''
     xs: N x P x D
     ys: N x P x 1
@@ -156,14 +169,14 @@ def estimate_dmmse(task, xs, ys, x_q, sig=0.5):
     '''
     ws = task.ws
     
-    weights = np.exp(-(1 / (2 * sig**2)) * np.sum((ys - xs @ ws.T)**2, axis=1))  # N x F
+    weights = np.exp(-(1 / (2 * sig2)) * np.sum((ys - xs @ ws.T)**2, axis=1))  # N x F
     probs = weights / (np.sum(weights, axis=1, keepdims=True) + 1e-32)
     w_dmmse = np.expand_dims(probs, axis=-1) * ws  # N x F x D
     w_dmmse = np.sum(w_dmmse, axis=1, keepdims=True)  # N x 1 x D
     return (x_q @ t(w_dmmse)).squeeze()
 
 
-def estimate_ridge(task, xs, ys, x_q, sig=0.5):
+def estimate_ridge(task, xs, ys, x_q, sig2=0.05):
     n_dims = xs.shape[-1]
-    w_ridge = np.linalg.pinv(t(xs) @ xs + sig**2 * np.identity(n_dims)) @ t(xs) @ ys
+    w_ridge = np.linalg.pinv(t(xs) @ xs + sig2 * np.identity(n_dims)) @ t(xs) @ ys
     return (x_q @ w_ridge).squeeze()

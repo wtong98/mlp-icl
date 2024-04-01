@@ -35,7 +35,7 @@ def unpack(pack_xs):
     return xs, ys, x_q
 
 
-def estimate_dmmse(task, xs, ys, x_q, sig=0.5):
+def estimate_dmmse(task, xs, ys, x_q, sig2=0.05):
     '''
     xs: N x P x D
     ys: N x P x 1
@@ -44,24 +44,26 @@ def estimate_dmmse(task, xs, ys, x_q, sig=0.5):
     '''
     ws = task.ws
     
-    weights = np.exp(-(1 / (2 * sig**2)) * np.sum((ys - xs @ ws.T)**2, axis=1))  # N x F
+    weights = np.exp(-(1 / (2 * sig2)) * np.sum((ys - xs @ ws.T)**2, axis=1))  # N x F
     probs = weights / (np.sum(weights, axis=1, keepdims=True) + 1e-32)
     w_dmmse = np.expand_dims(probs, axis=-1) * ws  # N x F x D
     w_dmmse = np.sum(w_dmmse, axis=1, keepdims=True)  # N x 1 x D
     return (x_q @ t(w_dmmse)).squeeze()
 
 
-def estimate_ridge(task, xs, ys, x_q, sig=0.05):
+def estimate_ridge(task, xs, ys, x_q, sig2=0.05):
     n_dims = xs.shape[-1]
-    w_ridge = np.linalg.pinv(t(xs) @ xs + sig**2 * np.identity(n_dims)) @ t(xs) @ ys
+    w_ridge = np.linalg.pinv(t(xs) @ xs + sig2 * np.identity(n_dims)) @ t(xs) @ ys
     return (x_q @ w_ridge).squeeze()
 
-# task = FiniteLinearRegression(stack_y=False, n_ws=4, n_points=8, n_dims=8)
+# task = FiniteLinearRegression(stack_y=False, n_ws=1, n_points=2, n_dims=8)
 # xs, ys = next(task)
 
 # y_pred = estimate_ridge(task, *uninterleave(xs))
 # y_pred = estimate_dmmse(task, *uninterleave(xs))
 # np.mean((y_pred - ys)**2)
+
+# <codecell>
 
 
 @dataclass

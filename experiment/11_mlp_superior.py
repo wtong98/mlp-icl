@@ -300,12 +300,12 @@ plt.savefig('fig/linreg_scale/linreg_scale_transf_full_law_sizewise.png')
 # <codecell>
 ### TRAINING PLAYGROUND
 n_out = 1
-task = ClassificationTask(n_dims=64, n_classes=n_out, seed=5, tokenize=64)
-# task = PowerTask(n_dims=64, power=1, seed=5, tokenize=64)
+# task = ClassificationTask(n_dims=64, n_classes=n_out, seed=5, tokenize=1)
+task = PowerTask(n_dims=64, power=1, seed=5, tokenize=1, apply_random_token_proj=False)
 # config = MlpConfig(n_out=n_out, n_layers=2, n_hidden=128, act_fn='relu')
-config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
+config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128, use_initial_projection=True)
 
-state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=100_000, lr=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='mse', test_every=100, train_iters=10_000, lr=1e-4)
 
 
 '''
@@ -317,3 +317,10 @@ Basic observations for classification:
     (thought its still surprisingly competent at regression with n_mlp_layers=0 / less so with classification, so not always true)
 '''
 # %%
+import flax.linen as nn
+import jax
+import jax.numpy as jnp
+
+tab_fn = nn.tabulate(config.to_model(), jax.random.key(1))
+x = jnp.ones((32, 20, 1))
+print(tab_fn(x))
