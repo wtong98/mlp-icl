@@ -12,24 +12,26 @@ import sys
 sys.path.append('../../../')
 sys.path.append('../../../../')
 from common import *
-from model.mlp import MlpConfig 
+from model.mlp import MlpConfig , SpatialMlpConfig
 from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression 
-from train import train_step
-
 
 run_id = new_seed()
 print('RUN ID', run_id)
 
-
 batch_size = 128
 
-train_iters_mlp = 1_024_000
-depths_mlp = [1, 2, 4, 8]
+train_iters_mlp = 2_048_000
+depths_mlp = [2, 4, 8]
 widths_mlp = [128, 512, 2048]
 
-train_iters_trans = 128_000
-depths_trans = [1, 2, 4, 8]
+train_iters_mix = 512_000
+depths_mix = [2, 4, 8]
+widths_mix = [64, 256, 1024]
+channels_mix = 128
+
+train_iters_trans = 256_000
+depths_trans = [2, 4, 8]
 widths_trans = [32, 128, 512]
 
 n_dims = 8
@@ -38,11 +40,16 @@ n_ws_set = [None]
 
 ### START TEST CONFIGS
 # train_iters_mlp = 2_000
-# depths_mlp = [1]
+# depths_mlp = [2]
 # widths_mlp = [128]
 
+# train_iters_mix = 2_000
+# depths_mix = [2]
+# widths_mix = [64]
+# channels_mix = 4
+
 # train_iters_trans = 2_000
-# depths_trans = [1]
+# depths_trans = [2]
 # widths_trans = [32]
 
 # n_dims = 8
@@ -59,6 +66,20 @@ for n_ws in n_ws_set:
 
             all_cases.append(
                 Case('MLP', MlpConfig(n_out=1, n_layers=depth, n_hidden=width),
+                    train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+                    train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
+                    test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),
+                    info={'common_task_args': common_task_args})
+            )
+
+
+for n_ws in n_ws_set:
+    for depth in depths_mlp:
+        for width in widths_mlp:
+            common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
+
+            all_cases.append(
+                Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=depth, n_hidden=width, n_channels=channels_mix),
                     train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
                     train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
                     test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),

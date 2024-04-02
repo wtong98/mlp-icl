@@ -1,6 +1,8 @@
 __pycache__/
 *.png
+*.svg
 *.pkl
+fig/
 
 # ignore slurm logging outputs
 *.err

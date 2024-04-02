@@ -11,6 +11,7 @@ import shutil
 from typing import Callable, Iterable
 
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 import sys
@@ -144,6 +145,13 @@ def summon_dir(path: str, clear_if_exists=False):
             shutil.rmtree(item)
     
     return new_dir
+
+
+def collate_dfs(df_dir):
+    pkl_path = Path(df_dir)
+    dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
+    df = pd.concat(dfs)
+    return df
 
 
 def uninterleave(interl_xs):
