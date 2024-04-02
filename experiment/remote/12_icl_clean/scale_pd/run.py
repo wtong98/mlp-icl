@@ -45,17 +45,17 @@ model_depth = 8
 mix_channels = 128
 
 ### START TEST PARAMS
-# n_iters = 1
-# train_iters_mlp = 1_024
-# train_iters_mix = 256
-# train_iters_transf = 128
-# batch_size = 128
-# n_points = [4]
-# n_dims = [2]
-# n_ws = None
+n_iters = 1
+train_iters_mlp = 1_024
+train_iters_mix = 256
+train_iters_transf = 128
+batch_size = 128
+n_points = [4]
+n_dims = [2]
+n_ws = None
 
-# model_depth = 2
-# mix_channels = 4
+model_depth = 2
+mix_channels = 4
 ### END TEST PARAMS
 
 all_cases = []
