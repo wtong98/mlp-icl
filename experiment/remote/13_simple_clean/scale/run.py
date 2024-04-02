@@ -32,16 +32,16 @@ n_dims = 64
 powers = [1, 2, 3]
 
 ### START TEST CONFIGS
-train_iters_mlp = 64
-depths_mlp = [1]
-widths_mlp = [4]
+# train_iters_mlp = 64
+# depths_mlp = [1]
+# widths_mlp = [4]
 
-train_iters_trans = 256
-depths_trans = [1]
-widths_trans = [8]
+# train_iters_trans = 256
+# depths_trans = [1]
+# widths_trans = [8]
 
-n_dims = 64
-powers = [1]
+# n_dims = 64
+# powers = [1]
 ### END TEST CONFIGS
 
 all_cases = []
