@@ -5,8 +5,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mem=64000
 #SBATCH --array=1-3
-#SBATCH -o run.%A.$a.out
-#SBATCH -e run.%A.%a.err
+#SBATCH -o log.%A.%a.out
+#SBATCH -e log.%A.%a.err
 #SBATCH --mail-type=END
 #SBATCH --mail-user=wtong@g.harvard.edu
 #SBATCH --account=kempner_grads
