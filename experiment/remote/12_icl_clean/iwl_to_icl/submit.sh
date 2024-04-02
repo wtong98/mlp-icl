@@ -4,12 +4,13 @@
 #SBATCH -p kempner
 #SBATCH --gres=gpu:1
 #SBATCH --mem=64000
-#SBATCH -o run.%j.out
-#SBATCH -e run.%j.err
+#SBATCH --array=1-3
+#SBATCH -o run.%A.$a.out
+#SBATCH -e run.%A.%a.err
 #SBATCH --mail-type=END
 #SBATCH --mail-user=wtong@g.harvard.edu
 #SBATCH --account=kempner_grads
 
-source ../../../../venv_haystack/bin/activate
+source ../../../../../venv_haystack/bin/activate
 python run.py
 
