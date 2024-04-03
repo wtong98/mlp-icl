@@ -19,7 +19,10 @@ from task.regression import FiniteLinearRegression
 run_id = new_seed()
 print('RUN ID', run_id)
 
+
 batch_size = 128
+
+run_split = 3
 
 train_iters_mlp = 2_048_000
 depths_mlp = [2, 4, 8]
@@ -39,6 +42,8 @@ n_points = 8
 n_ws_set = [None]
 
 ### START TEST CONFIGS
+# run_split = 1
+
 # train_iters_mlp = 2_000
 # depths_mlp = [2]
 # widths_mlp = [128]
@@ -57,6 +62,13 @@ n_ws_set = [None]
 # n_ws_set = [None]
 ### END TEST CONFIGS
 
+run_idx = sys.argv[1]
+try:
+    run_idx = int(run_idx) % run_split
+except ValueError:
+    print(f'warn: unable to parse index {run_idx}, setting run_idx=0')
+    run_idx = 0
+
 all_cases = []
 
 for n_ws in n_ws_set:
@@ -72,8 +84,6 @@ for n_ws in n_ws_set:
                     info={'common_task_args': common_task_args})
             )
 
-
-for n_ws in n_ws_set:
     for depth in depths_mlp:
         for width in widths_mlp:
             common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
@@ -98,6 +108,9 @@ for n_ws in n_ws_set:
                     test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),
                     info={'common_task_args': common_task_args})
             )
+
+all_cases = np.array_split(all_cases, run_split)[run_idx]
+print('CURRENT CASES:', all_cases)
 
 for case in tqdm(all_cases):
     print('RUNNING', case.name)
