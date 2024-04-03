@@ -1,6 +1,4 @@
 # <codecell>
-import jax.numpy as jnp
-from flax.serialization import to_state_dict
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -30,6 +28,7 @@ class FunctionCase:
         mse = np.mean((ys - ys_pred)**2)
         self.info[key_name] = mse
     
+run_split = 7
 
 # TODO: refine train_iters to be FLOP scaled
 n_iters = 1
@@ -45,6 +44,7 @@ model_depth = 8
 mix_channels = 128
 
 ### START TEST CONFIGS
+# run_split = 1
 # train_iters_mlp = 1_024
 # train_iters_mix = 256
 # train_iters_transf = 128
@@ -81,6 +81,9 @@ for _ in range(n_iters):
             case.info['common_task_args'] = common_task_args
 
         all_cases.extend(curr_tasks)
+
+all_cases = split_cases(all_cases, run_split)
+print('ALL_CASES', all_cases)
 
 for case in tqdm(all_cases):
     print('RUNNING', case.name)

@@ -136,6 +136,19 @@ def eval_cases(all_cases, eval_task, key_name='eval_acc', use_mse=False, ignore_
                 raise e
 
 
+def split_cases(all_cases, run_split):
+    run_idx = sys.argv[1]
+    try:
+        run_idx = int(run_idx) % run_split
+    except ValueError:
+        print(f'warn: unable to parse index {run_idx}, setting run_idx=0')
+        run_idx = 0
+
+    print('RUN IDX', run_idx)
+    all_cases = np.array_split(all_cases, run_split)[run_idx]
+    return all_cases
+
+
 def summon_dir(path: str, clear_if_exists=False):
     new_dir = Path(path)
     if not new_dir.exists():
