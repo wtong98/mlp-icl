@@ -14,6 +14,8 @@ from task.regression import FiniteLinearRegression
 run_id = new_seed()
 print('RUN ID', run_id)
 
+run_split = 6
+
 @dataclass
 class FunctionCase:
     name: str
@@ -45,17 +47,19 @@ model_depth = 8
 mix_channels = 128
 
 ### START TEST PARAMS
-n_iters = 1
-train_iters_mlp = 1_024
-train_iters_mix = 256
-train_iters_transf = 128
-batch_size = 128
-n_points = [4]
-n_dims = [2]
-n_ws = None
+# run_split = 1
 
-model_depth = 2
-mix_channels = 4
+# n_iters = 1
+# train_iters_mlp = 1_024
+# train_iters_mix = 256
+# train_iters_transf = 128
+# batch_size = 128
+# n_points = [4]
+# n_dims = [2]
+# n_ws = None
+
+# model_depth = 2
+# mix_channels = 4
 ### END TEST PARAMS
 
 all_cases = []
@@ -81,6 +85,9 @@ for _ in range(n_iters):
                 case.info['common_task_args'] = common_task_args
 
             all_cases.extend(curr_tasks)
+
+all_cases = split_cases(all_cases, run_split)
+print('ALL CASES', all_cases)
 
 for case in tqdm(all_cases):
     print('RUNNING', case.name)
