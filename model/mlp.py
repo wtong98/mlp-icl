@@ -114,42 +114,36 @@ class SpatialMLP(nn.Module):
         return out
 
 
-# TODO: unfinished
 @struct.dataclass
-class GatedSpatialMlpConfig:
+class DotMlpConfig:
     """Global hyperparamters"""
-    n_layers: int = 2
     n_hidden: int = 128
-    n_channels: int = 16
     n_out: int = 1
-    act_fn: str = 'relu'
+    use_initial_proj: bool = True
+    last_token_only: bool = False
 
     def to_model(self):
-        return GatedSpatialMLP(self)
+        return DotMLP(self)
 
 
-class GatedSpatialMLP(nn.Module):
-
-    config: SpatialMlpConfig
+class DotMLP(nn.Module):
+    
+    config: DotMlpConfig
 
     @nn.compact
     def __call__(self, x):
-        act_fn = parse_act_fn(self.config.act_fn)
-        assert len(x.shape) == 3
+        if self.config.use_initial_proj:
+            x = nn.Dense(self.config.n_hidden)(x)  # B x L x H
 
-        for _ in range(self.config.n_layers):
-            x = nn.Dense(2 * self.config.n_hidden)(x)
-            x = act_fn(x)
+        x = jnp.einsum('...ih,...jh->...ij', x, x) # B x L x L
 
-            z1, z2 = jnp.split(x, self.config.n_hidden)
-            jnp.transpose(z2, (0, 2, 1))
-            z2 = nn.Dense(self.n_channels)(z2)
-            jnp.transpose(z2, (0, 2, 1))
-            x = z1 * z2
-            x = nn.Dense(self.config.n_hidden)(x)  # TODO: add residual connections?
-    
-        # TODO: take final channel rather than all? Try with spatial MLP as well
-        x = x.reshape(x.shape[0], -1)
+        if self.config.last_token_only:
+            x = x[:,-1,:]
+        else:
+            x = x.reshape(x.shape[0], -1)
+
+        # x = nn.Dense(self.config.n_hidden)(x)
+        # x = nn.relu(x)
         out = nn.Dense(self.config.n_out)(x)
 
         if self.config.n_out == 1:

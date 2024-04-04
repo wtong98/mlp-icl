@@ -18,21 +18,22 @@ sys.path.append('../../../../')
 from common import *
 from model.mlp import MlpConfig, RfConfig, SpatialMlpConfig
 from model.transformer import TransformerConfig
-from task.regression import FiniteLinearRegression 
+from task.function import PowerTask 
 
-# TODO: adapt to simple tasks
-def plot_compute(df, title, hue_name='log10_size'):
-    g = sns.lineplot(df, x='total_pflops', y='mse', hue=hue_name, marker='o', palette='flare_r', alpha=0.7, legend='auto')
+def plot_compute(df, title, hue_name='log10_size', legend='brief', raise10=True):
+    g = sns.lineplot(df, x='total_pflops', y='mse', hue=hue_name, marker='o', palette='flare_r', alpha=0.7, legend=legend)
+    g.axhline(0.05, linestyle='dashed', color='k', alpha=0.3)
     g.set_xscale('log')
-    g.axhline(ridge_result, linestyle='dashed', color='k', alpha=0.3)
+    g.set_yscale('log')
 
     g.set_ylabel('MSE')
     g.set_xlabel('Compute (PFLOPs)')
     g.legend_.set_title('# Params')
 
-    for t in g.legend_.texts:
-        label = t.get_text()
-        t.set_text('${10}^{%s}$' % label)
+    if raise10:
+        for t in g.legend_.texts:
+            label = t.get_text()
+            t.set_text('${10}^{%s}$' % label)
 
     g.spines[['right', 'top']].set_visible(False)
 
@@ -41,27 +42,25 @@ def plot_compute(df, title, hue_name='log10_size'):
     fig.tight_layout()
     return fig
 
+
+def format_df(name, power=1):
+    mdf = plot_df[(plot_df['name'] == name) & (plot_df['power'] == power)].reset_index(drop=True)
+    m_hist_df = pd.DataFrame(mdf['hist'].tolist())
+    mdf = pd.concat((mdf, m_hist_df), axis='columns') \
+            .melt(id_vars=plot_df.columns, var_name='hist_idx', value_name='mse')
+
+    mdf['train_iters'] = (mdf['hist_idx'] + 1) * 1000   # 1k iterations per save 
+    mdf['total_pflops'] = (mdf['flops'] * mdf['train_iters']) / 1e15
+    return mdf
+
 fig_dir = Path('fig/final')
 
 # <codecell>
-task = FiniteLinearRegression(None, n_points=8, n_dims=8, batch_size=8192)
-xs, ys = next(task)
-ys_pred = estimate_ridge(None, *unpack(xs), sig2=0.05)
-ridge_result = np.mean((ys_pred - ys)**2)
-ridge_result
-
-# <codecell>
-### REGRESSION: smooth interpolation from IWL to ICL
-df = collate_dfs('remote/12_icl_clean/scale')
+### REGRESSION: scaling
+df = collate_dfs('remote/13_simple_clean/scale')
 
 # <codecell>
 def extract_plot_vals(row):
-    n_ws = row.train_task.ws
-    if n_ws is not None:
-        n_ws = len(n_ws)
-    else:
-        n_ws = float('inf')
-    
     hist = row['hist']['test']
     slices = np.exp(np.linspace(-6, 0, num=10))
     slices = np.insert(slices, 0, 0)
@@ -73,35 +72,66 @@ def extract_plot_vals(row):
     return pd.Series([
         row['name'],
         row.train_task.n_dims,
-        row.train_task.n_points,
+        row.train_task.power,
+        row.train_task.tokenize,
         np.log10(row['info']['size']),
         row['info']['flops'],
         hist_dict,
         f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
-    ], index=['name', 'n_dims', 'n_points', 'log10_size', 'flops', 'hist', 'arch'])
+    ], index=['name', 'n_dims', 'power', 'token_size', 'log10_size', 'flops', 'hist', 'arch'])
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
 #             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
 
-def format_df(name):
-    mdf = plot_df[plot_df['name'] == name].reset_index(drop=True)
-    m_hist_df = pd.DataFrame(mdf['hist'].tolist())
-    mdf = pd.concat((mdf[['name', 'flops', 'log10_size', 'arch']], m_hist_df), axis='columns') \
-            .melt(id_vars=['name', 'flops', 'log10_size', 'arch'], var_name='hist_idx', value_name='mse')
-
-    mdf['train_iters'] = (mdf['hist_idx'] + 1) * 1000   # 1k iterations per save 
-    mdf['total_pflops'] = (mdf['flops'] * mdf['train_iters']) / 1e15
-    return mdf
+# <codecell>
+for p in [1, 2, 3]:
+    mdf = format_df('MLP', power=p)
+    fig = plot_compute(mdf, 'MLP')
+    fig.savefig(fig_dir / f'reg_p{p}_mlp_scale.svg')
+    fig.show()
+    fig.clf()
 
 # <codecell>
-mdf = format_df('MLP')
-fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'reg_icl_mlp_scale.svg')
-fig.show()
+for p in [1, 2, 3]:
+    fig.clf()
+    mdf = format_df('Transformer', power=p)
+    fig = plot_compute(mdf, 'Transformer')
+    fig.savefig(fig_dir / f'reg_p{p}_transf_scale.svg')
+    fig.show()
 
 # <codecell>
-mdf = format_df('Transformer')
-fig = plot_compute(mdf, 'Transformer')
-fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
-fig.show()
+### PER-TOKEN IMPROVEMENTS
+df = collate_dfs('remote/13_simple_clean/tokenize')
+
+# <codecell>
+
+# <codecell>
+for p in [1, 2, 3]:
+    plot_df = df.apply(extract_plot_vals, axis=1) \
+                .reset_index(drop=True)
+
+    mdf = format_df('Transformer', power=p)
+    mdf['token_size'] = np.log2(mdf['token_size'])
+    
+    g = sns.lineplot(mdf, x='total_pflops', y='mse', hue='token_size', marker='o', palette='flare_r', alpha=0.7, legend='full')
+    g.axhline(0.05, linestyle='dashed', color='k', alpha=0.3)
+    g.set_xscale('log')
+    g.set_yscale('log')
+
+    g.set_ylabel('MSE')
+    g.set_xlabel('Compute (PFLOPs)')
+    g.legend_.set_title('Token size')
+
+    for t in g.legend_.texts:
+        label = float(t.get_text())
+        t.set_text(f'{int(2**label)}')
+
+    g.spines[['right', 'top']].set_visible(False)
+
+    # g.set_title('Transformer')
+    fig = g.get_figure()
+    fig.tight_layout()
+    fig.savefig(fig_dir / f'reg_p{p}_transf_tokenize.svg')
+    fig.clf()
+

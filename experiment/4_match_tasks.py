@@ -31,7 +31,7 @@ import sys
 sys.path.append('../')
 from train import train
 from model.knn import KnnConfig
-from model.mlp import MlpConfig
+from model.mlp import MlpConfig, DotMlpConfig
 from model.poly import PolyConfig
 from model.transformer import TransformerConfig
 from task.match import RingMatch, LabelRingMatch
@@ -473,24 +473,51 @@ Tests to try:
 
 
 # <codecell>
-
 n_choices = 6
 task = RingMatch(n_points=n_choices, scramble=False)
 
 # config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=256)
+# config = DotMlpConfig(n_out=n_choices, use_initial_proj=False, last_token_only=True)
 # config = PolyConfig(n_out=n_choices, n_layers=1, n_hidden=512)
 
-config = TransformerConfig(n_out=n_choices, n_hidden=256, n_layers=1, use_mlp_layers=False, pos_emb=True)
+config = TransformerConfig(n_out=n_choices, n_hidden=64, n_layers=2, n_mlp_layers=2, pos_emb=True)
 
-state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=40_000, lr=1e-4, l1_weight=1e-4)
 
 # %%
+import jax.numpy as jnp
 task_scramble = RingMatch(n_points=n_choices, scramble=True, batch_size=1024)
 task_large = RingMatch(n_points=n_choices, radius=1, batch_size=1024)
 
 xs, labs = next(task_scramble)
 
+# NOTE: the tailored bottleneck model learns awfully
+state.params['Dense_0']['bias'] = jnp.zeros(6)
+ker = jnp.eye(6)
+ker = ker.at[-1, -1].set(0)
+state.params['Dense_0']['kernel'] = ker
+state.params['Dense_0']['kernel']
+# <codecell>
 logits = state.apply_fn({'params': state.params}, xs)
 preds = logits.argmax(axis=1)
 eval_acc = np.mean(labs == preds)
 eval_acc
+
+# <codecell>
+task = RingMatch(n_points=n_choices, scramble=True)
+
+xs, ys = next(task)
+x = xs[0]
+a = np.einsum('jh,ih->ji', x, x)
+plt.plot(a[-1][:5])
+print(np.argmax(a[-1,:-1]))
+ys[0]
+
+# <codecell>
+import flax.linen as nn
+
+m = config.to_model()
+out = nn.tabulate(m, jax.random.PRNGKey(1))(np.ones((20, 6, 2)))
+print(out)
+
+# jax.tree_map(lambda x: x.shape, state.params)

@@ -146,7 +146,7 @@ def split_cases(all_cases, run_split):
 
     print('RUN IDX', run_idx)
     all_cases = np.array_split(all_cases, run_split)[run_idx]
-    return all_cases
+    return list(all_cases)
 
 
 def summon_dir(path: str, clear_if_exists=False):

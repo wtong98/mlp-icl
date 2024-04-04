@@ -50,8 +50,15 @@ ridge_result = np.mean((ys_pred - ys)**2)
 ridge_result
 
 # <codecell>
+df_dir = 'remote/12_icl_clean/scale'
+pkl_path = Path(df_dir)
+dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
+dfs = [pd.DataFrame(df[0].tolist()) for df in dfs]
+df = pd.concat(dfs)
+
 ### REGRESSION: smooth interpolation from IWL to ICL
-df = collate_dfs('remote/12_icl_clean/scale')
+# df = collate_dfs('remote/12_icl_clean/scale')
+
 
 # <codecell>
 def extract_plot_vals(row):
@@ -68,6 +75,7 @@ def extract_plot_vals(row):
     slice_idxs[-1] -= 1  # adjust for last value
     
     hist_dict = {idx: hist[idx]['loss'].item() for idx in slice_idxs}
+    print('ROW', row)
 
     return pd.Series([
         row['name'],
@@ -96,11 +104,17 @@ def format_df(name):
 # <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'reg_icl_mlp_scale.svg')
+# fig.savefig(fig_dir / 'reg_icl_mlp_scale.svg')
+fig.show()
+
+# <codecell>
+mdf = format_df('Mixer')
+fig = plot_compute(mdf, 'Mixer')
+# fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
-fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
+# fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
 fig.show()

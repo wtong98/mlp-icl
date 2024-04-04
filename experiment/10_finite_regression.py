@@ -454,6 +454,11 @@ config = SpatialMlpConfig(n_layers=6, n_hidden=128, n_channels=128, layer_norm=T
 state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=500_000, lr=1e-4)
 
 # <codecell>
+m = SpatialMlpConfig().to_model()
+tab_fn = nn.tabulate(m, jax.random.PRNGKey(0), console_kwargs={'width': 120})
+print(tab_fn(jnp.ones((17, 15, 8))))
+
+# <codecell>
 from optax import squared_error
 task = FiniteLinearRegression(n_ws=None, batch_size=1024, n_dims=2)
 

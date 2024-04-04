@@ -22,15 +22,15 @@ print('RUN ID', run_id)
 
 batch_size = 128
 
-run_split = 3
+run_split = 9
 
 train_iters_mlp = 2_048_000
 depths_mlp = [2, 4, 8]
 widths_mlp = [128, 512, 2048]
 
-train_iters_mix = 512_000
+train_iters_mix = 256_000
 depths_mix = [2, 4, 8]
-widths_mix = [64, 256, 1024]
+widths_mix = [32, 128, 512]
 channels_mix = 128
 
 train_iters_trans = 256_000
@@ -62,13 +62,6 @@ n_ws_set = [None]
 # n_ws_set = [None]
 ### END TEST CONFIGS
 
-run_idx = sys.argv[1]
-try:
-    run_idx = int(run_idx) % run_split
-except ValueError:
-    print(f'warn: unable to parse index {run_idx}, setting run_idx=0')
-    run_idx = 0
-
 
 all_cases = []
 
@@ -91,7 +84,7 @@ for n_ws in n_ws_set:
 
             all_cases.append(
                 Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=depth, n_hidden=width, n_channels=channels_mix),
-                    train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+                    train_args={'train_iters': train_iters_mix, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
                     train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
                     test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),
                     info={'common_task_args': common_task_args})
@@ -110,7 +103,7 @@ for n_ws in n_ws_set:
                     info={'common_task_args': common_task_args})
             )
 
-all_cases = np.array_split(all_cases, run_split)[run_idx]
+all_cases = split_cases(all_cases, run_split)
 print('CURRENT CASES:', all_cases)
 
 for case in tqdm(all_cases):

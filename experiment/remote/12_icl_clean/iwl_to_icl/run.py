@@ -11,6 +11,9 @@ from model.mlp import MlpConfig, SpatialMlpConfig
 from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression 
 
+run_id = new_seed()
+print('RUN ID', run_id)
+
 @dataclass
 class FunctionCase:
     name: str
@@ -33,7 +36,7 @@ run_split = 7
 # TODO: refine train_iters to be FLOP scaled
 n_iters = 1
 train_iters_mlp = 1_024_000
-train_iters_mix = 256_000
+train_iters_mix = 128_000
 train_iters_transf = 128_000
 batch_size = 128
 n_points = 8
@@ -67,7 +70,7 @@ for _ in range(n_iters):
 
         curr_tasks = [
             Case('MLP', MlpConfig(n_out=1, n_layers=model_depth, n_hidden=2048), train_args=make_args(train_iters_mlp)),
-            Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=model_depth, n_hidden=1024, n_channels=mix_channels), train_args=make_args(train_iters_mlp)),
+            Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_channels=mix_channels), train_args=make_args(train_iters_mix)),
             Case('Transformer', TransformerConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2, pos_emb=False), train_args=make_args(train_iters_transf)),
             FunctionCase('Ridge', estimate_ridge),
         ]
@@ -104,6 +107,6 @@ for case in all_cases:
     case.hist = None
 
 df = pd.DataFrame(all_cases)
-df.to_pickle('res.pkl')
+df.to_pickle(f'res.{run_id}.pkl')
 
 print('done!')
