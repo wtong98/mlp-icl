@@ -44,7 +44,7 @@ n_dims = [2, 4, 8, 16]
 n_ws = None
 
 model_depth = 8
-mix_channels = 128
+mix_channels = 64
 
 ### START TEST PARAMS
 # run_split = 1
