@@ -31,7 +31,7 @@ widths_mlp = [128, 512, 2048]
 train_iters_mix = 256_000
 depths_mix = [2, 4, 8]
 widths_mix = [32, 128, 512]
-channels_mix = 128
+channels_mix = 64
 
 train_iters_trans = 256_000
 depths_trans = [2, 4, 8]
@@ -78,8 +78,8 @@ for n_ws in n_ws_set:
                     info={'common_task_args': common_task_args})
             )
 
-    for depth in depths_mlp:
-        for width in widths_mlp:
+    for depth in depths_mix:
+        for width in widths_mix:
             common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
 
             all_cases.append(

@@ -50,14 +50,14 @@ ridge_result = np.mean((ys_pred - ys)**2)
 ridge_result
 
 # <codecell>
-df_dir = 'remote/12_icl_clean/scale'
-pkl_path = Path(df_dir)
-dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
-dfs = [pd.DataFrame(df[0].tolist()) for df in dfs]
-df = pd.concat(dfs)
+# df_dir = 'remote/12_icl_clean/scale'
+# pkl_path = Path(df_dir)
+# dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
+# dfs = [pd.DataFrame(df[0].tolist()) for df in dfs]
+# df = pd.concat(dfs)
 
 ### REGRESSION: smooth interpolation from IWL to ICL
-# df = collate_dfs('remote/12_icl_clean/scale')
+df = collate_dfs('remote/12_icl_clean/scale')
 
 
 # <codecell>
