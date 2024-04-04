@@ -72,7 +72,9 @@ class Case:
         self.state, self.hist = train(self.config, data_iter=self.train_task, test_iter=self.test_task, **self.train_args)
     
     def get_flops(self):
-        return get_flops(train_step, self.state, next(self.train_task))
+        train_args = self.train_args
+        loss = train_args.get('loss', None)
+        return get_flops(train_step, self.state, next(self.train_task), loss=loss)
     
     def eval(self, task, key_name='eval_acc'):
         xs, ys = next(task)

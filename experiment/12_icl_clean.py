@@ -118,3 +118,59 @@ mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
 # fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
 fig.show()
+
+# <codecell>
+### PLOT IWL --> ICL transition
+df = collate_dfs('remote/12_icl_clean/iwl_to_icl/')
+
+def extract_plot_vals(row):
+    n_ws = row.train_task.ws
+    if n_ws is not None:
+        n_ws = len(n_ws)
+    else:
+        n_ws = float('inf')
+    
+    return pd.Series([
+        row['name'],
+        n_ws,
+        row.train_task.n_dims,
+        row.train_task.n_points,
+        row['info']['mse_pretrain'].item(),
+        row['info']['mse_true'].item()
+    ], index=['name', 'n_tasks', 'n_dims', 'n_points', 'mse_pretrain', 'mse_true'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
+plot_df
+
+# <codecell>
+mdf = plot_df[(plot_df['name'] == 'MLP') | (plot_df['name'] == 'Mixer') | (plot_df['name'] == 'Transformer')]
+
+ddf = plot_df[plot_df['name'] == 'dMMSE'].groupby(['n_tasks'], as_index=False).mean(['mse_pretrain', 'mse_true'])
+ddf
+
+# <codecell>
+def make_iwl_to_icl_plot(mse_type):
+    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o')
+    g.set_xscale('log')
+    g.plot(ddf['n_tasks'], ddf[mse_type], linestyle='dashed', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=5)
+    g.axhline(y=ridge_result, linestyle='dashed', color='k', alpha=0.3, label='Ridge')
+
+    g.legend()
+
+    g.set_ylabel('MSE')
+    g.set_xlabel('# Pretrain Tasks')
+
+    g.spines[['right', 'top']].set_visible(False)
+
+    fig = g.get_figure()
+    fig.tight_layout()
+    return fig
+
+fig = make_iwl_to_icl_plot('mse_pretrain')
+fig.savefig('fig/final/reg_icl_pretrain_mse.svg')
+fig.clf()
+
+fig = make_iwl_to_icl_plot('mse_true')
+fig.savefig('fig/final/reg_icl_true_mse.svg')
+

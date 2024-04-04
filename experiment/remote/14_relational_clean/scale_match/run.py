@@ -26,25 +26,23 @@ train_iters_mlp = 8_000
 depths_mlp = [1, 2, 4]
 widths_mlp = [4, 16, 64, 256]
 
-train_iters_trans = 8
+train_iters_trans = 8_000
 depths_trans = [1, 2, 4]
 widths_trans = [8, 32]
 
 n_points = 6
 scramble = True
 
-# TODO: test and upload <-- STOPPED HERE
 ### START TEST CONFIGS
-# train_iters_mlp = 64
+# train_iters_dot = 64_0
+
+# train_iters_mlp = 8_0
 # depths_mlp = [1]
 # widths_mlp = [4]
 
-# train_iters_trans = 256
+# train_iters_trans = 8
 # depths_trans = [1]
 # widths_trans = [8]
-
-# n_dims = 64
-# powers = [1]
 ### END TEST CONFIGS
 
 all_cases = []
@@ -70,8 +68,8 @@ for depth in depths_trans:
         )
 
 all_cases.append(Case('RB MLP', 
-                      DotMlpConfig(n_outs=n_points, use_initial_proj=False, last_token_only=True),
-                      train_args={'train_iters': train_iters_trans, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
+                      DotMlpConfig(n_out=n_points, use_initial_proj=False, last_token_only=True),
+                      train_args={'train_iters': train_iters_dot, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
                       train_task = RingMatch(batch_size=batch_size, **common_args),
                       test_task=RingMatch(batch_size=1024, **common_args)))
 
