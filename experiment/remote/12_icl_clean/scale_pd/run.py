@@ -14,7 +14,7 @@ from task.regression import FiniteLinearRegression
 run_id = new_seed()
 print('RUN ID', run_id)
 
-run_split = 12
+run_split = 8
 
 @dataclass
 class FunctionCase:
@@ -39,7 +39,7 @@ train_iters_mlp = 1_024_000
 train_iters_mix = 128_000
 train_iters_transf = 128_000
 batch_size = 128
-n_points = [4, 8, 16, 32, 64, 128]
+n_points = [4, 8, 16, 32, 64, 128, 256, 512]
 n_dims = [2, 4, 8, 16]
 n_ws = None
 
@@ -74,8 +74,8 @@ for _ in range(n_iters):
             curr_tasks = [
                 Case('MLP', MlpConfig(n_out=1, n_layers=model_depth, n_hidden=2048), train_args=train_args(train_iters_mlp)),
                 Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_channels=mix_channels), train_args=train_args(train_iters_mix)),
-                Case('Transformer (softmax)', TransformerConfig(pos_emb=False, n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2), train_args=train_args(train_iters_transf)),
-                FunctionCase('Ridge', estimate_ridge),
+                Case('Transformer', TransformerConfig(pos_emb=False, n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2), train_args=train_args(train_iters_transf)),
+                # FunctionCase('Ridge', estimate_ridge),
             ]
 
             for case in curr_tasks:

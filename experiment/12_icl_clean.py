@@ -50,12 +50,6 @@ ridge_result = np.mean((ys_pred - ys)**2)
 ridge_result
 
 # <codecell>
-# df_dir = 'remote/12_icl_clean/scale'
-# pkl_path = Path(df_dir)
-# dfs = [pd.read_pickle(f) for f in pkl_path.iterdir() if f.suffix == '.pkl']
-# dfs = [pd.DataFrame(df[0].tolist()) for df in dfs]
-# df = pd.concat(dfs)
-
 ### REGRESSION: smooth interpolation from IWL to ICL
 df = collate_dfs('remote/12_icl_clean/scale')
 
@@ -75,7 +69,6 @@ def extract_plot_vals(row):
     slice_idxs[-1] -= 1  # adjust for last value
     
     hist_dict = {idx: hist[idx]['loss'].item() for idx in slice_idxs}
-    print('ROW', row)
 
     return pd.Series([
         row['name'],
@@ -91,8 +84,11 @@ plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
 #             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
 
-def format_df(name):
-    mdf = plot_df[plot_df['name'] == name].reset_index(drop=True)
+def format_df(name=None):
+    mdf = plot_df.copy()
+    if name is not None:
+        mdf = plot_df[plot_df['name'] == name].reset_index(drop=True)
+
     m_hist_df = pd.DataFrame(mdf['hist'].tolist())
     mdf = pd.concat((mdf[['name', 'flops', 'log10_size', 'arch']], m_hist_df), axis='columns') \
             .melt(id_vars=['name', 'flops', 'log10_size', 'arch'], var_name='hist_idx', value_name='mse')
@@ -104,20 +100,38 @@ def format_df(name):
 # <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
-# fig.savefig(fig_dir / 'reg_icl_mlp_scale.svg')
+fig.savefig(fig_dir / 'reg_icl_mlp_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
-# fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
+fig.savefig(fig_dir / 'reg_icl_mix_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
-# fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
+fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
 fig.show()
+
+# <codecell>
+mdf = format_df()
+
+g = sns.lineplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.6, legend='auto')
+g.set_xscale('log')
+g.axhline(ridge_result, linestyle='dashed', color='k', alpha=0.3)
+
+g.legend_.set_title(None)
+
+g.set_ylabel('MSE')
+g.set_xlabel('Compute (PFLOPs)')
+
+g.spines[['right', 'top']].set_visible(False)
+
+fig = g.get_figure()
+fig.tight_layout()
+fig.savefig(fig_dir / 'reg_icl_all_scale.svg')
 
 # <codecell>
 ### PLOT IWL --> ICL transition
@@ -174,3 +188,93 @@ fig.clf()
 fig = make_iwl_to_icl_plot('mse_true')
 fig.savefig('fig/final/reg_icl_true_mse.svg')
 
+
+# <codecell>
+#### PATCH-WISE SCALING
+df = collate_dfs('remote/12_icl_clean/scale_pd/')
+mdf = df[df['name'] != 'Ridge']
+
+# <codecell>
+def extract_plot_vals(row):
+    hist = row['hist']['test']
+    slices = np.exp(np.linspace(-6, 0, num=10))
+    slices = np.insert(slices, 0, 0)
+    slice_idxs = (slices * len(hist)).astype(np.int32)
+    slice_idxs[-1] -= 1  # adjust for last value
+    
+    xs, ys = next(row.test_task)
+    ys_pred = estimate_ridge(None, *unpack(xs))
+    ridge_err = np.mean((ys_pred - ys)**2)
+
+    hist_dict = {np.log10((idx + 1) * 1000): hist[idx]['loss'].item() - ridge_err for ratio, idx in zip(slices, slice_idxs)}
+    
+    return pd.Series([
+        row['name'],
+        row.train_task.n_dims,
+        row.train_task.n_points,
+        row['info']['mse'].item() - ridge_err,
+        hist_dict,
+    ], index=['name', 'n_dims', 'n_points', 'mse_final', 'hist'])
+
+plot_df = mdf.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
+
+stat_df, hist_df = plot_df.iloc[:,:-1], plot_df.iloc[:,-1]
+hist_df = pd.DataFrame(hist_df.tolist())
+hist_df
+
+adf = pd.concat((stat_df, hist_df), axis=1) \
+        .melt(id_vars=stat_df.columns, var_name='train_prop', value_name='mse')
+adf
+
+# <codecell>
+# Full performance plots
+def make_pd_plot(name):
+    cdf = adf[adf['name'] == name]
+    g = sns.FacetGrid(cdf, col='n_dims')
+    g.map_dataframe(sns.lineplot, x='n_points', y='mse', hue='train_prop', marker='o', alpha=0.7)
+    g.add_legend()
+
+    g._legend.set_title('Train steps')
+
+    for t in g._legend.texts:
+        label = t.get_text()
+        t.set_text('${10}^{%s}$' % label)
+
+    for ax in g.axes.ravel():
+        ax.set_xscale('log')
+        n_dims = ax.get_title().split('=')[1]
+        ax.set_title(f'D = {n_dims}')
+        ax.set_ylabel('Excess MSE')
+        ax.set_xlabel('# Points')
+        ax.axhline(y=0.95, linestyle='dashed', color='k', alpha=0.3)
+
+    g.tight_layout()
+    return g
+
+g = make_pd_plot('MLP')
+g.savefig('fig/final/reg_icl_mlp_pd.svg')
+
+g = make_pd_plot('Mixer')
+g.savefig('fig/final/reg_icl_mix_pd.svg')
+
+g = make_pd_plot('Transformer (softmax)')  # TODO: rename
+g.savefig('fig/final/reg_icl_transf_pd.svg')
+
+# <codecell>
+# Subsection on high dimensions
+adf = plot_df[plot_df['n_dims'] == 8]
+g = sns.lineplot(adf, x='n_points', y='mse_final', hue='name', marker='o')
+g.set_xscale('log')
+g.axhline(0.95, linestyle='dashed', color='k', alpha=0.3)
+
+g.set_ylabel('MSE')
+g.set_xlabel('# Points')
+g.legend_.set_title(None)
+g.spines[['right', 'top']].set_visible(False)
+
+fig = g.figure
+fig.tight_layout()
+fig.savefig('fig/final/reg_icl_excess_mse.svg')
+
+# %%
