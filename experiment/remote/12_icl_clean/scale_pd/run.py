@@ -81,7 +81,7 @@ for _ in range(n_iters):
             for case in curr_tasks:
                 seed = new_seed()
                 case.train_task = FiniteLinearRegression(batch_size=batch_size, seed=seed, **common_task_args)
-                case.test_task = FiniteLinearRegression(batch_size=8192, seed=seed, **common_task_args)
+                case.test_task = FiniteLinearRegression(batch_size=1024, seed=seed, **common_task_args)
                 case.info['common_task_args'] = common_task_args
 
             all_cases.extend(curr_tasks)
@@ -97,7 +97,7 @@ true_tasks = []
 for c in all_cases:
     task_args = c.info['common_task_args']
     task_args['n_ws'] = None
-    true_tasks.append(FiniteLinearRegression(batch_size=8192, **task_args))
+    true_tasks.append(FiniteLinearRegression(batch_size=1024, **task_args))
 
 eval_cases(all_cases, true_tasks, key_name='mse', use_mse=True)
 
