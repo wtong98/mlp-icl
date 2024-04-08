@@ -7,6 +7,7 @@ from pathlib import Path
 
 import jax.numpy as jnp
 from flax.serialization import to_state_dict
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -118,7 +119,7 @@ fig.show()
 # <codecell>
 mdf = format_df()
 
-g = sns.lineplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.6, legend='auto')
+g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.6, legend='auto')
 g.set_xscale('log')
 g.axhline(ridge_result, linestyle='dashed', color='k', alpha=0.3)
 

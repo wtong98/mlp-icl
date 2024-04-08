@@ -43,8 +43,12 @@ def plot_compute(df, title, hue_name='log10_size', legend='brief', raise10=True)
     return fig
 
 
-def format_df(name, power=1):
-    mdf = plot_df[(plot_df['name'] == name) & (plot_df['power'] == power)].reset_index(drop=True)
+def format_df(name=None, power=1):
+    mdf = plot_df[plot_df['power'] == power]
+    if name is not None:
+        mdf = plot_df[(plot_df['name'] == name) & (plot_df['power'] == power)]
+    mdf = mdf.reset_index(drop=True)
+
     m_hist_df = pd.DataFrame(mdf['hist'].tolist())
     mdf = pd.concat((mdf, m_hist_df), axis='columns') \
             .melt(id_vars=plot_df.columns, var_name='hist_idx', value_name='mse')
@@ -99,6 +103,27 @@ for p in [1, 2, 3]:
     fig = plot_compute(mdf, 'Transformer')
     fig.savefig(fig_dir / f'reg_p{p}_transf_scale.svg')
     fig.show()
+
+
+# <codecell>
+for p in [1, 2, 3]:
+    mdf = format_df(power=p)
+    g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7)
+    g.axhline(0.05, linestyle='dashed', color='k', alpha=0.3)
+    g.set_xscale('log')
+    g.set_yscale('log')
+
+    g.set_ylabel('MSE')
+    g.set_xlabel('Compute (PFLOPs)')
+    g.legend_.set_title('# Params')
+
+    g.spines[['right', 'top']].set_visible(False)
+
+    fig = g.get_figure()
+    fig.tight_layout()
+    fig.savefig(fig_dir / f'reg_p{p}_all_scale.svg')
+    fig.show()
+    fig.clf()
 
 # <codecell>
 ### PER-TOKEN IMPROVEMENTS
