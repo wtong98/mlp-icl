@@ -121,6 +121,7 @@ class DotMlpConfig:
     n_out: int = 1
     use_initial_proj: bool = True
     last_token_only: bool = False
+    center_inputs: bool = True
 
     def to_model(self):
         return DotMLP(self)
@@ -132,6 +133,9 @@ class DotMLP(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        if self.config.center_inputs:
+            x = x - jnp.mean(x, axis=1, keepdims=True)
+
         if self.config.use_initial_proj:
             x = nn.Dense(self.config.n_hidden)(x)  # B x L x H
 

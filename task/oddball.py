@@ -109,7 +109,7 @@ class FixedOddballTask:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     # task = FreeOddballTask(reset_rng_for_data=True)
-    task = LineOddballTask(n_choices=6, perp_dist=4)
+    task = LineOddballTask(n_choices=6, perp_dist=0.1, linear_dist=1)
 
     fig, axs = plt.subplots(2, 3, figsize=(6, 4))
 
@@ -122,4 +122,4 @@ if __name__ == '__main__':
         # plt.colorbar()
     
     plt.tight_layout()
-    plt.savefig('../experiment/fig/line_oddball_examples.png')
+    # plt.savefig('../experiment/fig/line_oddball_examples.png')
