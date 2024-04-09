@@ -53,7 +53,7 @@ radii = [0.25, 0.5, 1, 2, 4, 8, 16]
 all_cases = []
 
 for scram in do_scramble:
-    for r in radii:
+    for r in radii: # TODO: r not used, remove
         common_args = {'n_points': n_points, 'scramble': scram, 'radius': 1}
 
         all_cases.extend([

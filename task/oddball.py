@@ -70,7 +70,7 @@ class FreeOddballTask:
 
 
 class LineOddballTask:
-    def __init__(self, n_choices=6, linear_dist=5, perp_dist=5, batch_size=128, with_dot_product_feats=False) -> None:
+    def __init__(self, n_choices=6, linear_dist=1, perp_dist=1, batch_size=128, with_dot_product_feats=False) -> None:
         self.n_choices = n_choices
         self.linear_dist = linear_dist
         self.perp_dist = perp_dist
