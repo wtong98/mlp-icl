@@ -6,20 +6,19 @@ Assembling the final relational task figures for NeurIPS 2024 cleanly
 from pathlib import Path
 
 import jax.numpy as jnp
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
-from scipy.ndimage import gaussian_filter1d
-from tqdm import tqdm
 
 import sys
 sys.path.append('../../../')
 sys.path.append('../../../../')
 from common import *
-from model.mlp import MlpConfig, RfConfig, SpatialMlpConfig
+from model.mlp import MlpConfig, DotMlpConfig
 from model.transformer import TransformerConfig
-from task.function import PowerTask 
+from task.match import RingMatch 
+from task.oddball import FreeOddballTask, LineOddballTask
 
 fig_dir = Path('fig/final')
 
@@ -188,7 +187,6 @@ df = collate_dfs('remote/14_relational_clean/generalize')
 df.iloc[0]['info']
 
 # <codecell>
-### SCALE ODDBALL
 full_dicts = []
 
 for _, row in df.iterrows():
@@ -208,6 +206,13 @@ plot_df = pd.DataFrame(full_dicts)
 plot_df
 
 # <codecell>
+radii = np.unique(plot_df['radius'])
+r = radii[0]
+task = RingMatch(radius=r)
+# TODO: make model with perfect success
+
+
+# <codecell>
 g = sns.catplot(plot_df, 
             x='radius', y='acc', hue='name', row='train_scramble', col='test_scramble', 
             kind='bar', aspect=2, height=2)
@@ -218,3 +223,206 @@ g._legend.set_title(None)
 
 g.tight_layout()
 g.savefig(fig_dir / 'match_generalize.svg')
+
+# <codecell>
+### ODDBALL GENERALIZE
+df = collate_dfs('remote/14_relational_clean/generalize_oddball')
+df
+
+# <codecell>
+fo_dicts = []
+
+for _, row in df.iterrows():
+    if type(row.train_task).__name__ != 'FreeOddballTask':
+        continue
+
+    for key in row['info']:
+        if key.startswith('acc'):
+            _, _, d = key.split('_')
+            fo_dicts.append({
+                'name': row['name'],
+                'distance': d,
+                'acc': row['info'][key].item()
+            })
+
+
+plot_df = pd.DataFrame(fo_dicts)
+plot_df
+
+# <codecell>
+### Free oddball perfect solution
+dists = np.unique(plot_df['distance'])
+res = {}
+
+for d in dists:
+    d = float(d)
+    task = FreeOddballTask(discrim_dist=d, batch_size=8192)
+    xs, ys = next(task)
+
+    xs = xs - np.mean(xs, axis=1, keepdims=True)
+    out = np.linalg.norm(xs, axis=-1)
+    ys_pred = np.argmax(out, axis=-1)
+    res[d] = np.mean(ys_pred == ys)
+
+# <codecell>
+g = sns.barplot(plot_df, x='distance', y='acc', hue='name')
+
+bar_width = 0.4
+
+for tick, lab in zip(g.get_xticks(), g.get_xticklabels()):
+    r = lab.get_text()
+    optim_res = res[float(r)]
+    
+    if tick == 0:
+        g.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='r', alpha=0.7, label='Optimal')
+    else:
+        g.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='r', alpha=0.7)
+
+g.legend()
+g.legend_.set_title(None)
+
+g.set_xlabel('Distance')
+g.set_ylabel('Accuracy')
+
+g.spines[['top', 'right']].set_visible(False)
+fig = g.figure
+fig.set_figheight(3)
+fig.savefig(fig_dir / 'free_oddball_generalize.svg')
+
+# <codecell>
+### PLOT LOGITS PER DISTANCE
+model = MlpConfig(**df.iloc[0]['config']).to_model()
+params = df.iloc[0]['state']['params']
+
+# <codecell>
+res_dicts = []
+n_iters = 5
+n_points = 20
+
+config_types = [MlpConfig, TransformerConfig, DotMlpConfig]
+for config_type, (_, row) in zip(config_types, df.iloc[:3].iterrows()):
+    model = config_type(**row['config']).to_model()
+    params = row['state']['params']
+
+    for _ in range(n_iters):
+        test_cluster = np.random.randn(n_points, 5, 2)
+        target_points = np.linspace(5, 25, num=n_points)
+        target = np.zeros((n_points, 1, 2))
+        target[np.arange(n_points),0,1] = target_points
+        points = np.concatenate((test_cluster, target), axis=1)
+
+        logits = model.apply({'params': params}, points)
+        res_dicts.extend([
+            {
+                'name': row['name'],
+                'distance': d,
+                'logit': l.item()
+            } 
+        for d, l in zip(target_points, logits[:,-1])])
+
+plot_df = pd.DataFrame(res_dicts)
+plot_df
+
+# <codecell>
+g = sns.lineplot(plot_df, x='distance', y='logit', hue='name', marker='o', alpha=0.7)
+
+xs = np.linspace(5, 25, num=n_points)
+g.plot(xs, xs**2 * 0.45, '--', color='k', alpha=0.5)
+g.plot(xs, xs * 2.2, '--', color='k', alpha=0.5)
+g.plot(xs, 0 * xs + 9.4, '--', color='k', alpha=0.5)
+
+g.set_xscale('log')
+g.set_yscale('log')
+
+g.set_xlabel('Distance')
+g.set_ylabel('Logit')
+
+g.legend()
+g.legend_.set_title(None)
+
+g.spines[['top', 'right']].set_visible(False)
+fig = g.figure
+fig.tight_layout()
+fig.savefig(fig_dir / 'free_oddball_logit.svg')
+
+# <codecell>
+lo_dicts = []
+
+for _, row in df.iterrows():
+    if type(row.train_task).__name__ != 'LineOddballTask':
+        continue
+
+    train_dist = row['train_task'].perp_dist
+
+    for key in row['info']:
+        if key.startswith('acc'):
+            _, _, d = key.split('_')
+            lo_dicts.append({
+                'name': row['name'],
+                'train_distance': train_dist,
+                'test_distance': d,
+                'acc': row['info'][key].item()
+            })
+
+
+plot_df = pd.DataFrame(lo_dicts)
+plot_df
+
+# <codecell>
+### Line oddball max solution
+dists = np.unique(plot_df['test_distance'])
+dist_res = {}
+
+for d in dists:
+    d = float(d)
+    task = LineOddballTask(perp_dist=d, batch_size=8192)
+    xs, ys = next(task)
+
+    xs = xs - np.mean(xs, axis=1, keepdims=True)
+    out = np.linalg.norm(xs, axis=-1)
+    ys_pred = np.argmax(out, axis=-1)
+    dist_res[d] = np.mean(ys_pred == ys)
+
+
+# <codecell>
+### Line oddball reg solution
+dists = np.unique(plot_df['test_distance'])
+reg_res = {}
+
+for d in dists:
+    d = float(d)
+    task = LineOddballTask(perp_dist=d, batch_size=8192)
+    xs, ys = next(task)
+
+    # xs = xs - np.mean(xs, axis=1, keepdims=True)
+
+    x = xs[:,:,[0]]
+    y = xs[:,:,[1]]
+
+    res = x @ np.linalg.pinv(t(x) @ x) @ t(x) @ y
+    out = ((res - y)**2).squeeze()
+    reg_res[d] = np.mean(out.argmax(axis=-1) == ys)
+
+reg_res
+# <codecell>
+g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=2, aspect=2, legend_out=True)
+
+handle = None
+for ax in g.axes.ravel():
+    bar_width = 0.4
+
+    for tick, lab in zip(ax.get_xticks(), ax.get_xticklabels()):
+        r = lab.get_text()
+        optim_res = dist_res[float(r)]
+        r_res = reg_res[float(r)]
+        
+        ax.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='r', alpha=0.7)
+        # ax.hlines(y=r_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='m', alpha=0.7)
+
+g._legend.set_title(None)
+g.set_xlabels('Test dist')
+g.set_ylabels('Accuracy')
+g.set_titles('Train dist = {col_name}')
+
+g.tight_layout()
+g.savefig(fig_dir / 'line_oddball_generalize.svg')

@@ -40,20 +40,20 @@ n_points = 6
 
 
 ### START TEST CONFIGS
-train_iters_dot = 64_0
+# train_iters_dot = 64_0
 
-train_iters_mlp = 16_0
-depth_mlp = 4
-width_mlp = 256
+# train_iters_mlp = 16_0
+# depth_mlp = 4
+# width_mlp = 256
 
-train_iters_trans = 16_0
-depth_trans = 4
-width_trans = 64
+# train_iters_trans = 16_0
+# depth_trans = 4
+# width_trans = 64
 
-fo_train_dist = 5
-fo_test_dists = [1]
+# fo_train_dist = 5
+# fo_test_dists = [1]
 
-lo_dists = [0.25]
+# lo_dists = [0.25]
 ### END TEST CONFIGS
 
 all_fo_cases = []
