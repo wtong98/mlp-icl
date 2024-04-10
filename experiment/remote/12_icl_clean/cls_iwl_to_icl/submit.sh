@@ -4,7 +4,7 @@
 #SBATCH -p kempner
 #SBATCH --gres=gpu:1
 #SBATCH --mem=32000
-#SBATCH --array=1-7
+#SBATCH --array=1-9
 #SBATCH -o log.%A.%a.out
 #SBATCH -e log.%A.%a.err
 #SBATCH --mail-type=END

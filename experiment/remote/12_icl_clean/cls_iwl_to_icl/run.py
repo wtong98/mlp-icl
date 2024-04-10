@@ -9,52 +9,44 @@ sys.path.append('../../../../')
 from common import *
 from model.mlp import MlpConfig, SpatialMlpConfig
 from model.transformer import TransformerConfig
-from task.regression import FiniteLinearRegression 
+from task.match import GautamMatch 
 
 run_id = new_seed()
 print('RUN ID', run_id)
 
-@dataclass
-class FunctionCase:
-    name: str
-    func: Callable
-    train_task: Iterable | None = None
-    test_task: Iterable | None = None
-    info: dict = field(default_factory=dict)
+run_split = 9
 
-    def run(self):
-        return
-    
-    def eval_mse(self, task, key_name='eval_mse'):
-        xs, ys = next(task)
-        ys_pred = self.func(self.train_task, *unpack(xs), sig2=task.noise_scale)
-        mse = np.mean((ys - ys_pred)**2)
-        self.info[key_name] = mse
-    
-run_split = 7
-
-# TODO: refine train_iters to be FLOP scaled
 n_iters = 1
-train_iters_mlp = 1_024_000
-train_iters_mix = 128_000
-train_iters_transf = 128_000
+train_iters_mlp = 64_000
+train_iters_mix = 16_000
+train_iters_transf = 16_000
 batch_size = 128
+
+n_labels = 32
 n_points = 8
 n_dims = 8
-n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, None]
+
+burstys = [1, 2, 4]
+n_classes = [32, 64, 128, 256, 512, 1024, 2048]
 
 model_depth = 8
-mix_channels = 128
+mix_channels = 64
 
 ### START TEST CONFIGS
 # run_split = 1
-# train_iters_mlp = 1_024
-# train_iters_mix = 256
-# train_iters_transf = 128
+
+# n_iters = 1
+# train_iters_mlp = 64_0
+# train_iters_mix = 16_0
+# train_iters_transf = 16_0
 # batch_size = 128
+
+# n_labels = 32
 # n_points = 8
 # n_dims = 8
-# n_ws = [2]
+
+# burstys = [1]
+# n_classes = [32]
 
 # model_depth = 1
 # mix_channels = 4
@@ -62,28 +54,25 @@ mix_channels = 128
 
 all_cases = []
 for _ in range(n_iters):
-    for n_w in n_ws:
-        common_task_args = {'n_ws': n_w, 'n_points': n_points, 'n_dims': n_dims, 'seed': new_seed()}
+    for burst in burstys:
+        for n_cls in n_classes:
+            common_task_args = {'n_labels': n_labels, 'bursty': burst, 'n_classes': n_cls, 'n_dims': n_dims, 'seed': new_seed()}
 
-        def make_args(train_iters):
-            return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
+            def make_args(train_iters):
+                return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'}
 
-        curr_tasks = [
-            Case('MLP', MlpConfig(n_out=1, n_layers=model_depth, n_hidden=2048), train_args=make_args(train_iters_mlp)),
-            Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_channels=mix_channels), train_args=make_args(train_iters_mix)),
-            Case('Transformer', TransformerConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2, pos_emb=False), train_args=make_args(train_iters_transf)),
-            FunctionCase('Ridge', estimate_ridge),
-        ]
+            curr_tasks = [
+                Case('MLP', MlpConfig(n_out=n_labels, n_layers=model_depth, n_hidden=1024), train_args=make_args(train_iters_mlp)),
+                Case('Mixer', SpatialMlpConfig(n_out=n_labels, n_layers=model_depth, n_hidden=256, n_channels=mix_channels), train_args=make_args(train_iters_mix)),
+                Case('Transformer', TransformerConfig(n_out=n_labels, n_layers=model_depth, n_hidden=256, n_mlp_layers=2, pos_emb=True), train_args=make_args(train_iters_transf)),
+            ]
 
-        if n_w is not None:
-            curr_tasks.append(FunctionCase('dMMSE', estimate_dmmse))
+            for case in curr_tasks:
+                case.train_task = GautamMatch(batch_size=batch_size, **common_task_args)
+                case.test_task = GautamMatch(batch_size=1024, **common_task_args)
+                case.info['task_args'] = common_task_args
 
-        for case in curr_tasks:
-            case.train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args)
-            case.test_task = FiniteLinearRegression(batch_size=8192, **common_task_args)
-            case.info['common_task_args'] = common_task_args
-
-        all_cases.extend(curr_tasks)
+            all_cases.extend(curr_tasks)
 
 all_cases = split_cases(all_cases, run_split)
 print('ALL_CASES', all_cases)
@@ -92,15 +81,39 @@ for case in tqdm(all_cases):
     print('RUNNING', case.name)
     case.run()
 
-pretrain_tasks = [c.test_task for c in all_cases]
-true_tasks = []
-for c in all_cases:
-    task_args = c.info['common_task_args']
-    task_args['n_ws'] = None
-    true_tasks.append(FiniteLinearRegression(batch_size=8192, **task_args))
+# IN-DIST EVALUATION
+in_dist_tasks = [c.test_task for c in all_cases]
+eval_cases(all_cases, in_dist_tasks, key_name='acc')
 
-eval_cases(all_cases, pretrain_tasks, key_name='mse_pretrain', use_mse=True)
-eval_cases(all_cases, true_tasks, key_name='mse_true', use_mse=True)
+# IWL EVALUATION
+all_tasks = []
+for case in all_cases:
+    task = GautamMatch(batch_size=1024, **case.info['task_args'])
+    task.matched_target = False
+    all_tasks.append(task)
+
+eval_cases(all_cases, all_tasks, key_name='iwl_acc')
+
+
+# ICL EVALUATION (new clusters)
+all_tasks = []
+for case in all_cases:
+    task = GautamMatch(batch_size=1024, **case.info['task_args'])
+    task.resample_clusters()
+    all_tasks.append(task)
+
+eval_cases(all_cases, all_tasks, key_name='icl_resamp_acc')
+
+
+# ICL EVALUATION (swapped labels)
+all_tasks = []
+for case in all_cases:
+    task = GautamMatch(batch_size=1024, **case.info['task_args'])
+    task.swap_labels()
+    all_tasks.append(task)
+
+eval_cases(all_cases, all_tasks, key_name='icl_swap_acc')
+
 
 for case in all_cases:
     case.state = None
