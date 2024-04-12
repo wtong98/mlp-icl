@@ -52,7 +52,7 @@ all_cases = []
 for _ in range(n_iters):
     for n_point in n_points:
         for n_dim in n_dims:
-            common_task_args = {'n_labels': n_labels, 'n_classes': n_classes, 'n_dims': n_dim, 'n_points': n_point, 'seed': new_seed()}
+            common_task_args = {'n_labels': n_labels, 'bursty': n_point // 2, 'n_classes': n_classes, 'n_dims': n_dim, 'n_points': n_point, 'seed': new_seed()}
 
             def train_args(train_iters):
                 return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'}
