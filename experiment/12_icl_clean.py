@@ -127,12 +127,13 @@ g.legend_.set_title(None)
 
 g.set_ylabel('MSE')
 g.set_xlabel('Compute (PFLOPs)')
+g.set_title('ICL Regression')
 
 g.spines[['right', 'top']].set_visible(False)
 
 fig = g.get_figure()
 fig.tight_layout()
-fig.savefig(fig_dir / 'reg_icl_all_scale.svg')
+fig.savefig(fig_dir / 'fig1/reg_icl_all_scale.svg')
 
 # <codecell>
 ### PLOT IWL --> ICL transition
@@ -165,7 +166,7 @@ ddf = plot_df[plot_df['name'] == 'dMMSE'].groupby(['n_tasks'], as_index=False).m
 ddf
 
 # <codecell>
-def make_iwl_to_icl_plot(mse_type):
+def make_iwl_to_icl_plot(mse_type, title=''):
     g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o')
     g.set_xscale('log')
     g.plot(ddf['n_tasks'], ddf[mse_type], linestyle='dashed', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=5)
@@ -177,17 +178,18 @@ def make_iwl_to_icl_plot(mse_type):
     g.set_xlabel('# Pretrain Tasks')
 
     g.spines[['right', 'top']].set_visible(False)
+    g.set_title(title)
 
     fig = g.get_figure()
     fig.tight_layout()
     return fig
 
-fig = make_iwl_to_icl_plot('mse_pretrain')
-fig.savefig('fig/final/reg_icl_pretrain_mse.svg')
+fig = make_iwl_to_icl_plot('mse_pretrain', 'Pretraining Distribution')
+fig.savefig('fig/final/fig1/reg_icl_pretrain_mse.svg')
 fig.clf()
 
-fig = make_iwl_to_icl_plot('mse_true')
-fig.savefig('fig/final/reg_icl_true_mse.svg')
+fig = make_iwl_to_icl_plot('mse_true', 'True Distribution')
+fig.savefig('fig/final/fig1/reg_icl_true_mse.svg')
 
 
 # <codecell>
@@ -266,17 +268,17 @@ g.savefig('fig/final/reg_icl_transf_pd.svg')
 # Subsection on high dimensions
 adf = plot_df[plot_df['n_dims'] == 8]
 g = sns.lineplot(adf, x='n_points', y='mse_final', hue='name', marker='o')
-g.set_xscale('log')
+g.set_xscale('log', base=2)
 g.axhline(0.95, linestyle='dashed', color='k', alpha=0.3)
 
 g.set_ylabel('MSE')
-g.set_xlabel('# Points')
+g.set_xlabel('# Points in context')
 g.legend_.set_title(None)
 g.spines[['right', 'top']].set_visible(False)
 
 fig = g.figure
 fig.tight_layout()
-fig.savefig('fig/final/reg_icl_excess_mse.svg')
+fig.savefig('fig/final/fig1/reg_icl_excess_mse.svg')
 
 # <codecell>
 ############################
@@ -344,6 +346,7 @@ def plot_compute(df, title, hue_name='log10_size'):
     fig.tight_layout()
     return fig
 
+# <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
 fig.savefig(fig_dir / 'cls_icl_mlp_scale.svg')
@@ -373,10 +376,11 @@ g.set_ylabel('Loss')
 g.set_xlabel('Compute (PFLOPs)')
 
 g.spines[['right', 'top']].set_visible(False)
+g.set_title('ICL Classification')
 
 fig = g.get_figure()
 fig.tight_layout()
-fig.savefig(fig_dir / 'cls_icl_all_scale.svg')
+fig.savefig(fig_dir / 'fig1/cls_icl_all_scale.svg')
 
 # <codecell>
 ### CLS PLOT IWL --> ICL transition
@@ -422,6 +426,32 @@ for t in g._legend.texts:
 
 g.tight_layout()
 g.savefig(fig_dir / 'cls_icl_transition_loss.svg')
+
+# <codecell>
+mdf = plot_df[plot_df['bursty'] == 4]
+
+g = sns.FacetGrid(mdf, col='name', col_order=['MLP', 'Mixer', 'Transformer'], height=2, aspect=1.5)
+g.map_dataframe(sns.lineplot, x='n_classes', y='acc', hue='acc_type', marker='o', palette='Paired', hue_order=['icl_swap_acc', 'icl_resamp_acc', 'iwl_acc'])
+
+for ax in g.axes.ravel():
+    ax.set_xscale('log', base=2)
+
+g.set_ylabels('Accuracy')
+g.set_xlabels('# Classes')
+g.set_titles('{col_name}')
+
+g.add_legend(title='Test Task')
+label_to_name = {
+    'icl_swap_acc': 'ICL (swap)',
+    'icl_resamp_acc': 'ICL (resample)',
+    'iwl_acc': 'IWL'
+}
+for t in g._legend.texts:
+    label = t.get_text()
+    t.set_text(label_to_name[label])
+
+g.tight_layout()
+g.savefig(fig_dir / 'fig1/cls_icl_b_4_transition_loss.svg')
 
 
 # <codecell>
@@ -479,7 +509,7 @@ def make_pd_plot(mdf):
         t.set_text('${10}^{%s}$' % label)
 
     for ax in g.axes.ravel():
-        ax.set_xscale('log')
+        ax.set_xscale('log', base=2)
         n_dims = ax.get_title().split('=')[1]
         ax.set_title(f'D = {n_dims}')
         ax.set_ylabel('Loss')
@@ -488,6 +518,7 @@ def make_pd_plot(mdf):
     g.tight_layout()
     return g
 
+# <codecell>
 mdf = format_df('MLP')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'cls_icl_mlp_pd.svg')
@@ -501,3 +532,30 @@ g.savefig(fig_dir / 'cls_icl_mix_pd.svg')
 mdf = format_df('Transformer')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'cls_icl_transf_pd.svg')
+
+
+# <codecell>
+# TODO: record correct last value and redo
+mdf = format_df()
+mdf = mdf.dropna()
+mdf.groupby('name').max()['hist_idx']
+
+# <codecell>
+mdf1 = mdf[(mdf['n_dims'] == 8) & (mdf['hist_idx'] == 15)]
+mdf2 = mdf[(mdf['n_dims'] == 8) & (mdf['hist_idx'] == 63)]
+mdf = pd.concat((mdf1, mdf2))
+mdf
+
+# <codecell>
+g = sns.lineplot(mdf, x='n_points', y='loss', hue='name', marker='o', alpha=0.7, legend='brief', hue_order=['MLP', 'Mixer', 'Transformer'])
+g.legend_.set_title(None)
+
+g.set_xscale('log', base=2)
+g.set_ylabel('Loss')
+g.set_xlabel('# Points in context')
+
+g.spines[['top', 'right']].set_visible(False)
+
+fig = g.figure
+fig.tight_layout()
+fig.savefig(fig_dir / 'fig1/cls_icl_all_pd.svg')
