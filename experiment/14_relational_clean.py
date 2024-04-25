@@ -152,7 +152,7 @@ plot_rbmlp(mdf)
 fig.savefig(fig_dir / 'line_oddball_rbmlp_scale.svg')
 
 # <codecell>
-def plot_all(mdf):
+def plot_all(mdf, title=''):
     g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.6, legend='auto')
     g.set_xscale('log')
 
@@ -160,6 +160,7 @@ def plot_all(mdf):
 
     g.set_ylabel('Loss')
     g.set_xlabel('Compute (PFLOPs)')
+    g.set_title(title)
 
     g.spines[['right', 'top']].set_visible(False)
 
@@ -168,18 +169,18 @@ def plot_all(mdf):
     return fig
 
 mdf = format_df(task='RingMatch')
-fig = plot_all(mdf)
-fig.savefig(fig_dir / 'match_all_scale.svg')
+fig = plot_all(mdf, title='Match')
+fig.savefig(fig_dir / 'fig3/match_all_scale.svg')
 
 # <codecell>
 mdf = format_df(task='FreeOddballTask')
-fig = plot_all(mdf)
-fig.savefig(fig_dir / 'free_oddball_all_scale.svg')
+fig = plot_all(mdf, 'Sphere Oddball')
+fig.savefig(fig_dir / 'fig3/free_oddball_all_scale.svg')
 
 # <codecell>
 mdf = format_df(task='LineOddballTask')
-fig = plot_all(mdf)
-fig.savefig(fig_dir / 'line_oddball_all_scale.svg')
+fig = plot_all(mdf, 'Line Oddball')
+fig.savefig(fig_dir / 'fig3/line_oddball_all_scale.svg')
 
 # <codecell>
 ### MATCH GENERALIZE
