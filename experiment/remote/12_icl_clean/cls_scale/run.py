@@ -23,11 +23,11 @@ batch_size = 128
 
 run_split = 3
 
-train_iters_mlp = 64_000
+train_iters_mlp = 128_000
 depths_mlp = [2, 4, 8]
 widths_mlp = [64, 256, 1024]
 
-train_iters_mix = 16_000
+train_iters_mix = 24_000
 depths_mix = [2, 4, 8]
 widths_mix = [16, 64, 256]
 channels_mix = 64

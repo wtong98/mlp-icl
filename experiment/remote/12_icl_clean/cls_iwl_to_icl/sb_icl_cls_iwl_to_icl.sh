@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH -c 8
-#SBATCH -t 1-12:00:00
+#SBATCH -t 6:00:00
 #SBATCH -p kempner
 #SBATCH --gres=gpu:1
-#SBATCH --mem=32000
-#SBATCH --array=1-9
+#SBATCH --mem=8000
+#SBATCH --array=1-27%9
 #SBATCH -o log.%A.%a.out
 #SBATCH -e log.%A.%a.err
 #SBATCH --mail-type=END

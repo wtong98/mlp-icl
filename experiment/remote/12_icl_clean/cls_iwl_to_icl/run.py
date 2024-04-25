@@ -17,8 +17,8 @@ print('RUN ID', run_id)
 run_split = 9
 
 n_iters = 1
-train_iters_mlp = 64_000
-train_iters_mix = 16_000
+train_iters_mlp = 128_000
+train_iters_mix = 24_000
 train_iters_transf = 16_000
 batch_size = 128
 

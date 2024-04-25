@@ -14,14 +14,14 @@ from task.match import GautamMatch
 run_id = new_seed()
 print('RUN ID', run_id)
 
-run_split = 7
+run_split = 8
 
 n_iters = 1
-train_iters_mlp = 64_000
-train_iters_mix = 16_000
+train_iters_mlp = 128_000
+train_iters_mix = 24_000
 train_iters_transf = 16_000
 batch_size = 128
-n_points = [4, 8, 16, 32, 64, 128, 256]
+n_points = [4, 8, 16, 32, 64, 128, 256, 512]
 n_dims = [2, 4, 8, 16]
 
 n_classes = 2048
@@ -79,6 +79,7 @@ for case in tqdm(all_cases):
 
 for case in all_cases:
     case.state = None
+    case.info['loss'] = case.hist['test'][-1].loss
 
 df = pd.DataFrame(all_cases)
 df.to_pickle(f'res.{run_id}.pkl')
