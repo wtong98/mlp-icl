@@ -60,7 +60,7 @@ for _ in range(n_iters):
             curr_tasks = [
                 Case('MLP', MlpConfig(n_out=n_labels, n_layers=model_depth, n_hidden=1024), train_args=train_args(train_iters_mlp)),
                 Case('Mixer', SpatialMlpConfig(n_out=n_labels, n_layers=model_depth, n_hidden=256, n_channels=mix_channels), train_args=train_args(train_iters_mix)),
-                Case('Transformer', TransformerConfig(pos_emb=True, n_out=n_labels, n_layers=model_depth, n_hidden=256, n_mlp_layers=2), train_args=train_args(train_iters_transf)),
+                Case('Transformer', TransformerConfig(pos_emb=True, n_out=n_labels, n_layers=model_depth, n_hidden=256, n_mlp_layers=2, max_len=2048), train_args=train_args(train_iters_transf)),
             ]
 
             for case in curr_tasks:
