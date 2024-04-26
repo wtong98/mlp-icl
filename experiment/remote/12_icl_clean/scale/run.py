@@ -28,12 +28,12 @@ train_iters_mlp = 2_048_000
 depths_mlp = [2, 4, 8]
 widths_mlp = [128, 512, 2048]
 
-train_iters_mix = 256_000
+train_iters_mix = 500_000
 depths_mix = [2, 4, 8]
 widths_mix = [32, 128, 512]
 channels_mix = 64
 
-train_iters_trans = 256_000
+train_iters_trans = 600_000
 depths_trans = [2, 4, 8]
 widths_trans = [32, 128, 512]
 

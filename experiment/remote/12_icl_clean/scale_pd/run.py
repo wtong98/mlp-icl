@@ -14,7 +14,7 @@ from task.regression import FiniteLinearRegression
 run_id = new_seed()
 print('RUN ID', run_id)
 
-run_split = 8
+run_split = 32
 
 @dataclass
 class FunctionCase:
@@ -35,9 +35,9 @@ class FunctionCase:
 
 
 n_iters = 1
-train_iters_mlp = 1_024_000
-train_iters_mix = 128_000
-train_iters_transf = 128_000
+train_iters_mlp = 2_048_000
+train_iters_mix = 500_000
+train_iters_transf = 600_000
 batch_size = 128
 n_points = [4, 8, 16, 32, 64, 128, 256, 512]
 n_dims = [2, 4, 8, 16]

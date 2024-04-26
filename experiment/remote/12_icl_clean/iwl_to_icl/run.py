@@ -33,11 +33,10 @@ class FunctionCase:
     
 run_split = 7
 
-# TODO: refine train_iters to be FLOP scaled
 n_iters = 1
-train_iters_mlp = 1_024_000
-train_iters_mix = 128_000
-train_iters_transf = 128_000
+train_iters_mlp = 2_048_000
+train_iters_mix = 500_000
+train_iters_transf = 600_000
 batch_size = 128
 n_points = 8
 n_dims = 8
