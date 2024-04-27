@@ -86,13 +86,13 @@ plt.savefig('fig/match_gautam_acc_curve.png')
 
 n_labels = 32
 
-task = GautamMatch(width=1, batch_size=128, n_labels=n_labels, n_points=8, bursty=4, n_classes=1024, n_dims=8, seed=23, reset_rng_for_data=True, eps=0.1)
+task = GautamMatch(width=1, batch_size=128, n_labels=n_labels, n_points=8, bursty=4, n_classes=None, n_dims=8, seed=23, reset_rng_for_data=True, eps=0.1)
 
-# config = MlpConfig(n_out=n_labels, n_layers=3, n_hidden=512)
+config = MlpConfig(n_out=n_labels, n_layers=4, n_hidden=512)
 # config = PolyConfig(n_out=n_labels, n_layers=1, n_hidden=512, start_with_dense=True)
-config = TransformerConfig(pos_emb=True, n_out=n_labels, n_heads=4, n_layers=3, n_hidden=256, n_mlp_layers=3)
+# config = TransformerConfig(pos_emb=True, n_out=n_labels, n_heads=1, n_layers=4, n_hidden=256, n_mlp_layers=2)
 
-state, hist = train(config, data_iter=iter(task), loss='ce', test_every=500, train_iters=2000, lr=1e-4, l1_weight=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='ce', test_every=500, train_iters=20_000, lr=1e-4, l1_weight=1e-4)
 
 '''
 

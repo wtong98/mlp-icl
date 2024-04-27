@@ -328,7 +328,7 @@ def format_df(name=None):
 
 
 def plot_compute(df, title, hue_name='log10_size'):
-    g = sns.lineplot(df, x='total_pflops', y='loss', hue=hue_name, marker='o', palette='flare_r', alpha=0.7, legend='brief')
+    g = sns.lineplot(df, x='total_pflops', y='loss', hue=hue_name, marker='o', palette='flare_r', alpha=0.5, legend='brief')
     g.set_xscale('log')
 
     g.set_ylabel('Loss')
@@ -343,6 +343,7 @@ def plot_compute(df, title, hue_name='log10_size'):
 
     g.set_title(title)
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -365,9 +366,11 @@ fig.savefig(fig_dir / 'cls_icl_transf_scale.svg')
 fig.show()
 
 # <codecell>
-mdf = format_df()
+mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
+mdf = pd.concat(mdfs)
+mdf = mdf[::2]
 
-g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.6)
+g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.4, hue_order=('MLP','Mixer', 'Transformer'))
 g.set_xscale('log')
 
 g.legend_.set_title(None)
@@ -379,6 +382,7 @@ g.spines[['right', 'top']].set_visible(False)
 g.set_title('ICL Classification')
 
 fig = g.get_figure()
+fig.set_size_inches(4, 3)
 fig.tight_layout()
 fig.savefig(fig_dir / 'fig1/cls_icl_all_scale.svg')
 
@@ -404,7 +408,7 @@ plot_df = df.apply(extract_plot_vals, axis=1) \
 plot_df
 
 # <codecell>
-g = sns.FacetGrid(plot_df, row='bursty', col='name', col_order=['MLP', 'Mixer', 'Transformer'], height=2, aspect=1.5)
+g = sns.FacetGrid(plot_df, row='bursty', col='name', col_order=['MLP', 'Mixer', 'Transformer'], height=1.75, aspect=1.25)
 g.map_dataframe(sns.lineplot, x='n_classes', y='acc', hue='acc_type', marker='o', palette='Paired', hue_order=['icl_swap_acc', 'icl_resamp_acc', 'iwl_acc'])
 
 for ax in g.axes.ravel():
@@ -430,7 +434,7 @@ g.savefig(fig_dir / 'cls_icl_transition_loss.svg')
 # <codecell>
 mdf = plot_df[plot_df['bursty'] == 4]
 
-g = sns.FacetGrid(mdf, col='name', col_order=['MLP', 'Mixer', 'Transformer'], height=2, aspect=1.5)
+g = sns.FacetGrid(mdf, col='name', col_order=['MLP', 'Mixer', 'Transformer'], height=1.8, aspect=1.25)
 g.map_dataframe(sns.lineplot, x='n_classes', y='acc', hue='acc_type', marker='o', palette='Paired', hue_order=['icl_swap_acc', 'icl_resamp_acc', 'iwl_acc'])
 
 for ax in g.axes.ravel():
@@ -473,8 +477,9 @@ def extract_plot_vals(row):
         row['name'],
         row.train_task.n_dims,
         row.train_task.n_points,
+        row['info']['loss'].item(),
         hist_dict,
-    ], index=['name', 'n_dims', 'n_points', 'hist'])
+    ], index=['name', 'n_dims', 'n_points', 'final_loss', 'hist'])
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
@@ -521,17 +526,17 @@ def make_pd_plot(mdf):
 # <codecell>
 mdf = format_df('MLP')
 g = make_pd_plot(mdf)
-g.savefig(fig_dir / 'cls_icl_mlp_pd.svg')
+# g.savefig(fig_dir / 'cls_icl_mlp_pd.svg')
 
 # <codecell>
 mdf = format_df('Mixer')
 g = make_pd_plot(mdf)
-g.savefig(fig_dir / 'cls_icl_mix_pd.svg')
+# g.savefig(fig_dir / 'cls_icl_mix_pd.svg')
 
 # <codecell>
 mdf = format_df('Transformer')
 g = make_pd_plot(mdf)
-g.savefig(fig_dir / 'cls_icl_transf_pd.svg')
+# g.savefig(fig_dir / 'cls_icl_transf_pd.svg')
 
 
 # <codecell>
@@ -547,7 +552,13 @@ mdf = pd.concat((mdf1, mdf2))
 mdf
 
 # <codecell>
-g = sns.lineplot(mdf, x='n_points', y='loss', hue='name', marker='o', alpha=0.7, legend='brief', hue_order=['MLP', 'Mixer', 'Transformer'])
+mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
+mdf = pd.concat(mdfs)
+mdf = mdf[(mdf['n_dims'] == 2)]
+mdf
+
+# <codecell>
+g = sns.lineplot(mdf, x='n_points', y='final_loss', hue='name', marker='o', alpha=0.7, legend='brief', hue_order=['MLP', 'Mixer', 'Transformer'])
 g.legend_.set_title(None)
 
 g.set_xscale('log', base=2)
@@ -558,4 +569,4 @@ g.spines[['top', 'right']].set_visible(False)
 
 fig = g.figure
 fig.tight_layout()
-fig.savefig(fig_dir / 'fig1/cls_icl_all_pd.svg')
+# fig.savefig(fig_dir / 'fig1/cls_icl_all_pd.svg')

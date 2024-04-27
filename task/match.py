@@ -166,7 +166,6 @@ class GautamMatch:
             label_idxs = self.class_to_label[cluster_idxs]
             centers = self.idx_to_center[cluster_idxs]
         else:
-            # NOTE: infinite cluster setting is meaningless since the model will never learn the cluster-label mapping
             centers = rng.normal(loc=0, scale=(self.width / np.sqrt(self.n_dims)), size=(self.n_points + 1, self.n_dims))
 
             if burst > 0:

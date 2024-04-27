@@ -39,7 +39,7 @@ widths_trans = [16, 64, 256]
 n_labels = 32
 n_dims = 8
 n_points = 8
-n_classes = 2048
+n_classes = None
 bursty = 4
 
 ### START TEST CONFIGS

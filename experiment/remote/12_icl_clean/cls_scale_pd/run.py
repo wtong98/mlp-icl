@@ -24,7 +24,7 @@ batch_size = 128
 n_points = [4, 8, 16, 32, 64, 128, 256, 512]
 n_dims = [2, 4, 8, 16]
 
-n_classes = 2048
+n_classes = None
 n_labels = 32
 
 model_depth = 8
