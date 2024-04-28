@@ -350,19 +350,19 @@ def plot_compute(df, title, hue_name='log10_size'):
 # <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'cls_icl_mlp_scale.svg')
+# fig.savefig(fig_dir / 'cls_icl_mlp_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
-fig.savefig(fig_dir / 'cls_icl_mix_scale.svg')
+# fig.savefig(fig_dir / 'cls_icl_mix_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
-fig.savefig(fig_dir / 'cls_icl_transf_scale.svg')
+# fig.savefig(fig_dir / 'cls_icl_transf_scale.svg')
 fig.show()
 
 # <codecell>
@@ -384,7 +384,7 @@ g.set_title('ICL Classification')
 fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
-fig.savefig(fig_dir / 'fig1/cls_icl_all_scale.svg')
+# fig.savefig(fig_dir / 'fig1/cls_icl_all_scale.svg')
 
 # <codecell>
 ### CLS PLOT IWL --> ICL transition

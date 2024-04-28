@@ -24,7 +24,7 @@ batch_size = 128
 n_points = [4, 8, 16, 32, 64, 128, 256, 512]
 n_dims = [2, 4, 8, 16]
 
-n_classes = None
+n_classes = 2048
 n_labels = 32
 
 model_depth = 8
@@ -76,6 +76,39 @@ print('ALL CASES', all_cases)
 for case in tqdm(all_cases):
     print('RUNNING', case.name)
     case.run()
+
+# IN-DIST EVALUATION
+in_dist_tasks = [c.test_task for c in all_cases]
+eval_cases(all_cases, in_dist_tasks, key_name='acc')
+
+# IWL EVALUATION
+all_tasks = []
+for case in all_cases:
+    task = GautamMatch(batch_size=1024, **case.info['common_task_args'])
+    task.matched_target = False
+    all_tasks.append(task)
+
+eval_cases(all_cases, all_tasks, key_name='iwl_acc')
+
+
+# ICL EVALUATION (new clusters)
+all_tasks = []
+for case in all_cases:
+    task = GautamMatch(batch_size=1024, **case.info['common_task_args'])
+    task.resample_clusters()
+    all_tasks.append(task)
+
+eval_cases(all_cases, all_tasks, key_name='icl_resamp_acc')
+
+
+# ICL EVALUATION (swapped labels)
+all_tasks = []
+for case in all_cases:
+    task = GautamMatch(batch_size=1024, **case.info['common_task_args'])
+    task.swap_labels()
+    all_tasks.append(task)
+
+eval_cases(all_cases, all_tasks, key_name='icl_swap_acc')
 
 for case in all_cases:
     case.state = None
