@@ -28,8 +28,9 @@ train_iters_trans = 128_000
 depths_trans = [1, 2, 4]
 widths_trans = [8, 32]
 
-n_dims = 64
-n_classes = [2, 16, 64]
+n_dims = [2, 4, 8, 16, 32, 64]
+# n_classes = [2, 16, 64]
+n_classes = [16]
 
 ### START TEST CONFIGS
 # train_iters_mlp = 64_0
@@ -40,36 +41,37 @@ n_classes = [2, 16, 64]
 # depths_trans = [1]
 # widths_trans = [8]
 
-# n_dims = 64
+# n_dims = [2]
 # n_classes = [2]
 ### END TEST CONFIGS
 
 all_cases = []
 
-for depth in depths_mlp:
-    for width in widths_mlp:
-        for c in n_classes:
-            common_args = {'n_dims': n_dims, 'seed': new_seed(), 'n_classes': c}
+for n_d in n_dims:
+    for depth in depths_mlp:
+        for width in widths_mlp:
+            for c in n_classes:
+                common_args = {'n_dims': n_d, 'seed': new_seed(), 'n_classes': c}
 
-            all_cases.append(
-                Case('MLP', MlpConfig(n_out=c, n_layers=depth, n_hidden=width),
-                    train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
-                    train_task = ClassificationTask(batch_size=batch_size, **common_args),
-                    test_task=ClassificationTask(batch_size=1024, **common_args))
-            )
+                all_cases.append(
+                    Case('MLP', MlpConfig(n_out=c, n_layers=depth, n_hidden=width),
+                        train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
+                        train_task = ClassificationTask(batch_size=batch_size, **common_args),
+                        test_task=ClassificationTask(batch_size=1024, **common_args))
+                )
 
 
-for depth in depths_trans:
-    for width in widths_trans:
-        for c in n_classes:
-            common_args = {'n_dims': n_dims, 'tokenize': 1, 'seed': new_seed(), 'n_classes': c}
+    for depth in depths_trans:
+        for width in widths_trans:
+            for c in n_classes:
+                common_args = {'n_dims': n_d, 'tokenize': 1, 'seed': new_seed(), 'n_classes': c}
 
-            all_cases.append(
-                Case('Transformer', TransformerConfig(n_out=c, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),
-                    train_args={'train_iters': train_iters_trans, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
-                    train_task=ClassificationTask(batch_size=batch_size, **common_args),
-                    test_task=ClassificationTask(batch_size=1024, **common_args))
-            )
+                all_cases.append(
+                    Case('Transformer', TransformerConfig(n_out=c, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),
+                        train_args={'train_iters': train_iters_trans, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
+                        train_task=ClassificationTask(batch_size=batch_size, **common_args),
+                        test_task=ClassificationTask(batch_size=1024, **common_args))
+                )
 
 
 for case in tqdm(all_cases):

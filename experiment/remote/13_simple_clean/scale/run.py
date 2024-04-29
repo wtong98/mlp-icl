@@ -28,8 +28,9 @@ train_iters_trans = 256_000
 depths_trans = [1, 2, 4]
 widths_trans = [8, 32]
 
-n_dims = 64
-powers = [1, 2, 3]
+n_dims = [2, 4, 8, 16, 32, 64]
+# powers = [1, 2, 3]
+powers = [1]
 
 ### START TEST CONFIGS
 # train_iters_mlp = 64
@@ -40,36 +41,37 @@ powers = [1, 2, 3]
 # depths_trans = [1]
 # widths_trans = [8]
 
-# n_dims = 64
+# n_dims = [2]
 # powers = [1]
 ### END TEST CONFIGS
 
 all_cases = []
 
-for depth in depths_mlp:
-    for width in widths_mlp:
-        for p in powers:
-            common_args = {'n_dims': n_dims, 'seed': new_seed(), 'power': p}
+for n_d in n_dims:
+    for depth in depths_mlp:
+        for width in widths_mlp:
+            for p in powers:
+                common_args = {'n_dims': n_d, 'seed': new_seed(), 'power': p}
 
-            all_cases.append(
-                Case('MLP', MlpConfig(n_out=1, n_layers=depth, n_hidden=width),
-                    train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
-                    train_task = PowerTask(batch_size=batch_size, **common_args),
-                    test_task=PowerTask(batch_size=1024, **common_args))
-            )
+                all_cases.append(
+                    Case('MLP', MlpConfig(n_out=1, n_layers=depth, n_hidden=width),
+                        train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+                        train_task = PowerTask(batch_size=batch_size, **common_args),
+                        test_task=PowerTask(batch_size=1024, **common_args))
+                )
 
 
-for depth in depths_trans:
-    for width in widths_trans:
-        for p in powers:
-            common_args = {'n_dims': n_dims, 'tokenize': 1, 'seed': new_seed(), 'power': p}
+    for depth in depths_trans:
+        for width in widths_trans:
+            for p in powers:
+                common_args = {'n_dims': n_d, 'tokenize': 1, 'seed': new_seed(), 'power': p}
 
-            all_cases.append(
-                Case('Transformer', TransformerConfig(n_out=1, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),
-                    train_args={'train_iters': train_iters_trans, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
-                    train_task = PowerTask(batch_size=batch_size, **common_args),
-                    test_task=PowerTask(batch_size=1024, **common_args))
-            )
+                all_cases.append(
+                    Case('Transformer', TransformerConfig(n_out=1, n_layers=depth, n_hidden=width, pos_emb=True, n_mlp_layers=2),
+                        train_args={'train_iters': train_iters_trans, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+                        train_task = PowerTask(batch_size=batch_size, **common_args),
+                        test_task=PowerTask(batch_size=1024, **common_args))
+                )
 
 
 for case in tqdm(all_cases):

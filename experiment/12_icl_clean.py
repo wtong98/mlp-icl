@@ -478,8 +478,11 @@ def extract_plot_vals(row):
         row.train_task.n_dims,
         row.train_task.n_points,
         row['info']['loss'].item(),
+        row['info']['iwl_acc'].item(),
+        row['info']['icl_resamp_acc'].item(),
+        row['info']['icl_swap_acc'].item(),
         hist_dict,
-    ], index=['name', 'n_dims', 'n_points', 'final_loss', 'hist'])
+    ], index=['name', 'n_dims', 'n_points', 'final_loss', 'iwl_acc', 'icl_resamp_acc', 'icl_swap_acc', 'hist'])
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
@@ -507,6 +510,8 @@ def make_pd_plot(mdf):
     g.map_dataframe(sns.lineplot, x='n_points', y='loss', hue='log10_train_iters', marker='o', alpha=0.7, legend='brief')
     g.add_legend()
 
+    fifty_result = -np.log(0.5)
+
     g._legend.set_title('Train steps')
 
     for t in g._legend.texts:
@@ -514,6 +519,7 @@ def make_pd_plot(mdf):
         t.set_text('${10}^{%s}$' % label)
 
     for ax in g.axes.ravel():
+        ax.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.5)
         ax.set_xscale('log', base=2)
         n_dims = ax.get_title().split('=')[1]
         ax.set_title(f'D = {n_dims}')
@@ -526,40 +532,31 @@ def make_pd_plot(mdf):
 # <codecell>
 mdf = format_df('MLP')
 g = make_pd_plot(mdf)
-# g.savefig(fig_dir / 'cls_icl_mlp_pd.svg')
+g.savefig(fig_dir / 'cls_icl_mlp_pd.svg')
 
 # <codecell>
 mdf = format_df('Mixer')
 g = make_pd_plot(mdf)
-# g.savefig(fig_dir / 'cls_icl_mix_pd.svg')
+g.savefig(fig_dir / 'cls_icl_mix_pd.svg')
 
 # <codecell>
 mdf = format_df('Transformer')
 g = make_pd_plot(mdf)
-# g.savefig(fig_dir / 'cls_icl_transf_pd.svg')
+g.savefig(fig_dir / 'cls_icl_transf_pd.svg')
 
-
-# <codecell>
-# TODO: record correct last value and redo
-mdf = format_df()
-mdf = mdf.dropna()
-mdf.groupby('name').max()['hist_idx']
-
-# <codecell>
-mdf1 = mdf[(mdf['n_dims'] == 8) & (mdf['hist_idx'] == 15)]
-mdf2 = mdf[(mdf['n_dims'] == 8) & (mdf['hist_idx'] == 63)]
-mdf = pd.concat((mdf1, mdf2))
-mdf
 
 # <codecell>
 mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
 mdf = pd.concat(mdfs)
-mdf = mdf[(mdf['n_dims'] == 2)]
+mdf = mdf[(mdf['n_dims'] == 16)]
 mdf
 
 # <codecell>
 g = sns.lineplot(mdf, x='n_points', y='final_loss', hue='name', marker='o', alpha=0.7, legend='brief', hue_order=['MLP', 'Mixer', 'Transformer'])
 g.legend_.set_title(None)
+
+fifty_result = -np.log(0.5)
+g.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.5)
 
 g.set_xscale('log', base=2)
 g.set_ylabel('Loss')
@@ -570,3 +567,35 @@ g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
 fig.tight_layout()
 # fig.savefig(fig_dir / 'fig1/cls_icl_all_pd.svg')
+
+# <codecell>
+# diagnostic
+mdf = plot_df[['name', 'n_dims', 'n_points', 'iwl_acc', 'icl_resamp_acc', 'icl_swap_acc']] \
+        .melt(id_vars=['name', 'n_dims', 'n_points'], var_name='task_type', value_name='acc')
+mdf
+
+# <codecell>
+g = sns.FacetGrid(mdf, col='n_dims', row='name')
+g.map_dataframe(sns.lineplot, x='n_points', y='acc', hue='task_type', marker='o', palette='Paired', hue_order=['icl_swap_acc', 'icl_resamp_acc', 'iwl_acc'])
+
+fifty_result = 0.5
+for ax in g.axes.ravel():
+    ax.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.5)
+    ax.set_xscale('log', base=2)
+
+g.set_ylabels('Accuracy')
+g.set_xlabels('# Points')
+# g.set_titles('{col_name}')
+
+g.add_legend(title='Test Task')
+label_to_name = {
+    'icl_swap_acc': 'ICL (swap)',
+    'icl_resamp_acc': 'ICL (resample)',
+    'iwl_acc': 'IWL'
+}
+for t in g._legend.texts:
+    label = t.get_text()
+    t.set_text(label_to_name[label])
+
+g.tight_layout()
+g.savefig('fig/final/cls_icl_pd_diagnostic.svg')
