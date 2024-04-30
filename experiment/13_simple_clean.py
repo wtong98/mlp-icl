@@ -39,6 +39,7 @@ def plot_compute(df, title, hue_name='log10_size', legend='brief', raise10=True)
 
     g.set_title(title)
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -107,29 +108,28 @@ for p in [1, 2, 3]:
 
 # <codecell>
 for p in [1, 2, 3]:
+    fig.clf()
     mdf = format_df(power=p)
-    g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7)
+    g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
     g.axhline(0.05, linestyle='dashed', color='k', alpha=0.3)
     g.set_xscale('log')
     g.set_yscale('log')
 
     g.set_ylabel('MSE')
     g.set_xlabel('Compute (PFLOPs)')
-    g.legend_.set_title('# Params')
+    g.legend_.set_title(None)
 
     g.spines[['right', 'top']].set_visible(False)
 
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
-    fig.savefig(fig_dir / f'reg_p{p}_all_scale.svg')
+    fig.savefig(fig_dir / f'fig2/reg_p{p}_all_scale.svg')
     fig.show()
-    fig.clf()
 
 # <codecell>
 ### PER-TOKEN IMPROVEMENTS
 df = collate_dfs('remote/13_simple_clean/tokenize')
-
-# <codecell>
 
 # <codecell>
 for p in [1, 2, 3]:
@@ -156,8 +156,9 @@ for p in [1, 2, 3]:
 
     # g.set_title('Transformer')
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
-    fig.savefig(fig_dir / f'reg_p{p}_transf_tokenize.svg')
+    fig.savefig(fig_dir / f'fig2/reg_p{p}_transf_tokenize.svg')
     fig.clf()
 
 
@@ -228,6 +229,7 @@ def plot_compute(df, title, hue_name='log10_size', legend='brief', raise10=True)
 
     g.set_title(title)
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -250,22 +252,23 @@ for n_classes in [2, 16, 64]:
 
 # <codecell>
 for n_classes in [2, 16, 64]:
+    fig.clf()
     mdf = format_df(n_classes=n_classes)
-    g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7)
+    g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
     g.set_xscale('log')
     g.set_yscale('log')
 
     g.set_ylabel('Loss')
     g.set_xlabel('Compute (PFLOPs)')
-    g.legend_.set_title('# Params')
+    g.legend_.set_title(None)
 
     g.spines[['right', 'top']].set_visible(False)
 
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
     fig.savefig(fig_dir / f'cls_{n_classes}_all_scale.svg')
     fig.show()
-    fig.clf()
 
 # <codecell>
 ### PER-TOKEN IMPROVEMENTS
@@ -296,6 +299,7 @@ for n_classes in [2, 16, 64]:
 
     # g.set_title('Transformer')
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
     fig.savefig(fig_dir / f'cls_{n_classes}_transf_tokenize.svg')
     fig.clf()

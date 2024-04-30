@@ -87,6 +87,7 @@ def plot_compute(df, title, hue_name='log10_size'):
 
     g.set_title(title)
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -134,6 +135,7 @@ def plot_rbmlp(mdf):
 
     g.set_title('RB MLP')
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -153,7 +155,7 @@ fig.savefig(fig_dir / 'line_oddball_rbmlp_scale.svg')
 
 # <codecell>
 def plot_all(mdf, title=''):
-    g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.6, legend='auto')
+    g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.6, legend='auto', palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
     g.set_xscale('log')
 
     g.legend_.set_title(None)
@@ -165,6 +167,7 @@ def plot_all(mdf, title=''):
     g.spines[['right', 'top']].set_visible(False)
 
     fig = g.get_figure()
+    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -216,7 +219,7 @@ task = RingMatch(radius=r)
 # <codecell>
 g = sns.catplot(plot_df, 
             x='radius', y='acc', hue='name', row='train_scramble', col='test_scramble', 
-            kind='bar', aspect=2, height=2)
+            kind='bar', aspect=2.5, height=1.25, palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
 
 g.set_ylabels('Accuracy')
 g.set_xlabels('Radius')
@@ -266,7 +269,7 @@ for d in dists:
     res[d] = np.mean(ys_pred == ys)
 
 # <codecell>
-g = sns.barplot(plot_df, x='distance', y='acc', hue='name')
+g = sns.barplot(plot_df, x='distance', y='acc', hue='name', hue_order=['MLP', 'RB MLP', 'Transformer'], palette=['C0', 'C6', 'C2'])
 
 bar_width = 0.4
 
@@ -287,7 +290,7 @@ g.set_ylabel('Accuracy')
 
 g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
-fig.set_figheight(3)
+fig.set_size_inches(4, 1.25)
 fig.savefig(fig_dir / 'free_oddball_generalize.svg')
 
 # <codecell>
@@ -325,7 +328,7 @@ plot_df = pd.DataFrame(res_dicts)
 plot_df
 
 # <codecell>
-g = sns.lineplot(plot_df, x='distance', y='logit', hue='name', marker='o', alpha=0.7)
+g = sns.lineplot(plot_df, x='distance', y='logit', hue='name', marker='o', alpha=0.7, hue_order=['MLP', 'RB MLP', 'Transformer'], palette=['C0', 'C6', 'C2'])
 
 xs = np.linspace(5, 25, num=n_points)
 g.plot(xs, xs**2 * 0.45, '--', color='k', alpha=0.5)
@@ -343,6 +346,7 @@ g.legend_.set_title(None)
 
 g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
+fig.set_size_inches(4, 3)
 fig.tight_layout()
 fig.savefig(fig_dir / 'free_oddball_logit.svg')
 
@@ -406,7 +410,7 @@ for d in dists:
 
 reg_res
 # <codecell>
-g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=2, aspect=2, legend_out=True)
+g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=1.3, aspect=2.5, legend_out=True, palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
 
 handle = None
 for ax in g.axes.ravel():

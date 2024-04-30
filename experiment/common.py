@@ -12,11 +12,19 @@ from typing import Callable, Iterable
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from tqdm import tqdm
 
 import sys
 sys.path.append('../')
 from train import train, train_step
+
+def set_theme():
+    sns.set_theme(style='ticks', rc={
+        'axes.spines.right': False,
+        'axes.spines.top': False,
+        'figure.figsize': (4, 3)
+    })
 
 
 def new_seed():
