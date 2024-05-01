@@ -21,6 +21,27 @@ from model.transformer import TransformerConfig
 from task.function import SameDifferent, SameDifferentToken
 
 fig_dir = Path('fig/final')
+set_theme()
+
+# <codecell>
+df = collate_dfs('remote/15_same_diff/generalize')
+df
+
+# <codecell>
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['test_task'].n_vocab,
+        row['info']['acc_unseen'].item(),
+    ], index=['name', 'n_vocab', 'acc_unseen'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
+plot_df
+
+# <codecell>
+g = sns.lineplot(plot_df, x='n_vocab', y='acc_unseen', marker='o')
+g.set_xscale('log', base=2)
 
 
 # <codecell>

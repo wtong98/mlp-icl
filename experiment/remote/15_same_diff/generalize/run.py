@@ -20,11 +20,11 @@ print('RUN ID', run_id)
 batch_size = 128
 
 train_iters_mlp = 10_000
-n_vocab = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+n_vocab = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
 
 ### START TEST CONFIGS
-train_iters_mlp = 1000
-n_vocab = [8]
+# train_iters_mlp = 1000
+# n_vocab = [8]
 ### END TEST CONFIGS
 
 all_cases = []
