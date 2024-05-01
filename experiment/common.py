@@ -87,9 +87,13 @@ class Case:
     def eval(self, task, key_name='eval_acc'):
         xs, ys = next(task)
         logits = self.state.apply_fn({'params': self.state.params}, xs)
-        preds = logits.argmax(axis=1)
-        eval_acc = np.mean(ys == preds)
 
+        if len(logits.shape) > 1:
+            preds = logits.argmax(-1)
+        else:
+            preds = (logits > 0).astype(float)
+
+        eval_acc = np.mean(ys == preds)
         self.info[key_name] = eval_acc
     
     def eval_mse(self, task, key_name='eval_mse'):

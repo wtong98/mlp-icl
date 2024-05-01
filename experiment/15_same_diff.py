@@ -18,12 +18,10 @@ sys.path.append('../../../../')
 from common import *
 from model.mlp import MlpConfig, DotMlpConfig
 from model.transformer import TransformerConfig
-from task.function import SameDifferent 
+from task.function import SameDifferent, SameDifferentToken
 
 fig_dir = Path('fig/final')
 
-# <codecell>
-# TODO: set up official plotting experiments
 
 # <codecell>
 # Quick-n-dirty plotting
@@ -67,10 +65,33 @@ plt.savefig('fig/same_different_raw.png')
 
 # <codecell>
 n_out = 1
-task = SameDifferent(n_dims=2, seed=5, soft=False)
+n_vocab = 4096
+n_seen = n_vocab // 2
 
-# config = MlpConfig(n_out=n_out, n_layers=2, n_hidden=128, act_fn='relu')
-config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
+task = SameDifferentToken(n_vocab=n_vocab, n_seen=n_seen, seed=5)
+
+config = MlpConfig(n_out=n_out, vocab_size=n_vocab, n_layers=3, n_emb=128, n_hidden=128, act_fn='relu')
+# config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
+
+state, hist = train(config, data_iter=iter(task), loss='bce', test_every=100, train_iters=1000, lr=1e-4)
+
+# <codecell>
+task.sample_seen = False
+xs, ys = next(task)
+
+pred = state.apply_fn({'params': state.params}, xs)
+pred_ys = (pred > 0).astype(float)
+print('PREDS', pred_ys)
+print('ACC', np.mean(pred_ys == ys))
+
+
+# <codecell>
+n_out = 1
+
+task = SameDifferent(seed=5)
+
+config = MlpConfig(n_out=n_out, n_layers=2, n_emb=128, n_hidden=128, act_fn='relu')
+# config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
 
 state, hist = train(config, data_iter=iter(task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4)
 # %%

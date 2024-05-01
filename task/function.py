@@ -176,21 +176,53 @@ class SameDifferent:
 
     def __iter__(self):
         return self
+
+
+class SameDifferentToken:
+    def __init__(self, n_vocab=16, n_seen=8, sample_seen=True, seed=None, reset_rng_for_data=True, batch_size=128) -> None:
+        assert n_seen <= n_vocab
+
+        self.n_seen = n_seen
+        self.n_vocab = n_vocab
+        self.sample_seen = sample_seen
+
+        self.seed = seed
+        self.batch_size = batch_size
+
+        self.rng = np.random.default_rng(seed)
+        if reset_rng_for_data:
+            self.rng = np.random.default_rng(None)
+    
+    def __next__(self):
+        if self.sample_seen:
+            xs = self.rng.integers(low=0, high=self.n_seen, size=(self.batch_size, 2))
+        else:
+            xs = self.rng.integers(low=self.n_seen, high=self.n_vocab, size=(self.batch_size, 2))
+
+        ys = self.rng.binomial(n=1, p=0.5, size=(self.batch_size,))
+        if np.sum(ys) > 0:
+            idxs = ys.astype(bool)
+            xs[idxs,1] = xs[idxs,0]
+
+        return xs, ys
+
+    def __iter__(self):
+        return self
     
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = SameDifferent(batch_size=5, soft=False)
+    task = SameDifferentToken(batch_size=5)
     xs, ys = next(task)
     print(xs)
     print(ys)
 
-    x = xs[0]
-    y = ys[0]
+    # x = xs[0]
+    # y = ys[0]
 
-    print(np.sum(x[0] * x[1]))
-    print(y)
+    # print(np.sum(x[0] * x[1]))
+    # print(y)
 
     # task = PowerTask(apply_random_token_proj=False, tokenize=1)
     # xs, ys = next(task)
