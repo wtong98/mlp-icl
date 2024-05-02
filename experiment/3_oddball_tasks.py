@@ -234,18 +234,18 @@ plt.savefig('fig/line_oddball_gen_longer.png')
 
 # <codecell>
 n_choices = 6
-# task = LineOddballTask(n_choices=n_choices, perp_dist=2, linear_dist=1, with_dot_product_feats=False)
-task = FreeOddballTask(n_choices=n_choices, discrim_dist=5)
+task = LineOddballTask(n_choices=n_choices, perp_dist=2, linear_dist=1, with_dot_product_feats=False)
+# task = FreeOddballTask(n_choices=n_choices, discrim_dist=5)
 
-config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=256)
+# config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=256)
 # config = PolyConfig(n_hidden=256, n_layers=1, n_out=n_choices)
 # config = TransformerConfig(pos_emb=True, n_emb=None, n_out=n_choices, n_layers=3, n_hidden=128, n_mlp_layers=2, pure_linear_self_att=False)
-# config = DotMlpConfig(n_out=n_choices, use_initial_proj=False, last_token_only=False, center_inputs=True)
+config = DotMlpConfig(n_out=n_choices, n_final_layers=2, center_inputs=True)
 
-state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, lr=1e-4, l1_weight=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=20_000, lr=1e-4, l1_weight=1e-4)
 
 # %%
-task = LineOddballTask(n_choices=n_choices, linear_dist=50, perp_dist=5, with_dot_product_feats=True)
+task = LineOddballTask(n_choices=n_choices, linear_dist=1, perp_dist=3, with_dot_product_feats=False)
 xs, ys = next(task)
 
 logits = state.apply_fn({'params': state.params}, xs)

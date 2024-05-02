@@ -79,7 +79,7 @@ all_fo_cases.extend([
         train_args={'train_iters': train_iters_dot, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
         train_task = FreeOddballTask(batch_size=batch_size, **common_args),
         test_task=FreeOddballTask(batch_size=1024, **common_args),
-        info={'common_args': common_args})
+        info={'common_args': common_args}),
 ])
 
 for case in tqdm(all_fo_cases):
@@ -113,6 +113,13 @@ for d in lo_dists:
 
         Case('RB MLP', 
             DotMlpConfig(n_out=n_points, use_initial_proj=False, last_token_only=False),
+            train_args={'train_iters': train_iters_dot, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
+            train_task = LineOddballTask(batch_size=batch_size, **common_args),
+            test_task=LineOddballTask(batch_size=1024, **common_args),
+            info={'common_args': common_args}),
+
+        Case('RB MLP (deep)', 
+            DotMlpConfig(n_out=n_points, use_initial_proj=False, last_token_only=False, n_final_layers=2, n_hidden=width_mlp),
             train_args={'train_iters': train_iters_dot, 'test_iters': 1, 'test_every': 1000, 'loss': 'ce'},
             train_task = LineOddballTask(batch_size=batch_size, **common_args),
             test_task=LineOddballTask(batch_size=1024, **common_args),

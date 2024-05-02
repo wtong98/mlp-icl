@@ -43,6 +43,14 @@ plot_df
 g = sns.lineplot(plot_df, x='n_vocab', y='acc_unseen', marker='o')
 g.set_xscale('log', base=2)
 
+g.axhline(y=0.5, linestyle='dashed', color='k', alpha=0.3)
+g.set_xlabel(r'$|\mathcal{X}|$')
+g.set_ylabel(r'Accuracy on $\mathcal{X}_{uns}$')
+
+fig = g.figure
+fig.tight_layout()
+fig.savefig(fig_dir / 'same_diff_mlp_acc.png')
+
 
 # <codecell>
 # Quick-n-dirty plotting

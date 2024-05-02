@@ -119,7 +119,8 @@ class DotMlpConfig:
     """Global hyperparamters"""
     n_hidden: int = 128
     n_out: int = 1
-    use_initial_proj: bool = True
+    n_final_layers: int = 0
+    use_initial_proj: bool = False
     last_token_only: bool = False
     center_inputs: bool = True
 
@@ -146,8 +147,10 @@ class DotMLP(nn.Module):
         else:
             x = x.reshape(x.shape[0], -1)
 
-        # x = nn.Dense(self.config.n_hidden)(x)
-        # x = nn.relu(x)
+        for _ in range(self.config.n_final_layers):
+            x = nn.Dense(self.config.n_hidden)(x)
+            x = nn.relu(x)
+
         out = nn.Dense(self.config.n_out)(x)
 
         if self.config.n_out == 1:
