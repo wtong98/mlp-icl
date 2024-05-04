@@ -21,11 +21,13 @@ from task.match import RingMatch
 from task.oddball import FreeOddballTask, LineOddballTask
 
 fig_dir = Path('fig/final')
+set_theme()
 
 # <codecell>
 ### SCALE PLOTS
-df = collate_dfs('remote/14_relational_clean/scale')
-df
+df1 = collate_dfs('remote/14_relational_clean/scale_match')
+df2 = collate_dfs('remote/14_relational_clean/scale_oddball')
+df = pd.concat((df1, df2))
 
 # <codecell>
 def extract_plot_vals(row):
@@ -131,11 +133,8 @@ def plot_rbmlp(mdf):
     g.legend(labels=['$10^{1.6}$'])
     g.legend_.set_title('# Params')
 
-    g.spines[['right', 'top']].set_visible(False)
-
     g.set_title('RB MLP')
     fig = g.get_figure()
-    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -153,6 +152,11 @@ mdf = format_df('RB MLP', 'LineOddballTask')
 plot_rbmlp(mdf)
 fig.savefig(fig_dir / 'line_oddball_rbmlp_scale.svg')
 
+# %%
+mdf = format_df('RB MLP (deep)', 'LineOddballTask')
+fig = plot_compute(mdf, 'RB MLP (deep)')
+fig.savefig(fig_dir / 'line_oddball_rbmlp_deep_scale.svg')
+
 # <codecell>
 def plot_all(mdf, title=''):
     g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.6, legend='auto', palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
@@ -164,10 +168,7 @@ def plot_all(mdf, title=''):
     g.set_xlabel('Compute (PFLOPs)')
     g.set_title(title)
 
-    g.spines[['right', 'top']].set_visible(False)
-
     fig = g.get_figure()
-    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -182,7 +183,18 @@ fig.savefig(fig_dir / 'fig3/free_oddball_all_scale.svg')
 
 # <codecell>
 mdf = format_df(task='LineOddballTask')
-fig = plot_all(mdf, 'Line Oddball')
+g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.6, legend='auto', palette=['C0', 'C6', 'C8', 'C2'], hue_order=['MLP', 'RB MLP', 'RB MLP (deep)', 'Transformer'])
+g.set_xscale('log')
+
+g.legend_.set_title(None)
+
+g.set_ylabel('Loss')
+g.set_xlabel('Compute (PFLOPs)')
+g.set_title('Line Oddball')
+
+fig = g.get_figure()
+fig.tight_layout()
+
 fig.savefig(fig_dir / 'fig3/line_oddball_all_scale.svg')
 
 # <codecell>
@@ -226,7 +238,7 @@ g.set_xlabels('Radius')
 g._legend.set_title(None)
 
 g.tight_layout()
-g.savefig(fig_dir / 'match_generalize.svg')
+g.savefig(fig_dir / 'fig3/match_generalize.svg')
 
 # <codecell>
 ### ODDBALL GENERALIZE
@@ -291,7 +303,7 @@ g.set_ylabel('Accuracy')
 g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
 fig.set_size_inches(4, 1.25)
-fig.savefig(fig_dir / 'free_oddball_generalize.svg')
+fig.savefig(fig_dir / 'fig3/free_oddball_generalize.svg')
 
 # <codecell>
 ### PLOT LOGITS PER DISTANCE
@@ -331,9 +343,9 @@ plot_df
 g = sns.lineplot(plot_df, x='distance', y='logit', hue='name', marker='o', alpha=0.7, hue_order=['MLP', 'RB MLP', 'Transformer'], palette=['C0', 'C6', 'C2'])
 
 xs = np.linspace(5, 25, num=n_points)
-g.plot(xs, xs**2 * 0.45, '--', color='k', alpha=0.5)
-g.plot(xs, xs * 2.2, '--', color='k', alpha=0.5)
-g.plot(xs, 0 * xs + 9.4, '--', color='k', alpha=0.5)
+g.plot(xs, xs**2 * 0.55, '--', color='k', alpha=0.7)
+g.plot(xs, xs * 2.1, '--', color='k', alpha=0.7)
+g.plot(xs, 0 * xs + 9.1, '--', color='k', alpha=0.7)
 
 g.set_xscale('log')
 g.set_yscale('log')
@@ -348,7 +360,7 @@ g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
 fig.set_size_inches(4, 3)
 fig.tight_layout()
-fig.savefig(fig_dir / 'free_oddball_logit.svg')
+fig.savefig(fig_dir / 'fig3/free_oddball_logit.svg')
 
 # <codecell>
 lo_dicts = []
@@ -410,7 +422,7 @@ for d in dists:
 
 reg_res
 # <codecell>
-g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=1.3, aspect=2.5, legend_out=True, palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
+g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=1.5, aspect=2.4, legend_out=True, palette=['C0', 'C6', 'C8', 'C2'], hue_order=['MLP', 'RB MLP', 'RB MLP (deep)', 'Transformer'])
 
 handle = None
 for ax in g.axes.ravel():
@@ -425,9 +437,11 @@ for ax in g.axes.ravel():
         # ax.hlines(y=r_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='m', alpha=0.7)
 
 g._legend.set_title(None)
-g.set_xlabels('Test dist')
+g.set_xlabels('Test $d$')
 g.set_ylabels('Accuracy')
-g.set_titles('Train dist = {col_name}')
+g.set_titles('Train $d$ = {col_name}')
 
 g.tight_layout()
-g.savefig(fig_dir / 'line_oddball_generalize.svg')
+g.savefig(fig_dir / 'fig3/line_oddball_generalize.svg')
+
+# %%

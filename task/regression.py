@@ -105,34 +105,17 @@ def t(xs):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    # task = LinearRegression(batch_size=5, n_dims=1)
-    # xs, ys = next(task)
+    n_points = 5
 
-    # plt.scatter(xs[0][0:-1:2], xs[0][1::2])
-    # plt.scatter([xs[0][-1]], ys[0])
-
-    # task = LinearRegression(batch_size=5, n_dims=2, n_points=500, seed=1)
-    # xs, ys = next(task)
-
-    task = FiniteLinearRegression(n_ws=None, batch_size=1024, n_dims=64, n_points=500, seed=1, enforce_orth_x=True, noise_scale=0)
+    task = LinearRegression(batch_size=5, n_dims=1, n_points=n_points+1)
     xs, ys = next(task)
-    print('XS', xs.shape)
 
-    print(np.mean(ys**2))
+    plt.scatter(xs[0][0:-1:2], xs[0][1::2], c=np.zeros(n_points))
+    ax = plt.gca()
+    ax.set_axis_off()
 
-    # fig = plt.figure()
-    # ax = fig.add_subplot(projection='3d')
-
-    # # ax.scatter(xs[0][0:-1:2, 0], xs[0][0:-1:2, 1], xs[0][1::2, 0], alpha=0.3)
-    # # ax.scatter(xs[0][-1,0], xs[0][-1, 1], ys[0])
-
-    # ax.scatter(xs[0][:-1,0], xs[0][:-1, 1], xs[0][:-1, 2], alpha=0.3)
-    # ax.scatter(xs[0][-1,0], xs[0][-1, 1], ys[0])
-
-    # # print(xs @ t(xs))
-    # x = xs[0,:2,:2]
-    # y = xs[0,:2,[-1]]
-    # x_q = xs[0,[-1],:-1]
-    # print(y @ x @ x_q.T)
-    # print(ys[0])
+    plt.gcf().set_size_inches(2, 2)
+    plt.tight_layout()
+    plt.savefig('../experiment/fig/final/fig1/icl_reg_example.svg')
+    
 

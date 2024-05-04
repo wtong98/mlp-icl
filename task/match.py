@@ -214,48 +214,38 @@ class GautamMatch:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = GautamMatch(matched_target=False, width=4, n_points=4, n_classes=100, n_labels=10, batch_size=2, seed=50, eps=0, bursty=2, n_dims=2, reset_rng_for_data=True)
+    n_points = 32
+    n_bursty = n_points // 4
+
+    task = GautamMatch(matched_target=False, n_points=n_points, n_classes=1024, n_labels=32, batch_size=2, seed=50, eps=0.1, bursty=n_bursty, n_dims=2, reset_rng_for_data=True)
     # print(task.idx_to_label)
     # print(task.class_to_label)
     xs, ys = next(task)
-    print(xs)
-    print(ys)
 
-
-
-    # task = LabelRingMatch(n_points=6, seed=1, reset_rng_for_data=True)
-
-    # xs, labs = next(task)
-
-    # xs = xs[0]
-
-    # points = xs[0::2]
-    # labels = xs[1::2]
-
-    # print('POINTS', points)
-    # print("LAB", labels)
-
-    # plt.scatter(points[:,0], points[:,1], c=np.arange(6))
-    # plt.axis('equal')
-
-    # print('Label', labs[0])
-    # print('Match', task.idx_to_label[labs[0]])
-    # print("All", task.idx_to_label)
-
-    task = RingMatch(radius=1, batch_size=10, seed=1, reset_rng_for_data=True)
-
-    fig, axs = plt.subplots(1, 1, figsize=(1.5, 1.5))
-
-    for ax, (xs, ys) in zip([axs], task):
-        c = np.zeros(6)
-        c[ys[0]] = 0
-        c[-1] = 1
-
-        ax.scatter(xs[0,:,0], xs[0,:,1], c=c)
-        ax.axis('equal')
-        ax.set_axis_off()
-        # plt.colorbar()
+    x = xs[0,:-1:2]
     
+    plt.scatter(x[:,0], x[:,1])
+    plt.gca().set_axis_off()
+
+    plt.gcf().set_size_inches(2.5, 2.5)
     plt.tight_layout()
-    plt.savefig('../experiment/fig/match_example.svg')
+    plt.savefig('../experiment/fig/final/fig1/cls_icl_example.svg')
+
+
+    # task = RingMatch(radius=1, batch_size=10, seed=1, reset_rng_for_data=True)
+
+    # fig, axs = plt.subplots(1, 1, figsize=(1.5, 1.5))
+
+    # for ax, (xs, ys) in zip([axs], task):
+    #     c = np.zeros(6)
+    #     c[ys[0]] = 0
+    #     c[-1] = 1
+
+    #     ax.scatter(xs[0,:,0], xs[0,:,1], c=c)
+    #     ax.axis('equal')
+    #     ax.set_axis_off()
+    #     # plt.colorbar()
+    
+    # plt.tight_layout()
+    # plt.savefig('../experiment/fig/match_example.svg')
 # %%

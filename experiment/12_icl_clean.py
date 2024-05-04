@@ -605,3 +605,193 @@ g.tight_layout()
 g.savefig('fig/final/cls_icl_pd_diagnostic.svg')
 
 # %%
+#####################################
+### CLASSIFICATION INFINITY PLOTS ###
+#####################################
+
+### Classification scale plots
+df = collate_dfs('remote/12_icl_clean/cls_scale_inf')
+df
+
+# <codecell>
+def extract_plot_vals(row):
+    hist = row['hist']['test']
+    slices = np.exp(np.linspace(-6, 0, num=10))
+    slices = np.insert(slices, 0, 0)
+    slice_idxs = (slices * len(hist)).astype(np.int32)
+    slice_idxs[-1] -= 1  # adjust for last value
+    
+    hist_dict = {idx: hist[idx]['loss'].item() for idx in slice_idxs}
+
+    return pd.Series([
+        row['name'],
+        np.log10(row['info']['size']),
+        row['info']['flops'],
+        hist_dict,
+        f"{row['config']['n_layers']}-{row['config']['n_hidden']}",
+    ], index=['name', 'log10_size', 'flops', 'hist', 'arch'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
+plot_df
+
+# <codecell>
+def format_df(name=None):
+    mdf = plot_df.copy()
+    if name is not None:
+        mdf = plot_df[plot_df['name'] == name].reset_index(drop=True)
+
+    m_hist_df = pd.DataFrame(mdf['hist'].tolist())
+    mdf = pd.concat((mdf[['name', 'flops', 'log10_size', 'arch']], m_hist_df), axis='columns') \
+            .melt(id_vars=['name', 'flops', 'log10_size', 'arch'], var_name='hist_idx', value_name='loss')
+
+    mdf['train_iters'] = (mdf['hist_idx'] + 1) * 1000   # 1k iterations per save 
+    mdf['total_pflops'] = (mdf['flops'] * mdf['train_iters']) / 1e15
+    return mdf
+
+
+def plot_compute(df, title, hue_name='log10_size'):
+    g = sns.lineplot(df, x='total_pflops', y='loss', hue=hue_name, marker='o', palette='flare_r', alpha=0.5, legend='brief')
+    g.set_xscale('log')
+
+    g.set_ylabel('Loss')
+    g.set_xlabel('Compute (PFLOPs)')
+    g.legend_.set_title('# Params')
+
+    for t in g.legend_.texts:
+        label = t.get_text()
+        t.set_text('${10}^{%s}$' % label)
+
+    g.spines[['right', 'top']].set_visible(False)
+
+    g.set_title(title)
+    fig = g.get_figure()
+    fig.set_size_inches(4, 3)
+    fig.tight_layout()
+    return fig
+
+# <codecell>
+mdf = format_df('MLP')
+fig = plot_compute(mdf, 'MLP')
+fig.savefig(fig_dir / 'cls_icl_inf_mlp_scale.svg')
+fig.show()
+
+# <codecell>
+mdf = format_df('Mixer')
+fig = plot_compute(mdf, 'Mixer')
+fig.savefig(fig_dir / 'cls_icl_inf_mix_scale.svg')
+fig.show()
+
+# <codecell>
+mdf = format_df('Transformer')
+fig = plot_compute(mdf, 'Transformer')
+fig.savefig(fig_dir / 'cls_icl_inf_transf_scale.svg')
+fig.show()
+
+# <codecell>
+mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
+mdf = pd.concat(mdfs)
+mdf = mdf[::2]
+
+g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.4, hue_order=('MLP','Mixer', 'Transformer'))
+g.set_xscale('log')
+
+g.legend_.set_title(None)
+
+g.set_ylabel('Loss')
+g.set_xlabel('Compute (PFLOPs)')
+
+g.spines[['right', 'top']].set_visible(False)
+g.set_title('ICL Classification')
+
+fig = g.get_figure()
+fig.set_size_inches(4, 3)
+fig.tight_layout()
+fig.savefig(fig_dir / 'cls_icl_inf_all_scale.svg')
+
+
+# <codecell>
+#### PATCH-WISE SCALING
+df = collate_dfs('remote/12_icl_clean/cls_scale_pd_inf/')
+df
+
+# <codecell>
+def extract_plot_vals(row):
+    hist = row['hist']['test']
+    slices = np.exp(np.linspace(-6, 0, num=10))
+    slices = np.insert(slices, 0, 0)
+    slice_idxs = (slices * len(hist)).astype(np.int32)
+    slice_idxs[-1] -= 1  # adjust for last value
+    
+    hist_dict = {idx: hist[idx]['loss'].item() for idx in slice_idxs}
+
+    return pd.Series([
+        row['name'],
+        row.train_task.n_dims,
+        row.train_task.n_points,
+        row['info']['loss'].item(),
+        row['info']['iwl_acc'].item(),
+        row['info']['icl_resamp_acc'].item(),
+        row['info']['icl_swap_acc'].item(),
+        hist_dict,
+    ], index=['name', 'n_dims', 'n_points', 'final_loss', 'iwl_acc', 'icl_resamp_acc', 'icl_swap_acc', 'hist'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
+
+plot_df
+
+# <codecell>
+def format_df(name=None):
+    mdf = plot_df.copy()
+    if name is not None:
+        mdf = plot_df[plot_df['name'] == name].reset_index(drop=True)
+
+    m_hist_df = pd.DataFrame(mdf['hist'].tolist())
+    cols = [c for c in mdf.columns if c != 'hist']
+    mdf = pd.concat((mdf[cols], m_hist_df), axis='columns') \
+            .melt(id_vars=cols, var_name='hist_idx', value_name='loss')
+
+    mdf['train_iters'] = (mdf['hist_idx'] + 1) * 1000   # 1k iterations per save 
+    mdf['log10_train_iters'] = np.log10(mdf['train_iters'].astype('float'))
+    return mdf
+
+
+def make_pd_plot(mdf):
+    g = sns.FacetGrid(mdf, col='n_dims', height=2, aspect=1.25)
+    g.map_dataframe(sns.lineplot, x='n_points', y='loss', hue='log10_train_iters', marker='o', alpha=0.7, legend='brief')
+    g.add_legend()
+
+    fifty_result = -np.log(0.5)
+
+    g._legend.set_title('Train steps')
+
+    for t in g._legend.texts:
+        label = t.get_text()
+        t.set_text('${10}^{%s}$' % label)
+
+    for ax in g.axes.ravel():
+        ax.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.5)
+        ax.set_xscale('log', base=2)
+        n_dims = ax.get_title().split('=')[1]
+        ax.set_title(f'D = {n_dims}')
+        ax.set_ylabel('Loss')
+        ax.set_xlabel('# Points')
+
+    g.tight_layout()
+    return g
+
+# <codecell>
+mdf = format_df('MLP')
+g = make_pd_plot(mdf)
+g.savefig(fig_dir / 'cls_icl_inf_mlp_pd.svg')
+
+# <codecell>
+mdf = format_df('Mixer')
+g = make_pd_plot(mdf)
+g.savefig(fig_dir / 'cls_icl_inf_mix_pd.svg')
+
+# <codecell>
+mdf = format_df('Transformer')
+g = make_pd_plot(mdf)
+g.savefig(fig_dir / 'cls_icl_inf_transf_pd.svg')

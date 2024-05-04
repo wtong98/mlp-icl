@@ -14,7 +14,7 @@ from task.regression import FiniteLinearRegression
 run_id = new_seed()
 print('RUN ID', run_id)
 
-run_split = 32
+run_split = 96
 
 @dataclass
 class FunctionCase:
