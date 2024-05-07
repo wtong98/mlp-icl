@@ -20,7 +20,7 @@ sys.path.append('../')
 from train import train, train_step
 
 def set_theme():
-    sns.set_theme(style='ticks', rc={
+    sns.set_theme(style='ticks', font_scale=1.25, rc={
         'axes.spines.right': False,
         'axes.spines.top': False,
         'figure.figsize': (4, 3)

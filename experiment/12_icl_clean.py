@@ -38,7 +38,6 @@ def plot_compute(df, title, hue_name='log10_size'):
 
     g.set_title(title)
     fig = g.get_figure()
-    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
@@ -102,25 +101,25 @@ def format_df(name=None):
 # <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'reg_icl_mlp_scale.svg')
+fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_mlp_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
-fig.savefig(fig_dir / 'reg_icl_mix_scale.svg')
+fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_mix_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
-fig.savefig(fig_dir / 'reg_icl_transf_scale.svg')
+fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_transf_scale.svg')
 fig.show()
 
 # <codecell>
 mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
 mdf = pd.concat(mdfs)
-mdf = mdf[::2]
+mdf = mdf[::4]
 
 g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.5, legend='auto')
 g.set_xscale('log')
@@ -168,9 +167,14 @@ ddf = plot_df[plot_df['name'] == 'dMMSE'].groupby(['n_tasks'], as_index=False).m
 ddf
 
 # <codecell>
+# TODO: retry and see if trend continues
+mdf[(mdf['name'] == 'Transformer') & (mdf['n_tasks'] == 2)]
+
+# <codecell>
 def make_iwl_to_icl_plot(mse_type, title=''):
-    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9)
+    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='median')
     g.set_xscale('log', base=2)
+    g.set_ylim(0, 0.5)
     g.plot(ddf['n_tasks'], ddf[mse_type], linestyle='dashed', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=5)
     g.axhline(y=ridge_result, linestyle='dashed', color='r', alpha=0.5, label='Ridge')
 
@@ -179,20 +183,19 @@ def make_iwl_to_icl_plot(mse_type, title=''):
     g.set_ylabel('MSE')
     g.set_xlabel('# Pretrain Tasks')
 
-    g.spines[['right', 'top']].set_visible(False)
     g.set_title(title)
 
     fig = g.get_figure()
-    fig.set_size_inches(4, 3)
     fig.tight_layout()
     return fig
 
 fig = make_iwl_to_icl_plot('mse_pretrain', 'Pretraining Distribution')
 fig.savefig('fig/final/fig1/reg_icl_pretrain_mse.svg')
-fig.clf()
-
+fig.show()
+# <codecell>
 fig = make_iwl_to_icl_plot('mse_true', 'True Distribution')
 fig.savefig('fig/final/fig1/reg_icl_true_mse.svg')
+fig.show()
 
 
 # <codecell>
@@ -259,13 +262,13 @@ def make_pd_plot(name):
     return g
 
 g = make_pd_plot('MLP')
-g.savefig('fig/final/reg_icl_mlp_pd.svg')
-
+# g.savefig('fig/final/fig_reg_icl_supp/reg_icl_mlp_pd.svg')
+# <codecell>
 g = make_pd_plot('Mixer')
-g.savefig('fig/final/reg_icl_mix_pd.svg')
-
+# g.savefig('fig/final/fig_reg_icl_supp/reg_icl_mix_pd.svg')
+# <codecell>
 g = make_pd_plot('Transformer')
-g.savefig('fig/final/reg_icl_transf_pd.svg')
+# g.savefig('fig/final/fig_reg_icl_supp/reg_icl_transf_pd.svg')
 
 # <codecell>
 # Subsection on high dimensions
@@ -281,13 +284,12 @@ g.legend_.set_title(None)
 fig = g.figure
 fig.set_size_inches(4, 3)
 fig.tight_layout()
-fig.savefig('fig/final/fig1/reg_icl_excess_mse.svg')
+# fig.savefig('fig/final/fig1/reg_icl_excess_mse.svg')
 
 # <codecell>
 ############################
 ### CLASSIFICATION PLOTS ###
 ############################
-
 
 ### Classification scale plots
 df = collate_dfs('remote/12_icl_clean/cls_scale')
@@ -353,7 +355,7 @@ def plot_compute(df, title, hue_name='log10_size'):
 # <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'cls_icl_mlp_scale.svg')
+fig.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_mlp_scale.svg')
 fig.show()
 
 # <codecell>
@@ -371,7 +373,7 @@ fig.show()
 # <codecell>
 mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
 mdf = pd.concat(mdfs)
-mdf = mdf[::2]
+mdf = mdf[::4]
 
 g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.4, hue_order=('MLP','Mixer', 'Transformer'))
 g.set_xscale('log')
@@ -432,7 +434,7 @@ for t in g._legend.texts:
     t.set_text(label_to_name[label])
 
 g.tight_layout()
-g.savefig(fig_dir / 'cls_icl_transition_loss.svg')
+g.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_transition_loss.svg')
 
 # <codecell>
 mdf = plot_df[plot_df['bursty'] == 4]
@@ -551,7 +553,7 @@ g.savefig(fig_dir / 'cls_icl_transf_pd.svg')
 # <codecell>
 mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
 mdf = pd.concat(mdfs)
-mdf = mdf[(mdf['n_dims'] == 16)]
+mdf = mdf[(mdf['n_dims'] == 8)]
 mdf
 
 # <codecell>

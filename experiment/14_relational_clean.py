@@ -95,32 +95,32 @@ def plot_compute(df, title, hue_name='log10_size'):
 
 mdf = format_df('MLP', 'RingMatch')
 fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'match_mlp_scale.svg')
+fig.savefig(fig_dir / 'fig_relational_supp/match_mlp_scale.svg')
 
 # <codecell>
 mdf = format_df('MLP', 'FreeOddballTask')
 fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'free_oddball_mlp_scale.svg')
+fig.savefig(fig_dir / 'fig_relational_supp/free_oddball_mlp_scale.svg')
 
 # <codecell>
 mdf = format_df('MLP', 'LineOddballTask')
 fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'line_oddball_mlp_scale.svg')
+fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_mlp_scale.svg')
 
 # %%
 mdf = format_df('Transformer', 'RingMatch')
 fig = plot_compute(mdf, 'Transformer')
-fig.savefig(fig_dir / 'match_transf_scale.svg')
+fig.savefig(fig_dir / 'fig_relational_supp/match_transf_scale.svg')
 
 # %%
 mdf = format_df('Transformer', 'FreeOddballTask')
 fig = plot_compute(mdf, 'Transformer')
-fig.savefig(fig_dir / 'free_oddball_transf_scale.svg')
+fig.savefig(fig_dir / 'fig_relational_supp/free_oddball_transf_scale.svg')
 
 # %%
 mdf = format_df('Transformer', 'LineOddballTask')
 fig = plot_compute(mdf, 'Transformer')
-fig.savefig(fig_dir / 'line_oddball_transf_scale.svg')
+fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_transf_scale.svg')
 
 # %%
 def plot_rbmlp(mdf):
@@ -139,23 +139,24 @@ def plot_rbmlp(mdf):
     return fig
 
 mdf = format_df('RB MLP', 'RingMatch')
-plot_rbmlp(mdf)
-fig.savefig(fig_dir / 'match_rbmlp_scale.svg')
+fig = plot_rbmlp(mdf)
+fig.savefig(fig_dir / 'fig_relational_supp/match_rbmlp_scale.svg')
+fig.show()
 
 # <codecell>
 mdf = format_df('RB MLP', 'FreeOddballTask')
-plot_rbmlp(mdf)
-fig.savefig(fig_dir / 'free_oddball_rbmlp_scale.svg')
+fig = plot_rbmlp(mdf)
+fig.savefig(fig_dir / 'fig_relational_supp/free_oddball_rbmlp_scale.svg')
 
 # <codecell>
 mdf = format_df('RB MLP', 'LineOddballTask')
-plot_rbmlp(mdf)
-fig.savefig(fig_dir / 'line_oddball_rbmlp_scale.svg')
+fig = plot_rbmlp(mdf)
+fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_rbmlp_scale.svg')
 
 # %%
 mdf = format_df('RB MLP (deep)', 'LineOddballTask')
 fig = plot_compute(mdf, 'RB MLP (deep)')
-fig.savefig(fig_dir / 'line_oddball_rbmlp_deep_scale.svg')
+fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_rbmlp_deep_scale.svg')
 
 # <codecell>
 def plot_all(mdf, title=''):

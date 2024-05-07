@@ -3,8 +3,8 @@
 #SBATCH -t 1-00:00
 #SBATCH -p kempner
 #SBATCH --gres=gpu:1
-#SBATCH --mem=8000
-#SBATCH --array=1-21%7
+#SBATCH --mem=16000
+#SBATCH --array=2-21%7
 #SBATCH -o log.%A.%a.out
 #SBATCH -e log.%A.%a.err
 #SBATCH --mail-type=END
