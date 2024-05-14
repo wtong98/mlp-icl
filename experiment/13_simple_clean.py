@@ -24,7 +24,7 @@ set_theme()
 
 def plot_compute(df, title, hue_name='log10_size', legend='brief', raise10=True):
     g = sns.lineplot(df, x='total_pflops', y='mse', hue=hue_name, marker='o', palette='flare_r', alpha=0.7, legend=legend)
-    g.axhline(0.05, linestyle='dashed', color='k', alpha=0.3)
+    g.axhline(0.05, linestyle='dashed', color='r', alpha=0.5)
     g.set_xscale('log')
     g.set_yscale('log')
 
@@ -90,17 +90,20 @@ def extract_plot_vals(row):
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
 #             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
-
+plot_df = plot_df[plot_df['n_dims'] == 64]
+plot_df
 # <codecell>
-for p in [1, 2, 3]:
+for p in [1]:
+# for p in [1, 2, 3]:
     mdf = format_df('MLP', power=p)
     fig = plot_compute(mdf, 'MLP')
     fig.savefig(fig_dir / f'reg_p{p}_mlp_scale.svg')
     fig.show()
-    fig.clf()
+    # fig.clf()
 
 # <codecell>
-for p in [1, 2, 3]:
+for p in [1]:
+# for p in [1, 2, 3]:
     fig.clf()
     mdf = format_df('Transformer', power=p)
     fig = plot_compute(mdf, 'Transformer')
@@ -109,11 +112,13 @@ for p in [1, 2, 3]:
 
 
 # <codecell>
-for p in [1, 2, 3]:
+for p in [1]:
+# for p in [1, 2, 3]:
     fig.clf()
     mdf = format_df(power=p)
+    mdf = mdf[::2]
     g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
-    g.axhline(0.05, linestyle='dashed', color='k', alpha=0.3)
+    g.axhline(0.05, linestyle='dashed', color='r', alpha=0.5)
     g.set_xscale('log')
     g.set_yscale('log')
 
@@ -134,7 +139,8 @@ for p in [1, 2, 3]:
 df = collate_dfs('remote/13_simple_clean/tokenize')
 
 # <codecell>
-for p in [1, 2, 3]:
+# for p in [1, 2, 3]:
+for p in [1]:
     plot_df = df.apply(extract_plot_vals, axis=1) \
                 .reset_index(drop=True)
 
@@ -142,7 +148,7 @@ for p in [1, 2, 3]:
     mdf['token_size'] = np.log2(mdf['token_size'])
     
     g = sns.lineplot(mdf, x='total_pflops', y='mse', hue='token_size', marker='o', palette='flare_r', alpha=0.7, legend='full')
-    g.axhline(0.05, linestyle='dashed', color='k', alpha=0.3)
+    g.axhline(0.05, linestyle='dashed', color='r', alpha=0.5)
     g.set_xscale('log')
     g.set_yscale('log')
 
@@ -161,7 +167,7 @@ for p in [1, 2, 3]:
     fig.set_size_inches(4, 3)
     fig.tight_layout()
     fig.savefig(fig_dir / f'fig2/reg_p{p}_transf_tokenize.svg')
-    fig.clf()
+    # fig.clf()
 
 # <codecell>
 ### DIM-WISE SCALING
@@ -205,8 +211,9 @@ def format_df(name=None, power=1):
 
     mdf['train_iters'] = (mdf['hist_idx'] + 1) * 1000   # 1k iterations per save 
     mdf['total_pflops'] = (mdf['flops'] * mdf['train_iters']) / 1e15
-    return mdf
 
+    mdf = mdf[::2]
+    return mdf
 
 
 mdfs = [format_df('MLP'), format_df('Transformer')]
@@ -216,7 +223,7 @@ mdf = pd.concat(mdfs)
 g = sns.relplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.5, palette=['C0', 'C2'], col='n_dims', kind='scatter', height=2.1, aspect=1.33, col_wrap=3)
 
 for ax in g.axes.ravel():
-    ax.axhline(0.05, linestyle='dashed', color='k', alpha=0.3)
+    ax.axhline(0.05, linestyle='dashed', color='r', alpha=0.5)
     ax.set_xscale('log')
     ax.set_yscale('log')
 
@@ -262,7 +269,9 @@ def extract_plot_vals(row):
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
 #             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
+plot_df = plot_df[plot_df['n_dims'] == 64]
 plot_df
+
 
 # <codecell>
 def format_df(name=None, n_classes=2):
@@ -302,15 +311,17 @@ def plot_compute(df, title, hue_name='log10_size', legend='brief', raise10=True)
     return fig
 
 # <codecell>
-for n_classes in [2, 16, 64]:
+for n_classes in [16]:
+# for n_classes in [2, 16, 64]:
     mdf = format_df('MLP', n_classes=n_classes)
     fig = plot_compute(mdf, 'MLP')
     fig.savefig(fig_dir / f'cls_{n_classes}_mlp_scale.svg')
     fig.show()
-    fig.clf()
+    # fig.clf()
 
 # <codecell>
-for n_classes in [2, 16, 64]:
+for n_classes in [16]:
+# for n_classes in [2, 16, 64]:
     fig.clf()
     mdf = format_df('Transformer', n_classes=n_classes)
     fig = plot_compute(mdf, 'Transformer')
@@ -319,7 +330,8 @@ for n_classes in [2, 16, 64]:
 
 
 # <codecell>
-for n_classes in [2, 16, 64]:
+# for n_classes in [2, 16, 64]:
+for n_classes in [16]:
     fig.clf()
     mdf = format_df(n_classes=n_classes)
     g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
@@ -416,6 +428,7 @@ def format_df(name=None, n_classes=16):
 
     mdf['train_iters'] = (mdf['hist_idx'] + 1) * 1000   # 1k iterations per save 
     mdf['total_pflops'] = (mdf['flops'] * mdf['train_iters']) / 1e15
+    # mdf = mdf[::3]
     return mdf
 
 mdfs = [format_df('MLP'), format_df('Transformer')]

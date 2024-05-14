@@ -14,5 +14,5 @@
 # #SBATCH --account=pehlevan_lab
 
 source ../../../../../venv_haystack/bin/activate
-python run.py ${SLURM_ARRAY_TASK_ID}
+python run_long.py ${SLURM_ARRAY_TASK_ID}
 

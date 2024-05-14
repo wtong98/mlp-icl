@@ -139,6 +139,11 @@ def plot_rbmlp(mdf):
     return fig
 
 mdf = format_df('RB MLP', 'RingMatch')
+
+# NOTE: manually correct flop count
+mdf.loc[mdf['flops'] == 46328, 'flops'] = 43256
+mdf['total_pflops'] = (mdf['flops'] * mdf['train_iters']) / 1e15
+# <codecell>
 fig = plot_rbmlp(mdf)
 fig.savefig(fig_dir / 'fig_relational_supp/match_rbmlp_scale.svg')
 fig.show()
@@ -232,7 +237,7 @@ task = RingMatch(radius=r)
 # <codecell>
 g = sns.catplot(plot_df, 
             x='radius', y='acc', hue='name', row='train_scramble', col='test_scramble', 
-            kind='bar', aspect=2.5, height=1.25, palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
+            kind='bar', aspect=2.6, height=1.5, palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
 
 g.set_ylabels('Accuracy')
 g.set_xlabels('Radius')
@@ -344,8 +349,8 @@ plot_df
 g = sns.lineplot(plot_df, x='distance', y='logit', hue='name', marker='o', alpha=0.7, hue_order=['MLP', 'RB MLP', 'Transformer'], palette=['C0', 'C6', 'C2'])
 
 xs = np.linspace(5, 25, num=n_points)
-g.plot(xs, xs**2 * 0.55, '--', color='k', alpha=0.7)
-g.plot(xs, xs * 2.1, '--', color='k', alpha=0.7)
+g.plot(xs, xs**2 * 0.56, '--', color='k', alpha=0.7)
+g.plot(xs, xs * 2.05, '--', color='k', alpha=0.7)
 g.plot(xs, 0 * xs + 9.1, '--', color='k', alpha=0.7)
 
 g.set_xscale('log')
@@ -423,7 +428,7 @@ for d in dists:
 
 reg_res
 # <codecell>
-g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=1.5, aspect=2.4, legend_out=True, palette=['C0', 'C6', 'C8', 'C2'], hue_order=['MLP', 'RB MLP', 'RB MLP (deep)', 'Transformer'])
+g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=1.7, aspect=2.4, legend_out=True, palette=['C0', 'C6', 'C8', 'C2'], hue_order=['MLP', 'RB MLP', 'RB MLP (deep)', 'Transformer'])
 
 handle = None
 for ax in g.axes.ravel():

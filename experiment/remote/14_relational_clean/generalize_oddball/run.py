@@ -32,7 +32,7 @@ depth_trans = 4
 width_trans = 64
 
 fo_train_dist = 5
-fo_test_dists = [1, 2.5, 5, 10, 20]
+fo_test_dists = [1, 2.5, 5, 10, 20, 40, 80]
 
 lo_dists = [0.25, 0.5, 1, 2, 4, 8]
 

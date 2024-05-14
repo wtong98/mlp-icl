@@ -26,7 +26,7 @@ set_theme()
 def plot_compute(df, title, hue_name='log10_size'):
     g = sns.lineplot(df, x='total_pflops', y='mse', hue=hue_name, marker='o', palette='flare_r', alpha=0.7, legend='auto')
     g.set_xscale('log')
-    g.axhline(ridge_result, linestyle='dashed', color='k', alpha=0.3)
+    g.axhline(ridge_result, linestyle='dashed', color='r', alpha=0.5)
 
     g.set_ylabel('MSE')
     g.set_xlabel('Compute (PFLOPs)')
@@ -123,7 +123,7 @@ mdf = mdf[::4]
 
 g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.5, legend='auto')
 g.set_xscale('log')
-g.axhline(ridge_result, linestyle='dashed', color='k', alpha=0.3)
+g.axhline(ridge_result, linestyle='dashed', color='r', alpha=0.5)
 
 g.legend_.set_title(None)
 
@@ -167,21 +167,24 @@ ddf = plot_df[plot_df['name'] == 'dMMSE'].groupby(['n_tasks'], as_index=False).m
 ddf
 
 # <codecell>
-# TODO: retry and see if trend continues
+# TODO: update to remove anomalous n_tasks = 2 setting 
 mdf[(mdf['name'] == 'Transformer') & (mdf['n_tasks'] == 2)]
+mdf = mdf[mdf['n_tasks'] != 2]
+ddf = ddf[ddf['n_tasks'] != 2]
 
 # <codecell>
-def make_iwl_to_icl_plot(mse_type, title=''):
-    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='median')
+def make_iwl_to_icl_plot(mse_type, title='', ylim=False):
+    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='mean')
     g.set_xscale('log', base=2)
-    g.set_ylim(0, 0.5)
+    if ylim:
+        g.set_ylim(0, 0.55)
     g.plot(ddf['n_tasks'], ddf[mse_type], linestyle='dashed', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=5)
     g.axhline(y=ridge_result, linestyle='dashed', color='r', alpha=0.5, label='Ridge')
 
     g.legend()
 
     g.set_ylabel('MSE')
-    g.set_xlabel('# Pretrain Tasks')
+    g.set_xlabel('$k$')
 
     g.set_title(title)
 
@@ -189,11 +192,11 @@ def make_iwl_to_icl_plot(mse_type, title=''):
     fig.tight_layout()
     return fig
 
-fig = make_iwl_to_icl_plot('mse_pretrain', 'Pretraining Distribution')
+fig = make_iwl_to_icl_plot('mse_pretrain', 'Training Distribution', ylim=False)
 fig.savefig('fig/final/fig1/reg_icl_pretrain_mse.svg')
 fig.show()
 # <codecell>
-fig = make_iwl_to_icl_plot('mse_true', 'True Distribution')
+fig = make_iwl_to_icl_plot('mse_true', 'Unrestricted Distribution')
 fig.savefig('fig/final/fig1/reg_icl_true_mse.svg')
 fig.show()
 
@@ -253,38 +256,38 @@ def make_pd_plot(name):
     for ax in g.axes.ravel():
         ax.set_xscale('log')
         n_dims = ax.get_title().split('=')[1]
-        ax.set_title(f'D = {n_dims}')
+        ax.set_title(f'$n = {n_dims}$')
         ax.set_ylabel('Excess MSE')
-        ax.set_xlabel('# Points')
+        ax.set_xlabel('$L$')
         ax.axhline(y=0.95, linestyle='dashed', color='k', alpha=0.3)
 
     g.tight_layout()
     return g
 
 g = make_pd_plot('MLP')
-# g.savefig('fig/final/fig_reg_icl_supp/reg_icl_mlp_pd.svg')
+g.savefig('fig/final/fig_reg_icl_supp/reg_icl_mlp_pd.svg')
 # <codecell>
 g = make_pd_plot('Mixer')
-# g.savefig('fig/final/fig_reg_icl_supp/reg_icl_mix_pd.svg')
+g.savefig('fig/final/fig_reg_icl_supp/reg_icl_mix_pd.svg')
 # <codecell>
 g = make_pd_plot('Transformer')
-# g.savefig('fig/final/fig_reg_icl_supp/reg_icl_transf_pd.svg')
+g.savefig('fig/final/fig_reg_icl_supp/reg_icl_transf_pd.svg')
 
 # <codecell>
 # Subsection on high dimensions
 adf = plot_df[plot_df['n_dims'] == 8]
-g = sns.lineplot(adf, x='n_points', y='mse_final', hue='name', marker='o')
+g = sns.lineplot(adf, x='n_points', y='mse_final', hue='name', marker='o', estimator='mean')
 g.set_xscale('log', base=2)
 g.axhline(0.95, linestyle='dashed', color='k', alpha=0.3)
 
-g.set_ylabel('MSE')
-g.set_xlabel('# Points in context')
+g.set_ylabel('Excess MSE')
+g.set_xlabel('$L$')
 g.legend_.set_title(None)
 
 fig = g.figure
 fig.set_size_inches(4, 3)
 fig.tight_layout()
-# fig.savefig('fig/final/fig1/reg_icl_excess_mse.svg')
+fig.savefig('fig/final/fig1/reg_icl_excess_mse.svg')
 
 # <codecell>
 ############################
@@ -418,9 +421,10 @@ g.map_dataframe(sns.lineplot, x='n_classes', y='acc', hue='acc_type', marker='o'
 
 for ax in g.axes.ravel():
     ax.set_xscale('log', base=2)
+    ax.set_xticks([32, 256, 2048])
 
 g.set_ylabels('Accuracy')
-g.set_xlabels('# Classes')
+g.set_xlabels('$k$')
 g.set_titles('{col_name}: $B = {row_name}$')
 
 g.add_legend(title='Test Task')
@@ -437,6 +441,7 @@ g.tight_layout()
 g.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_transition_loss.svg')
 
 # <codecell>
+from matplotlib.ticker import MultipleLocator
 mdf = plot_df[plot_df['bursty'] == 4]
 
 g = sns.FacetGrid(mdf, col='name', col_order=['MLP', 'Mixer', 'Transformer'], height=1.8, aspect=1.25)
@@ -444,9 +449,10 @@ g.map_dataframe(sns.lineplot, x='n_classes', y='acc', hue='acc_type', marker='o'
 
 for ax in g.axes.ravel():
     ax.set_xscale('log', base=2)
+    ax.set_xticks([32, 256, 2048])
 
 g.set_ylabels('Accuracy')
-g.set_xlabels('# Classes')
+g.set_xlabels('$k$')
 g.set_titles('{col_name}')
 
 g.add_legend(title='Test Task')
@@ -527,9 +533,9 @@ def make_pd_plot(mdf):
         ax.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.5)
         ax.set_xscale('log', base=2)
         n_dims = ax.get_title().split('=')[1]
-        ax.set_title(f'D = {n_dims}')
+        ax.set_title(f'$n = {n_dims}$')
         ax.set_ylabel('Loss')
-        ax.set_xlabel('# Points')
+        ax.set_xlabel('$L$')
 
     g.tight_layout()
     return g
@@ -561,11 +567,11 @@ g = sns.lineplot(mdf, x='n_points', y='final_loss', hue='name', marker='o', alph
 g.legend_.set_title(None)
 
 fifty_result = -np.log(0.5)
-g.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.5)
+g.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.3)
 
 g.set_xscale('log', base=2)
 g.set_ylabel('Loss')
-g.set_xlabel('# Points in context')
+g.set_xlabel('$L$')
 
 g.spines[['top', 'right']].set_visible(False)
 
@@ -586,11 +592,11 @@ g.map_dataframe(sns.lineplot, x='n_points', y='acc', hue='task_type', marker='o'
 
 fifty_result = 0.5
 for ax in g.axes.ravel():
-    ax.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.5)
+    ax.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.3)
     ax.set_xscale('log', base=2)
 
 g.set_ylabels('Accuracy')
-g.set_xlabels('# Points')
+g.set_xlabels('$L$')
 # g.set_titles('{col_name}')
 
 g.add_legend(title='Test Task')
@@ -776,9 +782,9 @@ def make_pd_plot(mdf):
         ax.axhline(fifty_result, linestyle='dashed', color='k', alpha=0.5)
         ax.set_xscale('log', base=2)
         n_dims = ax.get_title().split('=')[1]
-        ax.set_title(f'D = {n_dims}')
+        ax.set_title(f'$n = {n_dims}$')
         ax.set_ylabel('Loss')
-        ax.set_xlabel('# Points')
+        ax.set_xlabel('$L$')
 
     g.tight_layout()
     return g
@@ -797,3 +803,5 @@ g.savefig(fig_dir / 'cls_icl_inf_mix_pd.svg')
 mdf = format_df('Transformer')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'cls_icl_inf_transf_pd.svg')
+
+# %%
