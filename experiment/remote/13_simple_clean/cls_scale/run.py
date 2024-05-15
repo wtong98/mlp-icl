@@ -28,9 +28,10 @@ train_iters_trans = 128_000
 depths_trans = [1, 2, 4]
 widths_trans = [8, 32]
 
-n_dims = [2, 4, 8, 16, 32, 64]
-# n_classes = [2, 16, 64]
-n_classes = [16]
+# n_dims = [2, 4, 8, 16, 32, 64]
+n_dims = [64]
+n_classes = [2, 16, 64]
+# n_classes = [16]
 
 ### START TEST CONFIGS
 # train_iters_mlp = 64_0

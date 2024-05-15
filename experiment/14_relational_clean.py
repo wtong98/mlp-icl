@@ -308,7 +308,8 @@ g.set_ylabel('Accuracy')
 
 g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
-fig.set_size_inches(4, 1.25)
+fig.set_size_inches(4, 1.2)
+# fig.tight_layout()
 fig.savefig(fig_dir / 'fig3/free_oddball_generalize.svg')
 
 # <codecell>

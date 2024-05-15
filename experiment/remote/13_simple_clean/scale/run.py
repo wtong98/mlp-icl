@@ -28,8 +28,9 @@ train_iters_trans = 256_000
 depths_trans = [1, 2, 4]
 widths_trans = [8, 32]
 
-n_dims = [2, 4, 8, 16, 32, 64]
-# powers = [1, 2, 3]
+# n_dims = [2, 4, 8, 16, 32, 64]
+n_dims = [64]
+powers = [1, 2, 3]
 powers = [1]
 
 ### START TEST CONFIGS
