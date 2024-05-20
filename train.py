@@ -1,26 +1,15 @@
 """
-Model definitions
+Training routines
 """
 
-# <codecell>
 from functools import partial
 
 import jax
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
 import numpy as np
 import optax
 from flax import struct
 from flax.training import train_state
-
-from task.function import MultiplicationTask, DotProductTask
-from task.match import RingMatch, LabelRingMatch
-from task.oddball import FreeOddballTask, LineOddballTask
-from task.ti import TiTask
-
-from model.mlp import MlpConfig
-from model.transformer import TransformerConfig
-from model.poly import PolyConfig
 
 
 def new_seed(): return np.random.randint(1, np.iinfo(np.int32).max)
@@ -52,7 +41,6 @@ class TrainState(train_state.TrainState):
 def create_train_state(rng, model, dummy_input, lr=1e-4, optim=optax.adamw, **opt_kwargs):
     params = model.init(rng, dummy_input)['params']
     tx = optim(learning_rate=lr, **opt_kwargs)
-    # tx = optax.sgd(learning_rate=lr, **opt_kwargs)
 
     return TrainState.create(
         apply_fn=model.apply,
@@ -73,10 +61,7 @@ def parse_loss_name(loss):
         raise ValueError(f'unrecognized loss name: {loss}')
     return loss_func
 
-# TODO: more robustly signal need for L1 loss
 def l1_loss(params):
-    # sum_params = jax.tree_map(lambda x: jnp.sum(jnp.abs(x)), jax.tree_util.tree_leaves(params))
-    # return jnp.sum(jnp.array(sum_params))
     loss = 0
     for name in params:
         if 'MBlock' in name:
@@ -187,60 +172,3 @@ def train(config, data_iter,
             
 def _print_status(step, hist):
     print(f'ITER {step}:  loss={hist["test"][-1].loss:.4f}   l1_loss={hist["test"][-1].l1_loss:.4f}  acc={hist["test"][-1].accuracy:.4f}')
-
-
-if __name__ == '__main__':
-    # domain = -3, 3
-    # task = DotProductTask(domain, n_dims=5, n_args=3, batch_size=256)
-    n_choices = 6
-    # task = FreeOddballTask(n_choices=n_choices, one_hot=True)
-    # task = LineOddballTask(n_choices=n_choices, linear_dist=10)
-    task = RingMatch(n_points=n_choices)
-
-    # config = TransformerConfig(pos_emb=True, n_emb=None, n_out=6, n_layers=3, n_hidden=128, use_mlp_layers=True, pure_linear_self_att=False)
-    config = MlpConfig(n_out=n_choices, n_layers=3, n_hidden=512)
-
-    # config = PolyConfig(n_hidden=512, n_layers=1, n_out=n_choices, disable_signage=False)
-    state, hist = train(config, data_iter=iter(task), loss='ce', test_every=1000, train_iters=50_000, early_stop_n=3, early_stop_decision='max', early_stop_key='accuracy', lr=1e-4, l1_weight=1e-4)
-
-    """Observations: transformer performs handsomely, with great sample efficiency. Then
-    MLP, then MNN performs the worst (but still reasonably well)""" # TODO: solidify <-- STOPPED HERE
-
-    # <codecell>
-    loss = [m.loss for m in hist['test']]
-    l1_loss = [m.l1_loss for m in hist['test']]
-    p1 = plt.plot(loss, label='Data loss')[0]
-    plt.yscale('log')
-    plt.xlabel('Time (x1000 batches)')
-
-    ax = plt.gca().twinx()
-    p2 = ax.plot(l1_loss, color='C1', label='L1 loss')[0]
-
-    ax.set_yscale('log')
-
-    plt.legend(handles=[p1, p2], loc='center right')
-
-    ax = plt.gca()
-    ax.spines['left'].set_color('C0')
-    ax.spines['right'].set_color('C1')
-    
-    plt.tight_layout()
-    # plt.savefig('experiment/fig/loss.png')
-
-
-    # %%
-    state.apply_fn({'params': state.params}, jnp.array([[0.5, 0.5]]), mutable='intm')
-
-    # %%
-    x = np.linspace(-4, 4, 50)
-    xs = np.stack((x, -x), axis=-1)
-
-    out = state.apply_fn({'params': state.params}, xs)
-
-    plt.plot(x, -x**2)
-    plt.plot(x, out, alpha=0.9, linestyle='dashed')
-
-    # <codecell>
-
-
-

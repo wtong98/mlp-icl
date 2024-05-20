@@ -1,14 +1,12 @@
 """
 Common utilities used across all experiments
-
-author: William Tong (wtong@g.harvard.edu)
 """
 
 from dataclasses import dataclass, field
 import itertools
 from pathlib import Path
 import shutil
-from typing import Callable, Iterable
+from typing import Iterable
 
 import numpy as np
 import pandas as pd

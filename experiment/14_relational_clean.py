@@ -5,7 +5,6 @@ Assembling the final relational task figures for NeurIPS 2024 cleanly
 # <codecell>
 from pathlib import Path
 
-import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -97,31 +96,37 @@ def plot_compute(df, title, hue_name='log10_size'):
 mdf = format_df('MLP', 'RingMatch')
 fig = plot_compute(mdf, 'MLP')
 fig.savefig(fig_dir / 'fig_relational_supp/match_mlp_scale.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df('MLP', 'FreeOddballTask')
 fig = plot_compute(mdf, 'MLP')
 fig.savefig(fig_dir / 'fig_relational_supp/free_oddball_mlp_scale.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df('MLP', 'LineOddballTask')
 fig = plot_compute(mdf, 'MLP')
 fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_mlp_scale.svg')
+plt.show()
 
 # %%
 mdf = format_df('Transformer', 'RingMatch')
 fig = plot_compute(mdf, 'Transformer')
 fig.savefig(fig_dir / 'fig_relational_supp/match_transf_scale.svg')
+plt.show()
 
 # %%
 mdf = format_df('Transformer', 'FreeOddballTask')
 fig = plot_compute(mdf, 'Transformer')
 fig.savefig(fig_dir / 'fig_relational_supp/free_oddball_transf_scale.svg')
+plt.show()
 
 # %%
 mdf = format_df('Transformer', 'LineOddballTask')
 fig = plot_compute(mdf, 'Transformer')
 fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_transf_scale.svg')
+plt.show()
 
 # %%
 def plot_rbmlp(mdf):
@@ -141,28 +146,28 @@ def plot_rbmlp(mdf):
 
 mdf = format_df('RB MLP', 'RingMatch')
 
-# NOTE: manually correct flop count
-mdf.loc[mdf['flops'] == 46328, 'flops'] = 43256
-mdf['total_pflops'] = (mdf['flops'] * mdf['train_iters']) / 1e15
 # <codecell>
 fig = plot_rbmlp(mdf)
 fig.savefig(fig_dir / 'fig_relational_supp/match_rbmlp_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdf = format_df('RB MLP', 'FreeOddballTask')
 fig = plot_rbmlp(mdf)
 fig.savefig(fig_dir / 'fig_relational_supp/free_oddball_rbmlp_scale.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df('RB MLP', 'LineOddballTask')
 fig = plot_rbmlp(mdf)
 fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_rbmlp_scale.svg')
+plt.show()
 
 # %%
 mdf = format_df('RB MLP (deep)', 'LineOddballTask')
 fig = plot_compute(mdf, 'RB MLP (deep)')
 fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_rbmlp_deep_scale.svg')
+plt.show()
 
 # <codecell>
 def plot_all(mdf, title=''):
@@ -182,12 +187,14 @@ def plot_all(mdf, title=''):
 mdf = format_df(task='RingMatch')
 fig = plot_all(mdf, title='Match')
 fig.savefig(fig_dir / 'fig3/match_all_scale.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df(task='FreeOddballTask')
 fig = plot_all(mdf, 'Sphere Oddball')
 fig.set_size_inches(3.5, 2.7)
 fig.savefig(fig_dir / 'fig3/free_oddball_all_scale.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df(task='LineOddballTask').sample(frac=1)
@@ -208,6 +215,7 @@ fig = g.get_figure()
 fig.tight_layout()
 
 fig.savefig(fig_dir / 'fig3/line_oddball_all_scale.svg')
+plt.show()
 
 # <codecell>
 ### MATCH GENERALIZE
@@ -235,12 +243,6 @@ plot_df = plot_df[plot_df['radius'] != '8']
 plot_df = plot_df[plot_df['radius'] != '16']
 plot_df
 
-# <codecell>
-radii = np.unique(plot_df['radius'])
-r = radii[0]
-task = RingMatch(radius=r)
-# TODO: make model with perfect success
-
 
 # <codecell>
 g = sns.catplot(plot_df, 
@@ -253,6 +255,7 @@ g._legend.set_title(None)
 
 g.tight_layout()
 g.savefig(fig_dir / 'fig3/match_generalize.svg')
+plt.show()
 
 # <codecell>
 ### ODDBALL GENERALIZE
@@ -319,8 +322,8 @@ g.set_ylabel('Accuracy')
 g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
 fig.set_size_inches(3.35, 2)
-# fig.tight_layout()
 fig.savefig(fig_dir / 'fig3/free_oddball_generalize.svg')
+plt.show()
 
 # <codecell>
 ### PLOT LOGITS PER DISTANCE
@@ -380,6 +383,7 @@ fig.tight_layout()
 
 g.set_xticks([5, 20, 80], labels=[5, 20, 80])
 fig.savefig(fig_dir / 'fig3/free_oddball_logit.svg')
+plt.show()
 
 # <codecell>
 lo_dicts = []
@@ -436,8 +440,6 @@ for d in dists:
     task = LineOddballTask(perp_dist=d, batch_size=8192)
     xs, ys = next(task)
 
-    # xs = xs - np.mean(xs, axis=1, keepdims=True)
-
     x = xs[:,:,[0]]
     y = xs[:,:,[1]]
 
@@ -459,7 +461,6 @@ for ax in g.axes.ravel():
         r_res = reg_res[float(r)]
         
         ax.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='red', alpha=1)
-        # ax.hlines(y=r_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='m', alpha=0.7)
 
 g._legend.set_title(None)
 g.set_xlabels('Test $d$')
@@ -468,5 +469,6 @@ g.set_titles('Train $d$ = {col_name}')
 
 g.tight_layout()
 g.savefig(fig_dir / 'fig3/line_oddball_generalize.svg')
+plt.show()
 
 # %%

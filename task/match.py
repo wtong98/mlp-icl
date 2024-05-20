@@ -1,10 +1,7 @@
 """
-Matching tasks, analogous to the delayed match-to-sample task of Griffiths paper (TODO: cite)
+Matching / classification tasks
 """
-# <codecell>
-import functools
 
-import jax
 import numpy as np
 
 class RingMatch:
@@ -49,51 +46,8 @@ class RingMatch:
         return self
 
 
-class LabelRingMatch:
-    """Gautam's classification task (simplified)"""
-    def __init__(self, n_points=4, radius=1, n_classes=None, scramble=True, batch_size=128, seed=None, reset_rng_for_data=True):
-        self.n_points = n_points
-        self.radius = radius
-        self.n_classes = n_classes or (n_points - 1)
-        self.scramble = scramble
-        self.batch_size = batch_size
-        self.rng = np.random.default_rng(seed)
-
-        self.idx_to_label = self.rng.normal(loc=0, scale=(1 / np.sqrt(2)), size=(self.n_classes, 2)) # 2D dataset
-
-        if reset_rng_for_data:
-            self.rng = np.random.default_rng(None)
-    
-    def __next__(self):
-        start = self.rng.uniform(0, 2 * np.pi, size=self.batch_size)
-        incs = 2 * np.pi / (self.n_points - 1)
-        angles = np.array([start + incs * i for i in range(self.n_points - 1)] + [self.rng.uniform(0, 2 * np.pi, size=self.batch_size)]).T
-        
-        xs = self.radius * np.stack((np.cos(angles), np.sin(angles)), axis=-1)
-
-        if self.scramble:
-            list(map(self.rng.shuffle, xs[:,:-1,:]))
-
-        xs_choice = np.transpose(xs[:,[-1],:], axes=(0, 2, 1))
-        dots = (xs[:,:-1,:] @ xs_choice).squeeze()
-        closest_idxs = np.argmax(dots, axis=1)
-
-        classes = np.stack([self.rng.choice(self.n_classes, replace=False, size=(self.n_points - 1)) for _ in range(self.batch_size)])
-        labels = self.idx_to_label[classes]
-        closest_classes = classes[np.arange(self.batch_size), closest_idxs]
-
-        interl_xs = np.empty((self.batch_size, self.n_points * 2 - 1, 2))
-        interl_xs[:, 0::2] = xs
-        interl_xs[:, 1::2] = labels
-
-        return interl_xs, closest_classes
-
-    def __iter__(self):
-        return self
-
-
 class GautamMatch:
-    """Gautam's classification task (full)"""
+    """Reddy (2024) ICL classification task"""
     def __init__(self, n_points=8, n_classes=128, n_labels=32, n_dims=64,
                  matched_target=True,
                  bursty=1, prob_b=1, 
@@ -210,42 +164,3 @@ class GautamMatch:
     def close(self):
         self.pool.close()
 
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
-    n_points = 32
-    n_bursty = n_points // 4
-
-    task = GautamMatch(matched_target=False, n_points=n_points, n_classes=1024, n_labels=32, batch_size=2, seed=50, eps=0.1, bursty=n_bursty, n_dims=2, reset_rng_for_data=True)
-    # print(task.idx_to_label)
-    # print(task.class_to_label)
-    xs, ys = next(task)
-
-    x = xs[0,:-1:2]
-    
-    plt.scatter(x[:,0], x[:,1])
-    plt.gca().set_axis_off()
-
-    plt.gcf().set_size_inches(2.5, 2.5)
-    plt.tight_layout()
-    plt.savefig('../experiment/fig/final/fig1/cls_icl_example.svg')
-
-
-    # task = RingMatch(radius=1, batch_size=10, seed=1, reset_rng_for_data=True)
-
-    # fig, axs = plt.subplots(1, 1, figsize=(1.5, 1.5))
-
-    # for ax, (xs, ys) in zip([axs], task):
-    #     c = np.zeros(6)
-    #     c[ys[0]] = 0
-    #     c[-1] = 1
-
-    #     ax.scatter(xs[0,:,0], xs[0,:,1], c=c)
-    #     ax.axis('equal')
-    #     ax.set_axis_off()
-    #     # plt.colorbar()
-    
-    # plt.tight_layout()
-    # plt.savefig('../experiment/fig/match_example.svg')
-# %%

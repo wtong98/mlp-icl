@@ -3,7 +3,6 @@ Simple MLP model
 """
 import jax
 import jax.numpy as jnp
-import numpy as np
 from flax import linen as nn, struct
 
 def parse_act_fn(fn: str):
@@ -13,8 +12,6 @@ def parse_act_fn(fn: str):
         return lambda x: x
     elif fn == 'gelu':
         return jax.nn.gelu
-    elif fn =='quadratic':
-        return lambda x: x**2
     else:
         raise ValueError(f'function not recognized: {fn}')
 
@@ -158,43 +155,3 @@ class DotMLP(nn.Module):
 
         return out
 
-
-@struct.dataclass
-class RfConfig:
-    """Global hyperparamters"""
-    n_in: int
-    n_hidden: int = 128
-    n_out: int = 1
-    scale: float = 1
-    use_quadratic_activation: bool = True
-
-    def to_model(self):
-        return RF(self)
-
-
-class RF(nn.Module):
-
-    config: RfConfig
-
-    def setup(self):
-        scale = self.config.scale / np.sqrt(self.config.n_hidden)
-        self.w_rf1 = scale * np.random.randn(self.config.n_in, self.config.n_hidden)
-        self.w_rf2 = scale * np.random.randn(self.config.n_hidden, self.config.n_hidden)
-
-        self.readout = nn.Dense(self.config.n_out)
-
-    def __call__(self, x):
-        x = x.reshape(x.shape[0], -1)
-        x = x @ self.w_rf1
-        # x = nn.relu(x)
-        # x = x @ self.w_rf2
-
-        if self.config.use_quadratic_activation:
-            x = x**2
-
-        out = self.readout(x)
-
-        if self.config.n_out == 1:
-            out = out.flatten()
-
-        return out

@@ -27,6 +27,10 @@ import jax.numpy as jnp
 import numpy as np
 
 
+def t(xs):
+    return np.swapaxes(xs, -2, -1)
+
+
 @struct.dataclass
 class TransformerConfig:
     vocab_size: int | None = None
@@ -37,7 +41,7 @@ class TransformerConfig:
     n_out: int = 1
     max_len: int = 1024
     pos_emb: bool = True
-    use_single_head_module: bool = False # TODO: stopgap for linear transformer
+    use_single_head_module: bool = False 
     use_last_index_output: bool = False
     softmax_att: bool = True
     layer_norm: bool = True
@@ -143,7 +147,6 @@ class AddPositionEmbs(nn.Module):
             output: `(bs, timesteps, in_dim)`
         """
         config = self.config
-        # inputs.shape is (batch_size, seq_len, emb_dim)
         assert inputs.ndim == 3, ('Number of dimensions should be 3,'
                                  ' but it is: %d' % inputs.ndim)
         length = inputs.shape[1]
@@ -151,14 +154,6 @@ class AddPositionEmbs(nn.Module):
         pos_embedding = sinusoidal_init(max_len=config.max_len)(None,
                                                                 pos_emb_shape,
                                                                 None)
-
-        # if config.posemb_init is None:
-        #     # Use a fixed (non-learned) sinusoidal position embedding.
-        #     pos_embedding = sinusoidal_init(max_len=config.max_len)(None,
-        #                                                             pos_emb_shape,
-        #                                                             None)
-        # else:
-        #     pos_embedding = self.param('pos_embedding', config.posemb_init, pos_emb_shape)
         
         pe = pos_embedding[:, :length, :]
         return inputs + pe
@@ -201,15 +196,11 @@ class TransformerBlock(nn.Module):
 
         return x
 
-def t(xs):
-    return np.swapaxes(xs, -2, -1)
 
 class PureLinearSelfAttentionBlock(nn.Module):
     
     @nn.compact
     def __call__(self, inputs):
-        # att = jnp.einsum('...qd,...kd->...qk', inputs, inputs)
-        # return att.reshape(inputs.shape[0], 1, -1)
         depth = inputs.shape[2]
 
         Z = inputs
@@ -218,8 +209,6 @@ class PureLinearSelfAttentionBlock(nn.Module):
         out = V @ t(Z) @ Z @ W @ t(Z)
 
         return t(out)
-
-
 
 
 class Transformer(nn.Module):
@@ -249,10 +238,6 @@ class Transformer(nn.Module):
             if config.pos_emb:
                 y = AddPositionEmbs(config=config)(y)
             
-            # decoder_mask = nn.make_attention_mask(inputs > 0, inputs > 0)
-            # decoder_mask = nn.combine_masks(
-            #     decoder_mask,
-            #     nn.make_causal_mask(inputs))
             decoder_mask = nn.make_causal_mask(jnp.zeros(inputs.shape[:2]))
             
             for _ in range(config.n_layers):

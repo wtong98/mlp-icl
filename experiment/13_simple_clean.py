@@ -5,20 +5,15 @@ Assembling the final simple task figures for NeurIPS 2024 cleanly
 # <codecell>
 from pathlib import Path
 
-import jax.numpy as jnp
-from flax.serialization import to_state_dict
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from tqdm import tqdm
 
 import sys
 sys.path.append('../../../')
 sys.path.append('../../../../')
 from common import *
-from model.mlp import MlpConfig, RfConfig, SpatialMlpConfig
-from model.transformer import TransformerConfig
-from task.function import PowerTask 
 
 set_theme()
 
@@ -89,85 +84,73 @@ def extract_plot_vals(row):
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
-#             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
 plot_df = plot_df[plot_df['n_dims'] == 64]
 plot_df
-# <codecell>
-# for p in [1]:
-for p in [1, 2, 3]:
-    mdf = format_df('MLP', power=p)
-    fig = plot_compute(mdf, 'MLP')
-    fig.savefig(fig_dir / f'reg_p{p}_mlp_scale.svg')
-    fig.show()
-    fig.clf()
 
 # <codecell>
-# for p in [1]:
-for p in [1, 2, 3]:
-    fig.clf()
-    mdf = format_df('Transformer', power=p)
-    fig = plot_compute(mdf, 'Transformer')
-    fig.savefig(fig_dir / f'reg_p{p}_transf_scale.svg')
-    fig.show()
-
+mdf = format_df('MLP')
+fig = plot_compute(mdf, 'MLP')
+fig.savefig(fig_dir / f'reg_p1_mlp_scale.svg')
+plt.show()
 
 # <codecell>
-for p in [1]:
-# for p in [1, 2, 3]:
-    fig.clf()
-    mdf = format_df(power=p)
-    mdf = mdf[::2]
-    g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
-    g.axhline(0.05, linestyle='dashed', color='r', alpha=0.5)
-    g.set_xscale('log')
-    g.set_yscale('log')
+mdf = format_df('Transformer')
+fig = plot_compute(mdf, 'Transformer')
+fig.savefig(fig_dir / f'reg_p1_transf_scale.svg')
+plt.show()
 
-    g.set_ylabel('MSE')
-    g.set_xlabel('Compute (PFLOPs)')
-    g.legend_.set_title(None)
+# <codecell>
+mdf = format_df()
+mdf = mdf[::2]
+g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
+g.axhline(0.05, linestyle='dashed', color='r', alpha=0.5)
+g.set_xscale('log')
+g.set_yscale('log')
 
-    g.spines[['right', 'top']].set_visible(False)
+g.set_ylabel('MSE')
+g.set_xlabel('Compute (PFLOPs)')
+g.legend_.set_title(None)
 
-    fig = g.get_figure()
-    fig.set_size_inches(4, 3)
-    fig.tight_layout()
-    fig.savefig(fig_dir / f'fig2/reg_p{p}_all_scale.svg')
-    fig.show()
+g.spines[['right', 'top']].set_visible(False)
+
+fig = g.get_figure()
+fig.set_size_inches(4, 3)
+fig.tight_layout()
+fig.savefig(fig_dir / f'fig2/reg_p{1}_all_scale.svg')
+plt.show()
 
 # <codecell>
 ### PER-TOKEN IMPROVEMENTS
 df = collate_dfs('remote/13_simple_clean/tokenize')
 
 # <codecell>
-# for p in [1, 2, 3]:
-for p in [1]:
-    plot_df = df.apply(extract_plot_vals, axis=1) \
-                .reset_index(drop=True)
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
 
-    mdf = format_df('Transformer', power=p)
-    mdf['token_size'] = np.log2(mdf['token_size'])
-    
-    g = sns.lineplot(mdf, x='total_pflops', y='mse', hue='token_size', marker='o', palette='flare_r', alpha=0.7, legend='full')
-    g.axhline(0.05, linestyle='dashed', color='r', alpha=0.5)
-    g.set_xscale('log')
-    g.set_yscale('log')
+mdf = format_df('Transformer')
+mdf['token_size'] = np.log2(mdf['token_size'])
 
-    g.set_ylabel('MSE')
-    g.set_xlabel('Compute (PFLOPs)')
-    g.legend_.set_title('Token size')
+g = sns.lineplot(mdf, x='total_pflops', y='mse', hue='token_size', marker='o', palette='flare_r', alpha=0.7, legend='full')
+g.axhline(0.05, linestyle='dashed', color='r', alpha=0.5)
+g.set_xscale('log')
+g.set_yscale('log')
 
-    for t in g.legend_.texts:
-        label = float(t.get_text())
-        t.set_text(f'{int(2**label)}')
+g.set_ylabel('MSE')
+g.set_xlabel('Compute (PFLOPs)')
+g.legend_.set_title('Token size')
 
-    g.spines[['right', 'top']].set_visible(False)
+for t in g.legend_.texts:
+    label = float(t.get_text())
+    t.set_text(f'{int(2**label)}')
 
-    # g.set_title('Transformer')
-    fig = g.get_figure()
-    fig.set_size_inches(4, 3)
-    fig.tight_layout()
-    fig.savefig(fig_dir / f'fig2/reg_p{p}_transf_tokenize.svg')
-    # fig.clf()
+g.spines[['right', 'top']].set_visible(False)
+
+# g.set_title('Transformer')
+fig = g.get_figure()
+fig.set_size_inches(4, 3)
+fig.tight_layout()
+fig.savefig(fig_dir / f'fig2/reg_p1_transf_tokenize.svg')
+plt.show()
 
 # <codecell>
 ### DIM-WISE SCALING
@@ -219,7 +202,6 @@ def format_df(name=None, power=1):
 mdfs = [format_df('MLP'), format_df('Transformer')]
 mdf = pd.concat(mdfs)
 
-
 g = sns.relplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.5, palette=['C0', 'C2'], col='n_dims', kind='scatter', height=2.1, aspect=1.33, col_wrap=3)
 
 for ax in g.axes.ravel():
@@ -234,7 +216,7 @@ g._legend.set_title(None)
 
 g.tight_layout()
 g.savefig(fig_dir / f'reg_ndim_all_scale.svg')
-
+plt.show()
 
 
 # <codecell>
@@ -268,13 +250,12 @@ def extract_plot_vals(row):
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
-#             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
 plot_df = plot_df[plot_df['n_dims'] == 64]
 plot_df
 
 
 # <codecell>
-def format_df(name=None, n_classes=2):
+def format_df(name=None, n_classes=16):
     mdf = plot_df[plot_df['n_classes'] == n_classes]
     if name is not None:
         mdf = plot_df[(plot_df['name'] == name) & (plot_df['n_classes'] == n_classes)]
@@ -311,44 +292,33 @@ def plot_compute(df, title, hue_name='log10_size', legend='brief', raise10=True)
     return fig
 
 # <codecell>
-# for n_classes in [16]:
-for n_classes in [2, 16, 64]:
-    mdf = format_df('MLP', n_classes=n_classes)
-    fig = plot_compute(mdf, 'MLP')
-    fig.savefig(fig_dir / f'cls_{n_classes}_mlp_scale.svg')
-    fig.show()
-    fig.clf()
+mdf = format_df('MLP')
+fig = plot_compute(mdf, 'MLP')
+fig.savefig(fig_dir / f'cls_16_mlp_scale.svg')
+plt.show()
 
 # <codecell>
-# for n_classes in [16]:
-for n_classes in [2, 16, 64]:
-    fig.clf()
-    mdf = format_df('Transformer', n_classes=n_classes)
-    fig = plot_compute(mdf, 'Transformer')
-    fig.savefig(fig_dir / f'cls_{n_classes}_transf_scale.svg')
-    fig.show()
-
+mdf = format_df('Transformer')
+fig = plot_compute(mdf, 'Transformer')
+fig.savefig(fig_dir / f'cls_16_transf_scale.svg')
+plt.show()
 
 # <codecell>
-for n_classes in [2, 16, 64]:
-# for n_classes in [16]:
-    fig.clf()
-    mdf = format_df(n_classes=n_classes)
-    g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
-    g.set_xscale('log')
-    g.set_yscale('log')
+mdf = format_df()
+g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
+g.set_xscale('log')
+g.set_yscale('log')
 
-    g.set_ylabel('Loss')
-    g.set_xlabel('Compute (PFLOPs)')
-    g.legend_.set_title(None)
+g.set_ylabel('Loss')
+g.set_xlabel('Compute (PFLOPs)')
+g.legend_.set_title(None)
 
-    g.spines[['right', 'top']].set_visible(False)
+g.spines[['right', 'top']].set_visible(False)
 
-    fig = g.get_figure()
-    fig.set_size_inches(4, 3)
-    fig.tight_layout()
-    fig.savefig(fig_dir / f'fig2/cls_{n_classes}_all_scale.svg')
-    fig.show()
+fig = g.get_figure()
+fig.tight_layout()
+fig.savefig(fig_dir / f'fig2/cls_16_all_scale.svg')
+plt.show()
 
 # <codecell>
 ### PER-TOKEN IMPROVEMENTS
@@ -356,33 +326,32 @@ df = collate_dfs('remote/13_simple_clean/cls_tokenize')
 df
 
 # <codecell>
-for n_classes in [2, 16, 64]:
-    plot_df = df.apply(extract_plot_vals, axis=1) \
-                .reset_index(drop=True)
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
 
-    mdf = format_df('Transformer', n_classes=n_classes)
-    mdf['token_size'] = np.log2(mdf['token_size'])
-    
-    g = sns.lineplot(mdf, x='total_pflops', y='loss', hue='token_size', marker='o', palette='flare_r', alpha=0.7, legend='full')
-    g.set_xscale('log')
-    g.set_yscale('log')
+mdf = format_df('Transformer')
+mdf['token_size'] = np.log2(mdf['token_size'])
 
-    g.set_ylabel('Loss')
-    g.set_xlabel('Compute (PFLOPs)')
-    g.legend_.set_title('Token size')
+g = sns.lineplot(mdf, x='total_pflops', y='loss', hue='token_size', marker='o', palette='flare_r', alpha=0.7, legend='full')
+g.set_xscale('log')
+g.set_yscale('log')
 
-    for t in g.legend_.texts:
-        label = float(t.get_text())
-        t.set_text(f'{int(2**label)}')
+g.set_ylabel('Loss')
+g.set_xlabel('Compute (PFLOPs)')
+g.legend_.set_title('Token size')
 
-    g.spines[['right', 'top']].set_visible(False)
+for t in g.legend_.texts:
+    label = float(t.get_text())
+    t.set_text(f'{int(2**label)}')
 
-    # g.set_title('Transformer')
-    fig = g.get_figure()
-    fig.set_size_inches(4, 3)
-    fig.tight_layout()
-    fig.savefig(fig_dir / f'fig2/cls_{n_classes}_transf_tokenize.svg')
-    fig.clf()
+g.spines[['right', 'top']].set_visible(False)
+
+g.set_title('Transformer')
+fig = g.get_figure()
+fig.set_size_inches(4, 3)
+fig.tight_layout()
+fig.savefig(fig_dir / f'fig2/cls_16_transf_tokenize.svg')
+plt.show()
 
 # <codecell>
 ### N_DIMS VARYING CLS
@@ -412,7 +381,6 @@ def extract_plot_vals(row):
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
-#             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
 plot_df
 
 # <codecell>
@@ -428,7 +396,6 @@ def format_df(name=None, n_classes=16):
 
     mdf['train_iters'] = (mdf['hist_idx'] + 1) * 1000   # 1k iterations per save 
     mdf['total_pflops'] = (mdf['flops'] * mdf['train_iters']) / 1e15
-    # mdf = mdf[::3]
     return mdf
 
 mdfs = [format_df('MLP'), format_df('Transformer')]
@@ -447,5 +414,6 @@ g._legend.set_title(None)
 
 g.tight_layout()
 g.savefig(fig_dir / f'cls_ndim_all_scale.svg')
+plt.show()
 # <codecell>
 

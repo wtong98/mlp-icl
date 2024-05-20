@@ -5,20 +5,15 @@ Assembling the final ICL figures for NeurIPS 2024 cleanly
 # <codecell>
 from pathlib import Path
 
-import jax.numpy as jnp
-from flax.serialization import to_state_dict
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from tqdm import tqdm
 
 import sys
 sys.path.append('../../../')
 sys.path.append('../../../../')
 from common import *
-from model.mlp import MlpConfig, RfConfig, SpatialMlpConfig
-from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression 
 
 set_theme()
@@ -83,7 +78,6 @@ def extract_plot_vals(row):
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
-#             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
 
 def format_df(name=None):
     mdf = plot_df.copy()
@@ -102,25 +96,23 @@ def format_df(name=None):
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
 fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_mlp_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
 fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_mix_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
 fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_transf_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
-# mdfs = [format_df('Transformer'), format_df('Mixer'), format_df('MLP')]
 mdf = pd.concat(mdfs)
-# mdf = pd.concat(mdfs).sample(frac=1)
 mdf = mdf[::4].sample(frac=1)
 
 g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, legend='auto', s=50, hue_order=['MLP', 'Mixer', 'Transformer'])
@@ -137,6 +129,7 @@ fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
 fig.savefig(fig_dir / 'fig1/reg_icl_all_scale.svg')
+plt.show()
 
 # <codecell>
 ### PLOT IWL --> ICL transition
@@ -169,12 +162,6 @@ ddf = plot_df[plot_df['name'] == 'dMMSE'].groupby(['n_tasks'], as_index=False).m
 ddf
 
 # <codecell>
-# TODO: update to remove anomalous n_tasks = 2 setting 
-mdf[(mdf['name'] == 'Transformer') & (mdf['n_tasks'] == 2)]
-mdf = mdf[mdf['n_tasks'] != 2]
-ddf = ddf[ddf['n_tasks'] != 2]
-
-# <codecell>
 def make_iwl_to_icl_plot(mse_type, title='', ylim=False):
     g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='mean', markersize=8)
     g.set_xscale('log', base=2)
@@ -196,11 +183,11 @@ def make_iwl_to_icl_plot(mse_type, title='', ylim=False):
 
 fig = make_iwl_to_icl_plot('mse_pretrain', 'Finite Training Distribution', ylim=False)
 fig.savefig('fig/final/fig1/reg_icl_pretrain_mse.svg')
-fig.show()
+plt.show()
 # <codecell>
 fig = make_iwl_to_icl_plot('mse_true', 'Unrestricted Distribution')
 fig.savefig('fig/final/fig1/reg_icl_true_mse.svg')
-fig.show()
+plt.show()
 
 
 # <codecell>
@@ -268,12 +255,15 @@ def make_pd_plot(name):
 
 g = make_pd_plot('MLP')
 g.savefig('fig/final/fig_reg_icl_supp/reg_icl_mlp_pd.svg')
+plt.show()
 # <codecell>
 g = make_pd_plot('Mixer')
 g.savefig('fig/final/fig_reg_icl_supp/reg_icl_mix_pd.svg')
+plt.show()
 # <codecell>
 g = make_pd_plot('Transformer')
 g.savefig('fig/final/fig_reg_icl_supp/reg_icl_transf_pd.svg')
+plt.show()
 
 # <codecell>
 # Subsection on high dimensions
@@ -287,9 +277,9 @@ g.set_xlabel('$L$')
 g.legend_.set_title(None)
 
 fig = g.figure
-# fig.set_size_inches(4, 3)
 fig.tight_layout()
 fig.savefig('fig/final/fig1/reg_icl_excess_mse.svg')
+plt.show()
 
 # <codecell>
 ############################
@@ -361,25 +351,23 @@ def plot_compute(df, title, hue_name='log10_size'):
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
 fig.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_mlp_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
 fig.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_mix_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
 fig.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_transf_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
-# mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
 mdfs = [format_df('Transformer'), format_df('Mixer'), format_df('MLP')]
 mdf = pd.concat(mdfs)
-# mdf = mdf[::4].sample(frac=1)
 mdf = mdf[::4]
 
 g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7, hue_order=('MLP','Mixer', 'Transformer'), s=50)
@@ -398,6 +386,7 @@ fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
 fig.savefig(fig_dir / 'fig1/cls_icl_all_scale.svg')
+plt.show()
 
 # <codecell>
 ### CLS PLOT IWL --> ICL transition
@@ -444,9 +433,9 @@ for t in g._legend.texts:
 
 g.tight_layout()
 g.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_transition_loss.svg')
+plt.show()
 
 # <codecell>
-from matplotlib.ticker import MultipleLocator
 mdf = plot_df[plot_df['bursty'] == 4]
 
 g = sns.FacetGrid(mdf, col='name', col_order=['MLP', 'Mixer', 'Transformer'], height=1.8, aspect=1.25)
@@ -472,6 +461,7 @@ for t in g._legend.texts:
 
 g.tight_layout()
 g.savefig(fig_dir / 'fig1/cls_icl_b_4_transition_loss.svg')
+plt.show()
 
 
 # <codecell>
@@ -549,16 +539,19 @@ def make_pd_plot(mdf):
 mdf = format_df('MLP')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_mlp_pd.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_mix_pd.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'fig_cls_icl_supp/cls_icl_transf_pd.svg')
+plt.show()
 
 
 # <codecell>
@@ -584,6 +577,7 @@ fig = g.figure
 fig.set_size_inches(4,3)
 fig.tight_layout()
 fig.savefig(fig_dir / 'fig1/cls_icl_all_pd.svg')
+plt.show()
 
 # <codecell>
 # diagnostic
@@ -616,6 +610,7 @@ for t in g._legend.texts:
 
 g.tight_layout()
 g.savefig('fig/final/fig_cls_icl_supp/cls_icl_pd_diagnostic.svg')
+plt.show()
 
 # %%
 #####################################
@@ -687,19 +682,19 @@ def plot_compute(df, title, hue_name='log10_size'):
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
 fig.savefig(fig_dir / 'fig_cls_icl_inf_supp/cls_icl_inf_mlp_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
 fig.savefig(fig_dir / 'fig_cls_icl_inf_supp/cls_icl_inf_mix_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
 fig.savefig(fig_dir / 'fig_cls_icl_inf_supp/cls_icl_inf_transf_scale.svg')
-fig.show()
+plt.show()
 
 # <codecell>
 mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
@@ -722,6 +717,7 @@ fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
 fig.savefig(fig_dir / 'fig_cls_icl_inf_supp/cls_icl_inf_all_scale.svg')
+plt.show()
 
 
 # <codecell>
@@ -799,15 +795,18 @@ def make_pd_plot(mdf):
 mdf = format_df('MLP')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'fig_cls_icl_inf_supp/cls_icl_inf_mlp_pd.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'fig_cls_icl_inf_supp/cls_icl_inf_mix_pd.svg')
+plt.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 g = make_pd_plot(mdf)
 g.savefig(fig_dir / 'fig_cls_icl_inf_supp/cls_icl_inf_transf_pd.svg')
+plt.show()
 
 # %%

@@ -1,26 +1,8 @@
 """
-Tasks for approximating different functions
-
-author: William Tong (wtong@g.harvard.edu)
+Simple tasks
 """
 
-# <codecell>
 import numpy as np
-
-
-class PointTask:
-    def __init__(self, points, batch_size=128) -> None:
-        self.points = np.array(points)
-        self.batch_size = batch_size
-    
-    def __next__(self):
-        idxs = np.random.choice(len(self.points), size=self.batch_size, replace=True)
-        xs, ys = zip(*self.points[idxs])
-        return np.array(xs), np.array(ys)
-
-    def __iter__(self):
-        return self
-
 
 class PowerTask:
     def __init__(self, n_dims=16, eta=0.05, power=1, seed=None, reset_rng_for_data=True, tokenize=False, apply_random_token_proj=False, batch_size=128) -> None:
@@ -86,52 +68,6 @@ class ClassificationTask:
 
         return xs, ys
 
-    def __iter__(self):
-        return self
-
-
-class MultiplicationTask:
-    def __init__(self, domain, batch_size=128) -> None:
-        self.lower, self.upper = domain
-        self.batch_size = batch_size
-    
-    def __next__(self):
-        xs = np.random.uniform(self.lower, self.upper, size=(self.batch_size, 2))
-        ys = xs[:,0] * xs[:,1]
-        return xs, ys
-
-    def __iter__(self):
-        return self
-
-
-class DotProductTask:
-    def __init__(self, domain, n_args=2, n_dims=5, batch_size=128):
-        self.lower, self.upper = domain
-        self.n_args = n_args
-        self.n_dims = n_dims
-        self.batch_size = batch_size
-    
-    def __next__(self):
-        xs = np.random.uniform(self.lower, self.upper, size=(self.batch_size, self.n_args, self.n_dims))
-        # ys = np.diag(xs[:,0] @ xs[:,1].T)
-        ys = np.sum(np.prod(xs, axis=1), axis=-1)
-        return xs, ys
-    
-    def __iter__(self):
-        return self
-
-
-class AttentionTask:
-    def __init__(self, domain, n_dims=5, batch_size=128):
-        self.lower, self.upper = domain
-        self.n_dims = n_dims
-        self.batch_size = batch_size
-    
-    def __next__(self):
-        xs = np.random.uniform(self.lower, self.upper, size=(self.batch_size, 2, self.n_dims))
-        ys = np.diag(xs[:,0] @ xs[:,1].T)
-        return xs, ys
-    
     def __iter__(self):
         return self
 
@@ -209,35 +145,3 @@ class SameDifferentToken:
     def __iter__(self):
         return self
     
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
-    task = SameDifferentToken(batch_size=5)
-    xs, ys = next(task)
-    print(xs)
-    print(ys)
-
-    # x = xs[0]
-    # y = ys[0]
-
-    # print(np.sum(x[0] * x[1]))
-    # print(y)
-
-    # task = PowerTask(apply_random_token_proj=False, tokenize=1)
-    # xs, ys = next(task)
-    # print(xs.shape)
-
-    # task = ClassificationTask(n_dims=2, n_classes=5, tokenize=2)
-    # xs, ys = next(task)
-    # print(xs.shape)
-
-    # xs = xs.reshape(128, -1)
-    
-    # plt.scatter(xs[:,0], xs[:,1], c=ys)
-    # plt.scatter(task.centers[:,0], task.centers[:,1], color='red')
-    
-    # print(task.centers)
-
-
-# %%

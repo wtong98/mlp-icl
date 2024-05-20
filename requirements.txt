@@ -1,0 +1,7 @@
+flax
+jax
+matplotlib
+numpy
+pandas
+seaborn
+tqdm
