@@ -218,5 +218,5 @@ def estimate_dmmse(task, xs, ys, x_q, sig2=0.05):
 
 def estimate_ridge(task, xs, ys, x_q, sig2=0.05):
     n_dims = xs.shape[-1]
-    w_ridge = np.linalg.pinv(t(xs) @ xs + np.sqrt(sig2) * np.identity(n_dims)) @ t(xs) @ ys
+    w_ridge = np.linalg.pinv(t(xs) @ xs + n_dims * sig2 * np.identity(n_dims)) @ t(xs) @ ys
     return (x_q @ w_ridge).squeeze()

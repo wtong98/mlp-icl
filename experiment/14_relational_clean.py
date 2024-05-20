@@ -93,6 +93,7 @@ def plot_compute(df, title, hue_name='log10_size'):
     fig.tight_layout()
     return fig
 
+# <codecell>
 mdf = format_df('MLP', 'RingMatch')
 fig = plot_compute(mdf, 'MLP')
 fig.savefig(fig_dir / 'fig_relational_supp/match_mlp_scale.svg')
@@ -165,7 +166,7 @@ fig.savefig(fig_dir / 'fig_relational_supp/line_oddball_rbmlp_deep_scale.svg')
 
 # <codecell>
 def plot_all(mdf, title=''):
-    g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.6, legend='auto', palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
+    g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7, legend='auto', palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'], s=50)
     g.set_xscale('log')
 
     g.legend_.set_title(None)
@@ -185,11 +186,16 @@ fig.savefig(fig_dir / 'fig3/match_all_scale.svg')
 # <codecell>
 mdf = format_df(task='FreeOddballTask')
 fig = plot_all(mdf, 'Sphere Oddball')
+fig.set_size_inches(3.5, 2.7)
 fig.savefig(fig_dir / 'fig3/free_oddball_all_scale.svg')
 
 # <codecell>
-mdf = format_df(task='LineOddballTask')
-g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.6, legend='auto', palette=['C0', 'C6', 'C8', 'C2'], hue_order=['MLP', 'RB MLP', 'RB MLP (deep)', 'Transformer'])
+mdf = format_df(task='LineOddballTask').sample(frac=1)
+rb_mlp_df = mdf[mdf['name'] == 'RB MLP']
+other_df = mdf[mdf['name'] != 'RB MLP']
+mdf = pd.concat((other_df, rb_mlp_df))
+
+g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7, legend='auto', palette=['C0', 'C6', 'C8', 'C2'], hue_order=['MLP', 'RB MLP', 'RB MLP (deep)', 'Transformer'], s=50)
 g.set_xscale('log')
 
 g.legend_.set_title(None)
@@ -225,6 +231,8 @@ for _, row in df.iterrows():
 
 
 plot_df = pd.DataFrame(full_dicts)
+plot_df = plot_df[plot_df['radius'] != '8']
+plot_df = plot_df[plot_df['radius'] != '16']
 plot_df
 
 # <codecell>
@@ -237,7 +245,7 @@ task = RingMatch(radius=r)
 # <codecell>
 g = sns.catplot(plot_df, 
             x='radius', y='acc', hue='name', row='train_scramble', col='test_scramble', 
-            kind='bar', aspect=2.6, height=1.5, palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
+            kind='bar', aspect=2.1, height=1.6, palette=['C0', 'C6', 'C2'], hue_order=['MLP', 'RB MLP', 'Transformer'])
 
 g.set_ylabels('Accuracy')
 g.set_xlabels('Radius')
@@ -269,6 +277,8 @@ for _, row in df.iterrows():
 
 
 plot_df = pd.DataFrame(fo_dicts)
+plot_df = plot_df[plot_df['distance'] != '10']
+plot_df = plot_df[plot_df['distance'] != '40']
 plot_df
 
 # <codecell>
@@ -296,9 +306,9 @@ for tick, lab in zip(g.get_xticks(), g.get_xticklabels()):
     optim_res = res[float(r)]
     
     if tick == 0:
-        g.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='r', alpha=0.7, label='Optimal')
+        g.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='red', alpha=1, label='Optimal')
     else:
-        g.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='r', alpha=0.7)
+        g.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='red', alpha=1)
 
 g.legend()
 g.legend_.set_title(None)
@@ -308,7 +318,7 @@ g.set_ylabel('Accuracy')
 
 g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
-fig.set_size_inches(4, 1.2)
+fig.set_size_inches(3.35, 2)
 # fig.tight_layout()
 fig.savefig(fig_dir / 'fig3/free_oddball_generalize.svg')
 
@@ -320,7 +330,7 @@ params = df.iloc[0]['state']['params']
 # <codecell>
 res_dicts = []
 n_iters = 5
-n_points = 20
+n_points = 8
 
 config_types = [MlpConfig, TransformerConfig, DotMlpConfig]
 for config_type, (_, row) in zip(config_types, df.iloc[:3].iterrows()):
@@ -329,7 +339,7 @@ for config_type, (_, row) in zip(config_types, df.iloc[:3].iterrows()):
 
     for _ in range(n_iters):
         test_cluster = np.random.randn(n_points, 5, 2)
-        target_points = np.linspace(5, 25, num=n_points)
+        target_points = np.exp(np.linspace(np.log(5), np.log(80), num=n_points))
         target = np.zeros((n_points, 1, 2))
         target[np.arange(n_points),0,1] = target_points
         points = np.concatenate((test_cluster, target), axis=1)
@@ -347,12 +357,12 @@ plot_df = pd.DataFrame(res_dicts)
 plot_df
 
 # <codecell>
-g = sns.lineplot(plot_df, x='distance', y='logit', hue='name', marker='o', alpha=0.7, hue_order=['MLP', 'RB MLP', 'Transformer'], palette=['C0', 'C6', 'C2'])
+g = sns.lineplot(plot_df, x='distance', y='logit', hue='name', marker='o', alpha=0.7, hue_order=['MLP', 'RB MLP', 'Transformer'], palette=['C0', 'C6', 'C2'], markersize=8)
 
-xs = np.linspace(5, 25, num=n_points)
-g.plot(xs, xs**2 * 0.56, '--', color='k', alpha=0.7)
-g.plot(xs, xs * 2.05, '--', color='k', alpha=0.7)
-g.plot(xs, 0 * xs + 9.1, '--', color='k', alpha=0.7)
+xs = np.linspace(5, 80, num=n_points)
+g.plot(xs, xs**2 * 0.55, '--', color='k', alpha=0.6)
+g.plot(xs, xs * 2.4, '--', color='k', alpha=0.6)
+g.plot(xs, 0 * xs + 10.2, '--', color='k', alpha=0.6)
 
 g.set_xscale('log')
 g.set_yscale('log')
@@ -365,8 +375,10 @@ g.legend_.set_title(None)
 
 g.spines[['top', 'right']].set_visible(False)
 fig = g.figure
-fig.set_size_inches(4, 3)
+fig.set_size_inches(3.5, 2.6)
 fig.tight_layout()
+
+g.set_xticks([5, 20, 80], labels=[5, 20, 80])
 fig.savefig(fig_dir / 'fig3/free_oddball_logit.svg')
 
 # <codecell>
@@ -390,6 +402,12 @@ for _, row in df.iterrows():
 
 
 plot_df = pd.DataFrame(lo_dicts)
+plot_df = plot_df[(plot_df['train_distance'] != 0.25)]
+plot_df = plot_df[(plot_df['test_distance'] != '0.25')]
+plot_df = plot_df[(plot_df['train_distance'] != 4)]
+plot_df = plot_df[(plot_df['test_distance'] != '4')]
+plot_df = plot_df[(plot_df['train_distance'] != 8)]
+plot_df = plot_df[(plot_df['test_distance'] != '8')]
 plot_df
 
 # <codecell>
@@ -429,7 +447,7 @@ for d in dists:
 
 reg_res
 # <codecell>
-g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=1.7, aspect=2.4, legend_out=True, palette=['C0', 'C6', 'C8', 'C2'], hue_order=['MLP', 'RB MLP', 'RB MLP (deep)', 'Transformer'])
+g = sns.catplot(plot_df, x='test_distance', y='acc', col='train_distance', hue='name', kind='bar', height=2, aspect=1.9, legend_out=True, palette=['C0', 'C6', 'C8', 'C2'], hue_order=['MLP', 'RB MLP', 'RB MLP (deep)', 'Transformer'])
 
 handle = None
 for ax in g.axes.ravel():
@@ -440,7 +458,7 @@ for ax in g.axes.ravel():
         optim_res = dist_res[float(r)]
         r_res = reg_res[float(r)]
         
-        ax.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='r', alpha=0.7)
+        ax.hlines(y=optim_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='red', alpha=1)
         # ax.hlines(y=r_res, xmin=tick-bar_width, xmax=tick+bar_width, linestyle='dashed', color='m', alpha=0.7)
 
 g._legend.set_title(None)

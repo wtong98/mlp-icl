@@ -93,17 +93,17 @@ plot_df = df.apply(extract_plot_vals, axis=1) \
 plot_df = plot_df[plot_df['n_dims'] == 64]
 plot_df
 # <codecell>
-for p in [1]:
-# for p in [1, 2, 3]:
+# for p in [1]:
+for p in [1, 2, 3]:
     mdf = format_df('MLP', power=p)
     fig = plot_compute(mdf, 'MLP')
     fig.savefig(fig_dir / f'reg_p{p}_mlp_scale.svg')
     fig.show()
-    # fig.clf()
+    fig.clf()
 
 # <codecell>
-for p in [1]:
-# for p in [1, 2, 3]:
+# for p in [1]:
+for p in [1, 2, 3]:
     fig.clf()
     mdf = format_df('Transformer', power=p)
     fig = plot_compute(mdf, 'Transformer')
@@ -311,17 +311,17 @@ def plot_compute(df, title, hue_name='log10_size', legend='brief', raise10=True)
     return fig
 
 # <codecell>
-for n_classes in [16]:
-# for n_classes in [2, 16, 64]:
+# for n_classes in [16]:
+for n_classes in [2, 16, 64]:
     mdf = format_df('MLP', n_classes=n_classes)
     fig = plot_compute(mdf, 'MLP')
     fig.savefig(fig_dir / f'cls_{n_classes}_mlp_scale.svg')
     fig.show()
-    # fig.clf()
+    fig.clf()
 
 # <codecell>
-for n_classes in [16]:
-# for n_classes in [2, 16, 64]:
+# for n_classes in [16]:
+for n_classes in [2, 16, 64]:
     fig.clf()
     mdf = format_df('Transformer', n_classes=n_classes)
     fig = plot_compute(mdf, 'Transformer')
@@ -330,8 +330,8 @@ for n_classes in [16]:
 
 
 # <codecell>
-# for n_classes in [2, 16, 64]:
-for n_classes in [16]:
+for n_classes in [2, 16, 64]:
+# for n_classes in [16]:
     fig.clf()
     mdf = format_df(n_classes=n_classes)
     g = sns.scatterplot(mdf, x='total_pflops', y='loss', hue='name', marker='o', alpha=0.7, palette=['C0', 'C2'])
