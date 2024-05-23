@@ -26,3 +26,5 @@ Code organization:
 Experiments are organized per file. For example, `12_icl_clean.py` will plot results for ICL regression and classification. Each experiment file expects results to be present in `experiment/remote`, which contains scripts that generate the results, and are intended to be run on a compute cluster. Running the corresponding `run.py` script for each sub-experiment will generate the corresponding results.
 
 Experiment files are formatted as [Jupyter code cells](https://code.visualstudio.com/docs/python/jupyter-support-py#_export-a-jupyter-notebook). One way of running these files interactively is through the [Jupyter extension](https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter) in VSCode. However, because the formatting occurs through comment-based delimiters, these files may also be run as standard Python files.
+
+If you notice any errors or issues, we welcome your pull requests!

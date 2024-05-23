@@ -1,4 +1,6 @@
 # <codecell>
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -40,7 +42,7 @@ train_iters_transf = 600_000
 batch_size = 128
 n_points = 8
 n_dims = 8
-n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, None]
+n_ws = [4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, None]
 
 model_depth = 8
 mix_channels = 128
