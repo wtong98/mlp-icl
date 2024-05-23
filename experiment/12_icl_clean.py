@@ -160,6 +160,9 @@ def extract_plot_vals(row):
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
+
+plot_df = plot_df[plot_df['n_tasks'] != 2]
+plot_df = plot_df[plot_df['n_tasks'] != float('inf')]
 plot_df
 
 # <codecell>
@@ -169,19 +172,37 @@ ddf = plot_df[plot_df['name'] == 'dMMSE'].groupby(['n_tasks'], as_index=False).m
 ddf
 
 # <codecell>
-# TODO: update to remove anomalous n_tasks = 2 setting 
-mdf[(mdf['name'] == 'Transformer') & (mdf['n_tasks'] == 2)]
-mdf = mdf[mdf['n_tasks'] != 2]
-ddf = ddf[ddf['n_tasks'] != 2]
+# construct ridge estimates
+ks = np.unique(mdf['n_tasks'])
+ridge_res = []
+
+for _ in tqdm(range(1000)):
+    for k in ks:
+        k = int(k)
+
+        task = FiniteLinearRegression(k, n_points=8, n_dims=8, batch_size=256)
+        xs, ys = next(task)
+        ys_pred = estimate_ridge(None, *unpack(xs), sig2=0.05)
+        ridge_result = np.mean((ys_pred - ys)**2)
+        ridge_res.append({
+            'n_tasks': k,
+            'mse': ridge_result
+        })
+
+rdf = pd.DataFrame(ridge_res)
+rdf
 
 # <codecell>
-def make_iwl_to_icl_plot(mse_type, title='', ylim=False):
+def make_iwl_to_icl_plot(mse_type, title='', ylim=False, sim=False):
     g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='mean', markersize=8)
     g.set_xscale('log', base=2)
     if ylim:
         g.set_ylim(0, 0.55)
     g.plot(ddf['n_tasks'], ddf[mse_type], linestyle='dashed', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=6)
-    g.axhline(y=ridge_result, linestyle='dashed', color='r', alpha=0.5, label='Ridge')
+    if sim:
+        sns.lineplot(rdf, x='n_tasks', y='mse', color='r', alpha=0.5, label='Ridge', marker='o', markersize=8, linestyle='dashed', errorbar=None)
+    else:
+        g.axhline(y=ridge_result, linestyle='dashed', color='r', alpha=0.5, label='Ridge')
 
     g.legend()
 
@@ -194,11 +215,11 @@ def make_iwl_to_icl_plot(mse_type, title='', ylim=False):
     fig.tight_layout()
     return fig
 
-fig = make_iwl_to_icl_plot('mse_pretrain', 'Finite Training Distribution', ylim=False)
+fig = make_iwl_to_icl_plot('mse_pretrain', 'Finite Task Distribution', ylim=False, sim=True)
 fig.savefig('fig/final/fig1/reg_icl_pretrain_mse.svg')
 fig.show()
 # <codecell>
-fig = make_iwl_to_icl_plot('mse_true', 'Unrestricted Distribution')
+fig = make_iwl_to_icl_plot('mse_true', 'Unrestricted Task Distribution')
 fig.savefig('fig/final/fig1/reg_icl_true_mse.svg')
 fig.show()
 
