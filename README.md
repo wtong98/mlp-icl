@@ -1,5 +1,5 @@
 # MLPs Learn In-Context
-This repository contains code that reproduces experiments from our paper [MLPs Learn In-Context](https://www.google.com)
+This repository contains code that reproduces experiments from our paper [MLPs Learn In-Context](https://arxiv.org/abs/2405.15618)
 
 ## Installation
 
