@@ -95,15 +95,15 @@ plt.savefig('fig/same_different_raw.png')
 
 # <codecell>
 n_out = 1
-n_vocab = 4096
+n_vocab = 8000
 n_seen = n_vocab // 2
 
 task = SameDifferentToken(n_vocab=n_vocab, n_seen=n_seen, seed=5)
 
-config = MlpConfig(n_out=n_out, vocab_size=n_vocab, n_layers=3, n_emb=128, n_hidden=128, act_fn='relu')
+config = MlpConfig(n_out=n_out, vocab_size=n_vocab, n_layers=3, n_emb=128, n_hidden=2, act_fn='relu')
 # config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
 
-state, hist = train(config, data_iter=iter(task), loss='bce', test_every=100, train_iters=1000, lr=1e-4)
+state, hist = train(config, data_iter=iter(task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4)
 
 # <codecell>
 task.sample_seen = False
