@@ -10,13 +10,17 @@ import numpy as np
 
 class PointTask:
     def __init__(self, points, batch_size=128) -> None:
-        self.points = np.array(points)
+        xs, ys = zip(*points)
+        self.xs = np.array(xs)
+        self.ys = np.array(ys)
         self.batch_size = batch_size
     
     def __next__(self):
-        idxs = np.random.choice(len(self.points), size=self.batch_size, replace=True)
-        xs, ys = zip(*self.points[idxs])
-        return np.array(xs), np.array(ys)
+        if self.batch_size is None:
+            idxs = np.arange(len(self.xs))
+        else:
+            idxs = np.random.choice(len(self.xs), size=self.batch_size, replace=True)
+        return self.xs[idxs], self.ys[idxs]
 
     def __iter__(self):
         return self

@@ -16,12 +16,12 @@ import sys
 sys.path.append('../../../')
 sys.path.append('../../../../')
 from common import *
-from model.mlp import MlpConfig, DotMlpConfig
+from model.mlp import MlpConfig, DotMlpConfig, RfConfig
 from model.transformer import TransformerConfig
 from task.function import SameDifferent, SameDifferentToken
 
 fig_dir = Path('fig/final')
-set_theme()
+# set_theme()
 
 # <codecell>
 df = collate_dfs('remote/15_same_diff/generalize')
@@ -32,15 +32,37 @@ def extract_plot_vals(row):
     return pd.Series([
         row['name'],
         row['test_task'].n_vocab,
+        row['info']['acc_seen'].item(),
         row['info']['acc_unseen'].item(),
-    ], index=['name', 'n_vocab', 'acc_unseen'])
+        row['config']['n_layers'],
+        row['config']['n_emb'],
+        row['config']['n_hidden'],
+    ], index=['name', 'n_vocab', 'acc_seen', 'acc_unseen', 'n_layers', 'n_emb', 'n_hidden'])
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
 plot_df
 
 # <codecell>
-g = sns.lineplot(plot_df, x='n_vocab', y='acc_unseen', marker='o')
+fg = sns.relplot(plot_df, x='n_vocab', y='acc_seen', hue='name', row='n_emb', col='n_hidden', kind='line')
+
+for ax in fg.axes.ravel():
+    ax.set_xscale('log', base=2)
+
+plt.savefig('same_diff_acc_seen.png')
+
+# <codecell>
+fg = sns.relplot(plot_df, x='n_vocab', y='acc_unseen', hue='name', row='n_emb', col='n_hidden', kind='line')
+
+for ax in fg.axes.ravel():
+    ax.set_xscale('log', base=2)
+
+plt.savefig('same_diff_acc_unseen.png')
+
+# <codecell>
+
+
+g = sns.lineplot(plot_df, x='n_vocab', y='acc_unseen', hue='name', marker='o')
 g.set_xscale('log', base=2)
 
 g.axhline(y=0.5, linestyle='dashed', color='k', alpha=0.3)
@@ -50,7 +72,7 @@ g.set_ylabel('Accuracy on unseen tokens')
 
 fig = g.figure
 fig.tight_layout()
-fig.savefig(fig_dir / 'same_diff_mlp_acc.svg')
+# fig.savefig(fig_dir / 'same_diff_mlp_acc.svg')
 
 
 # <codecell>
@@ -114,16 +136,3 @@ pred_ys = (pred > 0).astype(float)
 print('PREDS', pred_ys)
 print('ACC', np.mean(pred_ys == ys))
 
-
-# <codecell>
-n_out = 1
-
-task = SameDifferent(seed=5)
-
-config = MlpConfig(n_out=n_out, n_layers=2, n_emb=128, n_hidden=128, act_fn='relu')
-# config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
-
-state, hist = train(config, data_iter=iter(task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4)
-# %%
-x = np.array([[[1, 1], [1, 0.9]]])
-state.apply_fn({'params': state.params}, x)

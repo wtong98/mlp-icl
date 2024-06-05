@@ -166,7 +166,8 @@ class RfConfig:
     n_hidden: int = 128
     n_out: int = 1
     scale: float = 1
-    use_quadratic_activation: bool = True
+    use_quadratic_activation: bool = False
+    seed: int = 0
 
     def to_model(self):
         return RF(self)
@@ -177,17 +178,17 @@ class RF(nn.Module):
     config: RfConfig
 
     def setup(self):
+        key = jax.random.PRNGKey(self.config.seed)
+
         scale = self.config.scale / np.sqrt(self.config.n_hidden)
-        self.w_rf1 = scale * np.random.randn(self.config.n_in, self.config.n_hidden)
-        self.w_rf2 = scale * np.random.randn(self.config.n_hidden, self.config.n_hidden)
+        self.w_rf1 = scale * jax.random.normal(key, (self.config.n_in, self.config.n_hidden))
 
         self.readout = nn.Dense(self.config.n_out)
 
     def __call__(self, x):
         x = x.reshape(x.shape[0], -1)
         x = x @ self.w_rf1
-        # x = nn.relu(x)
-        # x = x @ self.w_rf2
+        x = nn.relu(x)
 
         if self.config.use_quadratic_activation:
             x = x**2
