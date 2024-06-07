@@ -141,9 +141,11 @@ class AttentionTask:
 
 
 class SameDifferent:
-    def __init__(self, n_dims=2, soft=True, seed=None, reset_rng_for_data=True, batch_size=128) -> None:
+    def __init__(self, n_dims=2, soft=True, thresh=0, radius=1, seed=None, reset_rng_for_data=True, batch_size=128) -> None:
         self.n_dims = n_dims
         self.soft = soft
+        self.thresh = thresh
+        self.radius = radius
         self.seed = seed
         self.batch_size = batch_size
 
@@ -160,10 +162,10 @@ class SameDifferent:
     def _sample_soft(self):
         xs = self.rng.standard_normal((self.batch_size, 2, self.n_dims))
         norms = np.linalg.norm(xs, axis=-1, keepdims=True)
-        xs = xs / norms
+        xs = xs / norms * self.radius
 
         x0, x1 = xs[:,0], xs[:,1]
-        ys = (np.einsum('bi,bi->b', x0, x1) > 0).astype('float')
+        ys = (np.einsum('bi,bi->b', x0, x1) > self.thresh).astype('float')
         return xs, ys.flatten()
     
     def _sample_hard(self):

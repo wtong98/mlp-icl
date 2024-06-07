@@ -121,7 +121,10 @@ n_vocab = 8000
 n_seen = n_vocab // 2
 
 task = SameDifferentToken(n_vocab=n_vocab, n_seen=n_seen, seed=5)
+# sd_task = SameDifferent(n_dims=128)
+# task = Finite(sd_task, data_size=n_seen)
 
+# config = MlpConfig(n_out=n_out, vocab_size=None, n_layers=1, n_hidden=512, act_fn='relu')
 config = MlpConfig(n_out=n_out, vocab_size=n_vocab, n_layers=3, n_emb=128, n_hidden=2, act_fn='relu')
 # config = TransformerConfig(pos_emb=True, n_out=n_out, n_layers=2, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True, max_len=128)
 
@@ -129,6 +132,7 @@ state, hist = train(config, data_iter=iter(task), loss='bce', test_every=1000, t
 
 # <codecell>
 task.sample_seen = False
+# task = sd_task
 xs, ys = next(task)
 
 pred = state.apply_fn({'params': state.params}, xs)
