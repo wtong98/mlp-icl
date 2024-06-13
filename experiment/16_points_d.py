@@ -136,7 +136,7 @@ task = SameDifferentToken(n_vocab=2*n_points, n_seen=n_points, seed=5)
 test_task = SameDifferentToken(n_vocab=2*n_points, n_seen=n_points, seed=5, sample_seen=False)
 
 config = MlpConfig(n_out=1, vocab_size=2*n_points, n_emb=n_dims, n_layers=1, n_hidden=n_hidden, act_fn='relu')
-state, hist = train(config, data_iter=iter(task), test_iter=iter(test_task), loss='bce', test_every=1_000, train_iters=250_000, lr=1e-4)
+state, hist = train(config, data_iter=iter(task), test_iter=iter(test_task), loss='bce', test_every=1_000, train_iters=1_000, lr=1e-4)
 
 # %%
 task.sample_seen = False
@@ -179,7 +179,7 @@ acc = [1 - m.accuracy.item() for m in hist['test']]
 plt.plot(acc)
 plt.xlabel('Training iterations (x1000)')
 plt.ylabel('1 - accuracy')
-plt.savefig('fig/non_monotonic_learned_emb.png')
+# plt.savefig('fig/non_monotonic_learned_emb.png')
 
 # <codecell>
 W = params['Dense_0']['kernel']
@@ -219,14 +219,14 @@ plt.tight_layout()
 # plt.savefig('fig/cosine_dists.png')
 
 # <codecell>
-params = jax.tree_map(np.array, state.params)
+params = jax.tree.map(np.array, state.params)
 W = params['Dense_0']['kernel']
 a = params['Dense_1']['kernel']
 
 print(np.min(a[a<0]))
 
 # NOTE: unclear what best scaling is (should be computable)
-a[a<0] = 0.036 * a[a<0]
+# a[a<0] = 0.036 * a[a<0]
 # a[a<0] = -0.01
 
 all_res = []
@@ -252,7 +252,6 @@ res_pos, res_neg = zip(*all_res)
 print('POS', np.mean(res_pos))
 print('NEG', np.mean(res_neg))
 
-# <codecell>
 
 
 # <codecell>
