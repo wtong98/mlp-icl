@@ -37,24 +37,29 @@ test_tasks = []
 
 for v in n_vocab:
     for d in n_dims:
+        params = {'n_vocab': v, 'n_dims': d}
+        
         all_cases.extend([
             Case(f'MLP (RF)', 
                 RfConfig(n_in=2*d, n_out=1, n_hidden=n_hidden, seed=new_seed()),
                 train_args={'train_iters': train_iters_std, 'test_iters': 1, 'test_every': 1000, 'loss': 'bce'},
                 train_task=Finite(SameDifferent(n_dims=d, soft=False), data_size=v),
-                test_task=Finite(SameDifferent(n_dims=d, soft=False), data_size=v)),
+                test_task=Finite(SameDifferent(n_dims=d, soft=False), data_size=v),
+                info={'params': params}),
 
             Case(f'MLP (fixed emb)', 
                 MlpConfig(n_out=1, n_layers=1, n_hidden=n_hidden),
                 train_args={'train_iters': train_iters_std, 'test_iters': 1, 'test_every': 1000, 'loss': 'bce'},
                 train_task=Finite(SameDifferent(n_dims=d, soft=False), data_size=v),
-                test_task=Finite(SameDifferent(n_dims=d, soft=False), data_size=v)),
+                test_task=Finite(SameDifferent(n_dims=d, soft=False), data_size=v),
+                info={'params': params}),
 
             Case(f'MLP (learned emb)', 
                 MlpConfig(n_out=1, vocab_size=2*v, n_layers=1, n_emb=2*v, n_hidden=n_hidden),
                 train_args={'train_iters': train_iters_emb, 'test_iters': 1, 'test_every': 1000, 'loss': 'bce'},
                 train_task=SameDifferentToken(batch_size=batch_size, n_vocab=2*v, n_seen=v),
-                test_task=SameDifferentToken(batch_size=1024, n_vocab=2*v, n_seen=v)),
+                test_task=SameDifferentToken(batch_size=1024, n_vocab=2*v, n_seen=v),
+                info={'params': params}),
         ])
 
         test_tasks.extend([

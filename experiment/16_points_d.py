@@ -18,6 +18,26 @@ from task.function import PointTask, SameDifferent, SameDifferentToken
 fig_dir = Path('fig/final')
 
 # <codecell>
+df = collate_dfs('remote/16_points_d/generalize')
+df
+
+# <codecell>
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['test_task'].n_vocab,
+        row['info']['acc_seen'].item(),
+        row['info']['acc_unseen'].item(),
+        row['config']['n_layers'],
+        row['config']['n_emb'],
+        row['config']['n_hidden'],
+    ], index=['name', 'n_vocab', 'acc_seen', 'acc_unseen', 'n_layers', 'n_emb', 'n_hidden'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
+plot_df
+
+# <codecell>
 xor_points = [
     ([-1, -1], 1),
     ([-1,  1], 0),
