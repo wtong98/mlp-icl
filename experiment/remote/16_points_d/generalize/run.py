@@ -20,8 +20,11 @@ batch_size = 128
 
 train_iters_std = 25_000
 train_iters_emb = 5_000
-n_vocab = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-n_dims = [2, 4, 8, 16, 32, 64, 128]
+# n_vocab = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+n_vocab = (2**np.linspace(4, 14, num=40)).astype(int)
+# n_dims = [2, 4, 8, 16, 32, 64, 128]
+n_dims = np.linspace(2, 100, num=10).astype(int)
+print(n_dims)
 
 n_layers = 1
 n_hidden = 512
@@ -73,7 +76,7 @@ for case in tqdm(all_cases):
     print('RUNNING', case.name)
     case.run()
 
-seen_tasks = [c.test_task for c in all_cases]
+seen_tasks = [c.train_task for c in all_cases]
 eval_cases(all_cases, eval_task=seen_tasks, key_name='acc_seen')
 eval_cases(all_cases, eval_task=test_tasks, key_name='acc_unseen')
 

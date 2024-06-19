@@ -6,10 +6,10 @@
 #SBATCH --mem=16000
 #SBATCH -o log.%A.%a.out
 #SBATCH -e log.%A.%a.err
-#SBATCH --array=1-5
+#SBATCH --array=1-3
 #SBATCH --mail-type=END
 #SBATCH --mail-user=wtong@g.harvard.edu
-#SBATCH --account=kempner_grads
+#SBATCH --account=kempner_pehlevan_lab
 
 source ../../../../../venv_haystack/bin/activate
 python run.py

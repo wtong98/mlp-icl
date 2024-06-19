@@ -25,17 +25,53 @@ df
 def extract_plot_vals(row):
     return pd.Series([
         row['name'],
-        row['test_task'].n_vocab,
+        row['info']['params']['n_vocab'],
+        row['info']['params']['n_dims'],
         row['info']['acc_seen'].item(),
         row['info']['acc_unseen'].item(),
-        row['config']['n_layers'],
-        row['config']['n_emb'],
-        row['config']['n_hidden'],
-    ], index=['name', 'n_vocab', 'acc_seen', 'acc_unseen', 'n_layers', 'n_emb', 'n_hidden'])
+    ], index=['name', 'n_vocab', 'n_dims', 'acc_seen', 'acc_unseen'])
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
 plot_df
+
+# <codecell>
+mdf = plot_df \
+        .groupby(['name', 'n_vocab', 'n_dims'], as_index=False) \
+        .mean()
+
+names = mdf['name'].unique()
+fig, axs = plt.subplots(3, 1, figsize=(6, 12))
+
+for name, ax in zip(names, axs.ravel()):
+    cdf = mdf[mdf['name'] == name].pivot(index='n_vocab', columns='n_dims', values='acc_seen')
+    sns.heatmap(cdf, ax=ax, vmin=0.5, vmax=1)
+    ax.set_title(name)
+
+fig.suptitle('acc_seen')
+fig.tight_layout()
+
+# <codecell>
+# TODO: reconfigure to add error shading
+
+n_dims = plot_df['n_dims'].unique()
+n_vocab = plot_df['n_vocab'].unique()
+threshold = 0.9
+
+mdf = plot_df \
+        .groupby(['name', 'n_vocab', 'n_dims'], as_index=False) \
+        .mean()
+
+names = mdf['name'].unique()
+for name in names:
+    cdf = mdf[mdf['name'] == name].pivot(index='n_vocab', columns='n_dims', values='acc_unseen')
+    tdf = pd.DataFrame(np.argwhere(np.cumsum(cdf > threshold, axis=0) == 1), columns=['n_vocab', 'n_dims'])
+    tdf['n_vocab'] = n_vocab[tdf['n_vocab']]
+    tdf['n_dims'] = n_vocab[tdf['n_dims']]
+
+    sns.lineplot(tdf, x='n_dims', y='n_vocab', marker='o', linestyle='dashed', label=name)
+
+
 
 # <codecell>
 xor_points = [
@@ -124,9 +160,9 @@ plt.tight_layout()
 # plt.savefig('fig/xor_proj_rf.png')
 
 # %%
-n_points = 16_000
-n_dims = 64
-n_hidden = 256
+n_points = 16
+n_dims = 128
+n_hidden = 512
 
 sd_task = SameDifferent(n_dims=n_dims, soft=False, radius=1)
 task = Finite(sd_task, data_size=n_points)
@@ -134,6 +170,7 @@ task = Finite(sd_task, data_size=n_points)
 config = MlpConfig(n_out=1, vocab_size=None, n_layers=1, n_hidden=n_hidden, act_fn='relu')
 
 state, hist = train(config, data_iter=iter(task), test_iter=iter(sd_task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4)
+# state, hist = train(config, data_iter=iter(task), test_iter=iter(task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4)
 
 # <codecell>
 # task.sample_seen = False
