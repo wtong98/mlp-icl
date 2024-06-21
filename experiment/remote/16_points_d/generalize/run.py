@@ -16,6 +16,8 @@ from task.function import SameDifferentToken, SameDifferent
 run_id = new_seed()
 print('RUN ID', run_id)
 
+run_split = 4
+
 batch_size = 128
 
 train_iters_std = 25_000
@@ -30,6 +32,7 @@ n_layers = 1
 n_hidden = 512
 
 ### START TEST CONFIGS
+# run_split = 1
 # train_iters_std = 1000
 # n_vocab = [16,]
 # n_dims = [2,]
@@ -71,6 +74,8 @@ for v in n_vocab:
             SameDifferentToken(n_vocab=2*v, n_seen=v, sample_seen=False, batch_size=1024)
         ])
 
+all_cases = split_cases(all_cases, run_split)
+test_tasks = split_cases(test_tasks, run_split)
 
 for case in tqdm(all_cases):
     print('RUNNING', case.name)
