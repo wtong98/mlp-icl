@@ -140,70 +140,85 @@ class AttentionTask:
         return self
 
 
+def batch_choice(a, n_elem, batch_size, rng=None):
+    assert n_elem <= len(a), f'require n_elem <= len(a), got n_elem={n_elem} and len(a)={len(a)}'
+
+    if rng is None:
+        rng = np.random.default_rng(None)
+
+    idxs = np.tile(a, (batch_size, 1))
+    idxs = rng.permuted(idxs, axis=1)
+    idxs = idxs[:,:n_elem]
+    return idxs
+
+
 class SameDifferent:
-    def __init__(self, n_dims=2, soft=True, thresh=0, radius=1, seed=None, reset_rng_for_data=True, batch_size=128) -> None:
+    def __init__(self, n_symbols=None, task='hard',
+                 n_dims=2, thresh=0, radius=1,    # soft/hard params
+                 n_seen=None, sample_seen=True,   # token params
+                 seed=None, reset_rng_for_data=True, batch_size=128) -> None:
+
+        if task == 'token':
+            assert n_symbols is not None and n_symbols >= 4, 'if task=token, n_symbols should be >= 4'
+            
+            if n_seen is None:
+                n_seen = n_symbols // 2
+
+        self.n_symbols = n_symbols
+        self.task = task
         self.n_dims = n_dims
-        self.soft = soft
         self.thresh = thresh
         self.radius = radius
+        self.n_seen = n_seen
+        self.sample_seen = sample_seen
         self.seed = seed
         self.batch_size = batch_size
 
         self.rng = np.random.default_rng(seed)
+        if self.n_symbols is not None:
+            self.symbols = self.rng.standard_normal((self.n_symbols, self.n_dims)) / np.sqrt(self.n_dims)
+
         if reset_rng_for_data:
             self.rng = np.random.default_rng(None)
     
     def __next__(self):
-        if self.soft:
+        if self.task == 'soft':
             return self._sample_soft()
-        if not self.soft:
+        elif self.task == 'hard':
             return self._sample_hard()
+        elif self.task == 'token':
+            return self._sample_token()
+        else:
+            raise ValueError(f'unrecognized task type: {self.task}')
 
     def _sample_soft(self):
-        xs = self.rng.standard_normal((self.batch_size, 2, self.n_dims))
-        norms = np.linalg.norm(xs, axis=-1, keepdims=True)
-        xs = xs / norms * self.radius
+        xs = self.rng.standard_normal((self.batch_size, 2, self.n_dims)) / np.sqrt(self.n_dims)
+        # norms = np.linalg.norm(xs, axis=-1, keepdims=True)
+        # xs = xs / norms * self.radius
 
         x0, x1 = xs[:,0], xs[:,1]
         ys = (np.einsum('bi,bi->b', x0, x1) > self.thresh).astype('float')
         return xs, ys.flatten()
     
     def _sample_hard(self):
-        xs = self.rng.standard_normal((self.batch_size, 2, self.n_dims))
-        norms = np.linalg.norm(xs, axis=-1, keepdims=True)
-        xs = xs / norms
-
-        ys = self.rng.binomial(n=1, p=0.5, size=(self.batch_size,))
-        if np.sum(ys) > 0:
-            idxs = ys.astype(bool)
-            xs[idxs,1] = xs[idxs,0]
-
-        return xs, ys
-
-    def __iter__(self):
-        return self
-
-
-class SameDifferentToken:
-    def __init__(self, n_vocab=16, n_seen=8, sample_seen=True, seed=None, reset_rng_for_data=True, batch_size=128) -> None:
-        assert n_seen <= n_vocab
-
-        self.n_seen = n_seen
-        self.n_vocab = n_vocab
-        self.sample_seen = sample_seen
-
-        self.seed = seed
-        self.batch_size = batch_size
-
-        self.rng = np.random.default_rng(seed)
-        if reset_rng_for_data:
-            self.rng = np.random.default_rng(None)
-    
-    def __next__(self):
-        if self.sample_seen:
-            xs = self.rng.integers(low=0, high=self.n_seen, size=(self.batch_size, 2))
+        if self.n_symbols is None:
+            xs = self.rng.standard_normal((self.batch_size, 2, self.n_dims)) / np.sqrt(self.n_dims)
         else:
-            xs = self.rng.integers(low=self.n_seen, high=self.n_vocab, size=(self.batch_size, 2))
+            sym_idxs = batch_choice(np.arange(self.n_symbols), 2, batch_size=self.batch_size, rng=self.rng)
+            xs = self.symbols[sym_idxs]
+
+        ys = self.rng.binomial(n=1, p=0.5, size=(self.batch_size,))
+        if np.sum(ys) > 0:
+            idxs = ys.astype(bool)
+            xs[idxs,1] = xs[idxs,0]
+
+        return xs, ys
+    
+    def _sample_token(self):
+        if self.sample_seen:
+            xs = batch_choice(np.arange(0, self.n_seen), 2, batch_size=self.batch_size, rng=self.rng)
+        else:
+            xs = batch_choice(np.arange(self.n_seen, self.n_symbols), 2, batch_size=self.batch_size, rng=self.rng)
 
         ys = self.rng.binomial(n=1, p=0.5, size=(self.batch_size,))
         if np.sum(ys) > 0:
@@ -214,15 +229,20 @@ class SameDifferentToken:
 
     def __iter__(self):
         return self
-    
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    task = SameDifferentToken(batch_size=5)
+    task = SameDifferent(batch_size=2048, seed=4, n_symbols=16, n_seen=2, task='token')
     xs, ys = next(task)
     print(xs)
     print(ys)
+    # print(np.mean(ys))
+    ys_true = (xs[:,0] == xs[:,1]).astype(int)
+    # ys_true = (xs[:,0] == xs[:,1]).mean(axis=1).astype(int)
+    print(np.mean(ys_true == ys))
+    
 
     # x = xs[0]
     # y = ys[0]

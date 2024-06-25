@@ -5,6 +5,7 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
+import optax
 import pandas as pd
 import seaborn as sns
 
@@ -13,9 +14,30 @@ sys.path.append('../../../')
 sys.path.append('../../../../')
 from common import *
 from model.mlp import MlpConfig, RfConfig
-from task.function import PointTask, SameDifferent, SameDifferentToken
+from task.function import PointTask, SameDifferent 
 
 fig_dir = Path('fig/final')
+
+
+def scale_by_sign():
+    def init_fn(params):  # no access to init_empty_state
+        del params
+        return optax.EmptyState()
+
+    def update_fn(updates, state, params=None):
+        del params
+        updates = jax.tree.map(lambda g: jnp.sign(g), updates)
+        return updates, state
+    
+    return optax.GradientTransformation(init_fn, update_fn)
+
+
+def sign_sgd(learning_rate):
+    return optax.chain(
+        scale_by_sign(),
+        optax.scale_by_learning_rate(learning_rate)
+    )
+
 
 # <codecell>
 df = collate_dfs('remote/16_points_d/generalize')
@@ -160,22 +182,21 @@ plt.tight_layout()
 # plt.savefig('fig/xor_proj_rf.png')
 
 # %%
-n_points = 16
-n_dims = 128
+n_points = 128
+n_dims = 1024
 n_hidden = 512
 
-sd_task = SameDifferent(n_dims=n_dims, soft=False, radius=1)
-task = Finite(sd_task, data_size=n_points)
+sd_task = SameDifferent(n_dims=n_dims, n_symbols=n_points)
+test_task = SameDifferent(n_dims=n_dims, n_symbols=None)
 
 config = MlpConfig(n_out=1, vocab_size=None, n_layers=1, n_hidden=n_hidden, act_fn='relu')
 
-state, hist = train(config, data_iter=iter(task), test_iter=iter(sd_task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4)
+state, hist = train(config, data_iter=iter(sd_task), test_iter=iter(test_task), loss='bce', test_every=100, train_iters=2_000, lr=2e-4, optim=sign_sgd)
 # state, hist = train(config, data_iter=iter(task), test_iter=iter(task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4)
 
 # <codecell>
 # task.sample_seen = False
-task = sd_task
-xs, ys = next(task)
+xs, ys = next(test_task)
 
 pred = state.apply_fn({'params': state.params}, xs)
 pred_ys = (pred > 0).astype(float)
@@ -184,16 +205,16 @@ print('ACC', np.mean(pred_ys == ys))
 
 
 # <codecell>
-n_points = 128
+n_points = 16
 n_dims = 1024
 n_hidden = 512
 seed = np.random.randint(999)
 
-task = SameDifferentToken(n_vocab=2*n_points, n_seen=n_points, seed=5)
-test_task = SameDifferentToken(n_vocab=2*n_points, n_seen=n_points, seed=5, sample_seen=False)
+task = SameDifferent(task='token', n_symbols=2*n_points, n_seen=n_points, seed=seed)
+test_task = SameDifferent(task='token', n_symbols=2*n_points, n_seen=n_points, seed=seed, sample_seen=False)
 
 config = MlpConfig(n_out=1, vocab_size=2*n_points, n_emb=n_dims, n_layers=1, n_hidden=n_hidden, act_fn='relu')
-state, hist = train(config, data_iter=iter(task), test_iter=iter(test_task), loss='bce', test_every=1_000, train_iters=1_000, lr=1e-4)
+state, hist = train(config, data_iter=iter(task), test_iter=iter(test_task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4, optim=optax.adam)
 
 # %%
 task.sample_seen = False
@@ -390,8 +411,85 @@ ans = z1_mean @ z2_mean.T / (z1_norm * z2_norm)
 ans
 
 # <codecell>
-c = 0.64
-d = 128
-p = 0.5
+### ROUGH EXPERIMENTS WITH MARKOV MODEL
+def is_match(w, w_sens, z1_idx, z2_idx):
+    if w[z1_idx] + w[z2_idx] > 0:
+        return True
+    
+    elif w[z1_idx] + w[z2_idx] == 0:
+        if z1_idx in w_sens or z2_idx in w_sens:
+            return True
+    
+    return False
 
-1 / ((c / d) * (1 - p))
+n_iters = 500
+n_vocab = 2048
+n_width = 128
+
+rng = np.random.default_rng(None)
+
+zs = np.zeros((n_vocab, 2*n_width))
+ws = np.zeros((n_width, 2*n_vocab))
+# ws_sens = rng.integers(0, n_vocab, size=(n_width, n_vocab // 2))
+ws_sens = [rng.choice(n_vocab, size=n_vocab//2, replace=False) for _ in range(n_width)]
+ws_sens = np.stack(ws_sens)
+
+aa = rng.standard_normal(n_width) / np.sqrt(n_width)
+aa = (aa > 0).astype(int)
+
+# ws_pos = np.zeros(n_width // 2, n_vocab)
+# ws_neg = np.zeros(n_width // 2, n_vocab)
+
+task = SameDifferentToken(n_vocab=n_vocab, n_seen=n_vocab, seed=None, reset_rng_for_data=False)
+
+for _ in tqdm(range(n_iters)):
+    xs, ys = next(task)
+    for x, y in zip(xs, ys):
+    # x, y = next(zip(xs, ys))
+        for i, (w, w_sens, a) in enumerate(zip(ws, ws_sens, aa)):
+        # i, (w, w_sens, a) = list(enumerate(zip(ws, ws_sens, aa)))[44]
+            if is_match(w, w_sens, x[0], x[1]):
+                if a == 1:
+                    upd = 1
+                else:
+                    upd = 1
+
+                if a == y:
+                    zs[x[0],i] += upd
+                    zs[x[1],i+n_width] += upd
+                    w[x[0]] += upd
+                    w[x[1]+n_vocab] += upd
+                else:
+                    zs[x[0],i] -= upd
+                    zs[x[1],i+n_width] -= upd
+                    w[x[0]] -= upd
+                    w[x[1]+n_vocab] -= upd
+
+
+
+# <codecell>
+w1, w2 = ws[:,:n_vocab], ws[:,n_vocab:]
+# w1 = w1[aa==0]
+# w2 = w2[aa==0]
+
+w1_norm = np.linalg.norm(w1, axis=1, keepdims=True)
+w2_norm = np.linalg.norm(w2, axis=1, keepdims=True)
+
+
+diag = np.diag((w1 / w1_norm) @ (w2 / w2_norm).T)
+plt.hist(diag, bins=100)
+
+# <codecell>
+np.sum(ws>0, axis=1)
+aa
+
+res = 0
+for i in range(128):
+    res += is_match(ws[1], ws_sens[1], i, i)
+
+res / 128
+
+mw = ws[1] - 16
+mw[:128] @ mw[128:]
+
+
