@@ -137,7 +137,7 @@ def compute_metrics(state, batch, loss='bce'):
 def train(config, data_iter, 
           test_iter=None, 
           loss='ce', 
-          train_iters=10_000, test_iters=100, test_every=1_000, 
+          train_iters=10_000, test_iters=100, test_every=1_000, save_params=False,
           early_stop_n=None, early_stop_key='loss', early_stop_decision='min' ,
           optim=optax.adamw,
           seed=None, 
@@ -156,7 +156,8 @@ def train(config, data_iter,
 
     hist = {
         'train': [],
-        'test': []
+        'test': [],
+        'params': []
     }
 
     for step, batch in zip(range(train_iters), data_iter):
@@ -174,6 +175,9 @@ def train(config, data_iter,
             hist['test'].append(test_state.metrics)
 
             _print_status(step+1, hist)
+
+            if save_params:
+                hist['params'].append(state.params)
         
             if early_stop_n is not None and len(hist['train']) > early_stop_n:
                 last_n_metrics = np.array([getattr(m, early_stop_key) for m in hist['train'][-early_stop_n - 1:]])

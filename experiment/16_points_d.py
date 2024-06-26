@@ -1,3 +1,4 @@
+"""Experimentation with XOR and SameDifferent generalization"""
 # <codecell>
 from pathlib import Path
 
@@ -17,26 +18,6 @@ from model.mlp import MlpConfig, RfConfig
 from task.function import PointTask, SameDifferent 
 
 fig_dir = Path('fig/final')
-
-
-def scale_by_sign():
-    def init_fn(params):  # no access to init_empty_state
-        del params
-        return optax.EmptyState()
-
-    def update_fn(updates, state, params=None):
-        del params
-        updates = jax.tree.map(lambda g: jnp.sign(g), updates)
-        return updates, state
-    
-    return optax.GradientTransformation(init_fn, update_fn)
-
-
-def sign_sgd(learning_rate):
-    return optax.chain(
-        scale_by_sign(),
-        optax.scale_by_learning_rate(learning_rate)
-    )
 
 
 # <codecell>
@@ -182,16 +163,27 @@ plt.tight_layout()
 # plt.savefig('fig/xor_proj_rf.png')
 
 # %%
-n_points = 128
-n_dims = 1024
-n_hidden = 512
+n_points = 16
+n_dims = 128
+n_hidden = 2048
+
+def mup_sgd(learning_rate):
+    base_lr = learning_rate
+    return optax.multi_transform({
+        'in_weight': optax.sgd(base_lr * n_hidden),
+        'out_weight': optax.sgd(base_lr / n_hidden),
+        'biases': optax.sgd(base_lr * n_hidden),
+    }, param_labels={
+        'Dense_0': {'bias': 'biases', 'kernel': 'in_weight'},
+        'Dense_1': {'bias': 'biases', 'kernel': 'out_weight'}
+    })
 
 sd_task = SameDifferent(n_dims=n_dims, n_symbols=n_points)
 test_task = SameDifferent(n_dims=n_dims, n_symbols=None)
 
-config = MlpConfig(n_out=1, vocab_size=None, n_layers=1, n_hidden=n_hidden, act_fn='relu')
+config = MlpConfig(mup_scale=True, n_out=1, vocab_size=None, n_layers=1, n_hidden=n_hidden, act_fn='relu')
 
-state, hist = train(config, data_iter=iter(sd_task), test_iter=iter(test_task), loss='bce', test_every=100, train_iters=2_000, lr=2e-4, optim=sign_sgd)
+state, hist = train(config, data_iter=iter(sd_task), test_iter=iter(test_task), loss='bce', test_every=1000, train_iters=50_000, lr=1e-3, optim=mup_sgd)
 # state, hist = train(config, data_iter=iter(task), test_iter=iter(task), loss='bce', test_every=1000, train_iters=10_000, lr=1e-4)
 
 # <codecell>

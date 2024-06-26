@@ -29,6 +29,8 @@ class MlpConfig:
     n_out: int = 1
     act_fn: str = 'relu'
     layer_norm: bool = False
+    mup_scale: bool = False
+    feature_learning_strength: float = 1
 
     def to_model(self):
         return MLP(self)
@@ -56,13 +58,17 @@ class MLP(nn.Module):
                 x = nn.LayerNorm()(x)
 
             x = act_fn(x)
-    
-        out = nn.Dense(self.config.n_out)(x)
+
+        if self.config.mup_scale:
+            mup_init = jax.nn.initializers.variance_scaling(1/self.config.n_hidden, mode='fan_in', distribution='truncated_normal')
+            out = nn.Dense(self.config.n_out, kernel_init=mup_init)(x)
+        else:
+            out = nn.Dense(self.config.n_out)(x)
 
         if self.config.n_out == 1:
             out = out.flatten()
 
-        return out
+        return out / self.config.feature_learning_strength
 
 
 @struct.dataclass

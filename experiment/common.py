@@ -10,7 +10,10 @@ from pathlib import Path
 import shutil
 from typing import Callable, Iterable
 
+import jax
+import jax.numpy as jnp
 import numpy as np
+import optax
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
@@ -220,3 +223,23 @@ def estimate_ridge(task, xs, ys, x_q, sig2=0.05):
     n_dims = xs.shape[-1]
     w_ridge = np.linalg.pinv(t(xs) @ xs + n_dims * sig2 * np.identity(n_dims)) @ t(xs) @ ys
     return (x_q @ w_ridge).squeeze()
+
+# NOTE: remove once added to optax upstream
+def scale_by_sign():
+    def init_fn(params):  # no access to init_empty_state
+        del params
+        return optax.EmptyState()
+
+    def update_fn(updates, state, params=None):
+        del params
+        updates = jax.tree.map(lambda g: jnp.sign(g), updates)
+        return updates, state
+    
+    return optax.GradientTransformation(init_fn, update_fn)
+
+
+def sign_sgd(learning_rate):
+    return optax.chain(
+        scale_by_sign(),
+        optax.scale_by_learning_rate(learning_rate)
+    )
