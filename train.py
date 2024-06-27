@@ -190,7 +190,7 @@ def train(config, data_iter,
 
             
 def _print_status(step, hist):
-    print(f'ITER {step}:  loss={hist["test"][-1].loss:.4f}   l1_loss={hist["test"][-1].l1_loss:.4f}  acc={hist["test"][-1].accuracy:.4f}')
+    print(f'ITER {step}:  train_loss={hist["train"][-1].loss:.4f}   train_acc={hist["train"][-1].accuracy:.4f}   test_acc={hist["test"][-1].accuracy:.4f}')
 
 
 if __name__ == '__main__':

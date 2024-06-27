@@ -31,6 +31,7 @@ class MlpConfig:
     layer_norm: bool = False
     mup_scale: bool = False
     feature_learning_strength: float = 1
+    use_bias: bool = True
 
     def to_model(self):
         return MLP(self)
@@ -52,7 +53,8 @@ class MLP(nn.Module):
         x = x.reshape(x.shape[0], -1)
 
         for _ in range(self.config.n_layers):
-            x = nn.Dense(self.config.n_hidden)(x)
+            x = nn.Dense(self.config.n_hidden, 
+                         use_bias=self.config.use_bias)(x)
 
             if self.config.layer_norm:
                 x = nn.LayerNorm()(x)
@@ -61,9 +63,12 @@ class MLP(nn.Module):
 
         if self.config.mup_scale:
             mup_init = jax.nn.initializers.variance_scaling(1/self.config.n_hidden, mode='fan_in', distribution='truncated_normal')
-            out = nn.Dense(self.config.n_out, kernel_init=mup_init)(x)
+            out = nn.Dense(self.config.n_out, 
+                           use_bias=self.config.use_bias,
+                           kernel_init=mup_init)(x)
         else:
-            out = nn.Dense(self.config.n_out)(x)
+            out = nn.Dense(self.config.n_out,
+                           use_bias=self.config.use_bias)(x)
 
         if self.config.n_out == 1:
             out = out.flatten()
