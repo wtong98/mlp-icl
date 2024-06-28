@@ -21,6 +21,68 @@ from common import *
 from model.mlp import MlpConfig, RfConfig
 from task.function import PointTask, SameDifferent 
 
+fig_dir = Path('fig/final')
+
+
+# <codecell>
+df = collate_dfs('remote/17_loss_landscape/generalize')
+df
+
+# <codecell>
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['train_task'].n_symbols,
+        row['train_task'].n_dims,
+        row['info']['acc_seen'].item(),
+        row['info']['acc_unseen'].item(),
+    ], index=['name', 'n_symbols', 'n_dims', 'acc_seen', 'acc_unseen'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
+plot_df
+
+# <codecell>
+mdf = plot_df \
+        .groupby(['name', 'n_symbols', 'n_dims'], as_index=False) \
+        .mean()
+
+names = mdf['name'].unique()
+fig, axs = plt.subplots(3, 2, figsize=(12, 12))
+
+for name, ax in zip(names, axs.ravel()):
+    cdf = mdf[mdf['name'] == name].pivot(index='n_symbols', columns='n_dims', values='acc_unseen')
+    sns.heatmap(cdf, ax=ax, vmin=0.5, vmax=1)
+    ax.set_title(name)
+
+fig.suptitle('acc_seen')
+fig.tight_layout()
+
+# <codecell>
+# TODO: reconfigure to add error shading
+
+n_dims = np.sort(plot_df['n_dims'].unique())
+n_symbols = np.sort(plot_df['n_symbols'].unique())
+threshold = 0.9
+
+mdf = plot_df \
+        .groupby(['name', 'n_symbols', 'n_dims'], as_index=False) \
+        .mean()
+
+names = mdf['name'].unique()
+for name in names:
+    cdf = mdf[mdf['name'] == name].pivot(index='n_symbols', columns='n_dims', values='acc_unseen')
+    tdf = pd.DataFrame(np.argwhere(np.cumsum(cdf > threshold, axis=0) == 1), columns=['n_symbols', 'n_dims'])
+    tdf['n_symbols'] = n_symbols[tdf['n_symbols']]
+    tdf['n_dims'] = n_symbols[tdf['n_dims']]
+
+    sns.lineplot(tdf, x='n_dims', y='n_symbols', marker='o', linestyle='dashed', label=name)
+
+plt.gca().set_yscale('log')
+plt.gca().set_xscale('log')
+
+
+
 # <codecell>
 n_points = 8
 n_dims = 128
@@ -40,7 +102,7 @@ def mup_sgd(learning_rate):
 sd_task = SameDifferent(n_dims=n_dims, n_symbols=n_points)
 test_task = SameDifferent(n_dims=n_dims, n_symbols=None)
 
-gamma0 = 10000
+gamma0 = 100
 lr = gamma0 * 0.1
 
 config = MlpConfig(mup_scale=True, 

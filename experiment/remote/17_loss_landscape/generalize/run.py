@@ -36,7 +36,7 @@ n_hidden = 256
 # train_iters_emb = 5_00
 # n_vocab = [4]
 # n_dims = [2]
-# gs = [0.01]
+# gs = [100]
 ### END TEST CONFIGS
 
 all_cases = []
@@ -69,7 +69,7 @@ for v in n_vocab:
         for g in gs:
             all_cases.append(
                 Case(f'MLP (SGD, g={g})',
-                     MlpConfig(n_out=1, n_layers=1, n_hidden=n_hidden),
+                     MlpConfig(mup_scale=True, n_out=1, n_layers=1, n_hidden=n_hidden, feature_learning_strength=g),
                      train_args={'train_iters': train_iters_std, 'test_iters': 1, 'test_every': 1000, 'loss': 'bce',
                                  'optim': optax.sgd, 'lr': g * base_lr},
                      train_task=SameDifferent(n_symbols=v, n_dims=d),
