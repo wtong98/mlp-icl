@@ -113,7 +113,7 @@ def apply_fn(params, x, gamma0):
         x = jnp.dot(x, params[i]) / jnp.sqrt(x.shape[-1])
         x = nn.relu(x)
     # Note the way I don't divide by the square root at the last layer
-    x = jnp.dot(x, params[-1]) / x.shape[-1]
+    x = jnp.dot(x, params[-1]) / jnp.sqrt(x.shape[-1])
     return x.flatten()/gamma0
 
 def loss_fn(params, X, y, gamma0):
@@ -121,13 +121,13 @@ def loss_fn(params, X, y, gamma0):
     return jnp.mean(optax.sigmoid_binary_cross_entropy(y_pred, y))
 
 # Total symbol set size:
-P = 16
+P = 8
 # Input dimension:
-D = 256
+D = 128
 # Width:
 N = 512
 # Batch size
-B = 32
+B = 128
 
 task = SameDifferent(n_symbols=P, n_dims=D, batch_size=B)
 test_task = SameDifferent(n_symbols=None, n_dims=D, batch_size=1024)
@@ -137,10 +137,11 @@ init_key, data_key = random.split(random.PRNGKey(0), 2)
 
 # Play around with adjusting these
 # gamma0s = [0.1, 0.5, 1, 5, 10, -1]
-gamma0s = [1e2]
-eta0 = .5
-T = 2000
-N = 500
+gamma0s = [1]
+gamma_lr = 100
+eta0 = 1
+T = 100_000
+N = 256
 
 final_train_accs = []
 final_test_accs = []
@@ -169,8 +170,12 @@ for gamma0 in gamma0s:
         # Record loss
         losses[N].append(loss)
         # Update the optimizer appropriately
-        updates, opt_state = tx.update(grad, opt_state)
-        params = optax.apply_updates(params, updates)
+        # updates, opt_state = tx.update(grad, opt_state)
+        # params = optax.apply_updates(params, updates)
+
+        eta = eta0 * np.exp((1 - (1 / gamma_lr)) / (5 * loss + 1e-4))
+        params = [(w - eta * dw) for w, dw in zip(params, grad)]
+
         if loss != loss:
             print("Loss is NaN")
             break

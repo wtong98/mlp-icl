@@ -85,27 +85,59 @@ def l1_loss(params):
 
     return loss
 
-@partial(jax.jit, static_argnames=('loss',))
-def train_step(state, batch, loss='bce', l1_weight=0):
-    loss_name = loss
+@partial(jax.jit, static_argnames=('gamma', 'loss',))
+def train_step(state, batch, gamma=None, loss='bce', l1_weight=0):
     x, labels = batch
-    loss_func = parse_loss_name(loss_name)
+    loss_func = parse_loss_name(loss)
 
     def loss_fn(params):
         logits = state.apply_fn({'params': params}, x)
-        loss = loss_func(logits, labels)
+        train_loss = loss_func(logits, labels)
 
-        if loss_name == 'bce' and len(labels.shape) > 1:
-            assert logits.shape == loss.shape
-            loss = loss.mean(axis=-1)
+        # print("EARLY LOGITS", jnp.max(logits).item())
+        # p1 = jax.nn.log_sigmoid(logits)
+        # p2 = jax.nn.log_sigmoid(-logits)
+        # train_loss = -labels * p1 - (1 - labels) * p2
+        
+        # print("P1", p1.min().item())
+        # print("P2", p2.min().item())
+        # print('EARLY LOSS', train_loss.mean().item())
 
-        assert len(loss.shape) == 1
+        if loss == 'bce' and len(labels.shape) > 1:
+            assert logits.shape == train_loss.shape
+            train_loss = train_loss.mean(axis=-1)
+
+        assert len(train_loss.shape) == 1
 
         l1_term = l1_weight * l1_loss(params)
-        return loss.mean() + l1_term
+
+        # TODO: numerically unstable
+        if gamma is not None:
+            logits = jax.lax.stop_gradient(logits)
+            log_fac = (1 - labels) * logits * ((1 / gamma) - 1) \
+                        + jax.nn.softplus(logits) \
+                        - jax.nn.softplus((1 / gamma) * logits)
+            train_loss = jnp.exp(log_fac + jnp.log(train_loss))
+
+            # print('LOGITS', logits.max().item())
+            # print('SOFT+', jax.nn.softplus(logits).max().item())
+            # print('LOG_FAC', jnp.sum(log_fac).item())
+            # print('LOG LOSS', jnp.sum(jnp.log(train_loss)).item())
+            # print('SUM', jnp.max(log_fac + jnp.log(train_loss)).item())
+            # print('LOSS', train_loss.max().item())
+            # print('---')
+
+        return train_loss.mean() + l1_term
     
-    grad_fn = jax.grad(loss_fn)
-    grads = grad_fn(state.params)
+    grads = jax.grad(loss_fn)(state.params)
+    # if gamma is not None:
+    #     logits = state.apply_fn({'params': state.params}, x)
+    #     avg_logit = jnp.mean(jnp.abs(logits))
+    #     scale_factor = (1 + jnp.exp(avg_logit)) / (1 + jnp.exp((1 / gamma) * avg_logit))
+    #     # scale_factor = jnp.exp(avg_logit)
+    #     # scale_factor = jnp.clip(scale_factor, a_min=None, a_max=1e20)
+    #     grads = jax.tree.map(lambda g: scale_factor * g, grads)
+
     state = state.apply_gradients(grads=grads)
     return state
 
@@ -136,7 +168,7 @@ def compute_metrics(state, batch, loss='bce'):
 
 def train(config, data_iter, 
           test_iter=None, 
-          loss='ce', 
+          loss='ce', gamma=None,
           train_iters=10_000, test_iters=100, test_every=1_000, save_params=False,
           early_stop_n=None, early_stop_key='loss', early_stop_decision='min' ,
           optim=optax.adamw,
@@ -161,7 +193,7 @@ def train(config, data_iter,
     }
 
     for step, batch in zip(range(train_iters), data_iter):
-        state = train_step(state, batch, loss=loss, l1_weight=l1_weight)
+        state = train_step(state, batch, loss=loss, l1_weight=l1_weight, gamma=gamma)
         state = compute_metrics(state, batch, loss=loss)
 
         if ((step + 1) % test_every == 0) or ((step + 1) == train_iters):
