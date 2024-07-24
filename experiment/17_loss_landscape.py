@@ -13,6 +13,7 @@ import numpy as np
 import optax
 import pandas as pd
 import seaborn as sns
+from tqdm import tqdm
 
 import sys
 sys.path.append('../../../')
@@ -21,18 +22,187 @@ from common import *
 from model.mlp import MlpConfig, RfConfig
 from task.function import PointTask, SameDifferent 
 
-fig_dir = Path('fig/final')
+fig_dir = Path('fig/')
+
+# <codecell>
+### Markov process simulation
+succ = 0
+tot = 0
+
+for _ in tqdm(range(10_000)):
+    n_symbols = 100
+    n_iters = 1000
+    w1 = np.zeros(n_symbols)
+    w2 = np.zeros(n_symbols)
+
+    for _ in range(n_iters):
+        if np.random.random() > 0.5:
+            z1 = z2 = np.random.randint(n_symbols)
+        else:
+            z1, z2 = np.random.choice(n_symbols, size=2, replace=False)
+
+        dec = w1[z1] + w2[z2]
+        if dec > 0 or (dec == 0 and np.random.random() > 0.5):
+            if z1 == z2:
+                w1[z1] += 1
+                w2[z2] += 1
+            else:
+                w1[z1] -= 1
+                w2[z2] -= 1
+
+    if np.sum(w1 > 0) > 0:
+        succ += np.mean(w1 > 0)
+        tot += 1
+
+# print(w1)
+# print(w2)
+print(succ / tot)
+
+# <codecell>
+### Markov process simulation
+n_symbols = 3
+n_iters = 1000
+w1 = np.zeros(n_symbols)
+w2 = np.zeros(n_symbols)
+
+for _ in range(n_iters):
+    if np.random.random() > 0.5:
+        z1 = z2 = np.random.randint(n_symbols)
+    else:
+        z1, z2 = np.random.choice(n_symbols, size=2, replace=False)
+
+    dec = w1[z1] + w2[z2]
+    if dec > 0 or (dec == 0 and np.random.random() > 0.5):
+        if z1 == z2:
+            w1[z1] += 1
+            w2[z2] += 1
+        else:
+            w1[z1] -= 1
+            w2[z2] -= 1
+
+print(w1)
+print(w2)
+
+# <codecell>
+### First-order simulation
+n_points = 2
+n_dims = 128
+n_hidden = 512
+alpha = 0.01  # learning strength
+
+n_iters = 50
+
+a0 = np.random.randn(n_hidden) / np.sqrt(n_hidden)
+W0 = np.random.randn(n_hidden, 2*n_dims) / np.sqrt(2*n_dims)
+
+a = np.copy(a0)
+W = np.copy(W0)
+
+sd_task = SameDifferent(n_dims=n_dims, n_symbols=n_points)
+test_task = SameDifferent(n_dims=n_dims, n_symbols=None, batch_size=1024)
+
+for _, (x, y) in zip(range(n_iters), sd_task):
+    x = x.reshape(x.shape[0], -1)
+
+    dots = x @ W.T > 0
+    signs = 2 * alpha * (y - 0.5)
+    signed_x = x * np.expand_dims(signs, axis=1)
+    xi = dots.T @ signed_x
+
+    # a += np.diag(W0 @ xi.T)
+    # W += np.expand_dims(a0, 1) * xi
+    a += np.diag(W @ xi.T)
+    W += np.expand_dims(a, 1) * xi
+
+W = W.T
+a = np.expand_dims(a, 1)
+
+# <codecell>
+x, y = next(test_task)
+x = x.reshape(x.shape[0], -1)
+out = jax.nn.relu(x @ W) @ a
+preds = (out > 0).astype(int).flatten()
+
+acc = np.mean(preds == y)
+print('acc', acc)
+
+pos_acc = np.mean(preds[y>0] == 1)
+neg_acc = np.mean(preds[y==0] == 0)
+
+print('pos_acc', pos_acc)
+print('neg_acc', neg_acc)
 
 
 # <codecell>
-n_points = 8
+zs = sd_task.symbols
+comp1 = zs @ W[:128,:] / alpha
+comp2 = zs @ W[128:,:] / alpha
+
+print(comp1[:,7])
+print(comp2[:,7])
+
+# <codecell>
+succ = 0
+n_iters = 10_000
+
+for _ in range(n_iters):
+    w1, w2, z1, z2 = np.random.randn(4, 512)
+    w1 += z1
+    w2 -= z1
+    if w1 @ z1 + w2 @ z2 > 0:
+        succ += 1
+
+succ / n_iters
+
+# %%
+# W = W.T
+# a = np.expand_dims(a, 1)
+W_net = W * np.abs(a.T)
+# W_net = W
+W_net.shape
+
+# <codecell>
+# W_norms = np.linalg.norm(W_net, axis=0)
+W_norms = np.linalg.norm(W, axis=0)
+# plt.hist(W_norms)
+
+signs = (a > 0).flatten().astype(int)
+plt.scatter(a, W_norms)
+
+# <codecell>
+plt.hist(a)
+
+# <codecell>
+# idxs = np.argsort(W_norms)
+plt.gcf().set_size_inches(4,3)
+idxs = np.argsort(a.flatten())
+W_sort = W[:,idxs]
+dots = []
+
+for idx in range(n_hidden):
+    x, y = W_sort[:n_dims, [idx]], W_sort[n_dims:, [idx]]
+    x_norm = np.linalg.norm(x)
+    y_norm = np.linalg.norm(y)
+    dots.append((x.T @ y / (x_norm * y_norm)).item())
+
+dots = np.array(dots)
+print(dots)
+# dots = np.arccos(dots) * (360 / 2 / np.pi)
+plt.scatter(a.flatten()[idxs], dots)
+plt.xlabel('$a_i$')
+plt.ylabel('cosine distance')
+plt.tight_layout()
+
+
+# <codecell>
+n_points = 2
 n_dims = 128
 n_hidden = 512
 
-sd_task = SameDifferent(n_dims=n_dims, n_symbols=n_points, seed=10, reset_rng_for_data=False)
-test_task = SameDifferent(n_dims=n_dims, n_symbols=None, seed=11, reset_rng_for_data=False)
+sd_task = SameDifferent(n_dims=n_dims, n_symbols=n_points, seed=None, reset_rng_for_data=True)
+test_task = SameDifferent(n_dims=n_dims, n_symbols=None, seed=None, reset_rng_for_data=True)
 
-gamma0 = 1
+gamma0 = 1000
 lr = gamma0 * 0.1
 # lr = optax.exponential_decay(1, transition_steps=2000, decay_rate=2_000_000_000)
 # lr = 1
@@ -46,16 +216,16 @@ config = MlpConfig(mup_scale=False,
                    use_bias=False,
                    act_fn='relu')
 
-state, hist = train(config, 
+state, hist = train(config,
                     data_iter=iter(sd_task), 
                     test_iter=iter(test_task), 
                     loss='bce',
-                    gamma=10,
+                    gamma=None,
                     test_every=1000,
-                    train_iters=8_000, 
+                    train_iters=5_000, 
                     lr=lr, optim=optax.sgd,
                     save_params=True,
-                    seed=15)
+                    seed=None)
 
 
 # <codecell>
@@ -284,12 +454,13 @@ names = mdf['name'].unique()
 fig, axs = plt.subplots(3, 2, figsize=(12, 12))
 
 for name, ax in zip(names, axs.ravel()):
-    cdf = mdf[mdf['name'] == name].pivot(index='n_symbols', columns='n_dims', values='acc_unseen')
+    cdf = mdf[mdf['name'] == name].pivot(index='n_symbols', columns='n_dims', values='acc_seen')
     sns.heatmap(cdf, ax=ax, vmin=0.5, vmax=1)
     ax.set_title(name)
 
 fig.suptitle('acc_seen')
 fig.tight_layout()
+plt.savefig(fig_dir / 'same_diff_acc_seen.png')
 
 # <codecell>
 # TODO: reconfigure to add error shading
@@ -304,6 +475,8 @@ mdf = plot_df \
 
 names = mdf['name'].unique()
 for name in names:
+    if 'g' in name:
+        continue
     cdf = mdf[mdf['name'] == name].pivot(index='n_symbols', columns='n_dims', values='acc_unseen')
     tdf = pd.DataFrame(np.argwhere(np.cumsum(cdf > threshold, axis=0) == 1), columns=['n_symbols', 'n_dims'])
     tdf['n_symbols'] = n_symbols[tdf['n_symbols']]
@@ -312,4 +485,7 @@ for name in names:
     sns.lineplot(tdf, x='n_dims', y='n_symbols', marker='o', linestyle='dashed', label=name)
 
 plt.gca().set_yscale('log')
-plt.gca().set_xscale('log')
+# plt.gca().set_xscale('log')
+
+plt.savefig(fig_dir / 'same_diff_data_diversity.png')
+# %%
