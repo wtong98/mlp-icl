@@ -467,16 +467,18 @@ plt.savefig(fig_dir / 'same_diff_acc_seen.png')
 
 n_dims = np.sort(plot_df['n_dims'].unique())
 n_symbols = np.sort(plot_df['n_symbols'].unique())
-threshold = 0.9
+threshold = 0.7
 
 mdf = plot_df \
         .groupby(['name', 'n_symbols', 'n_dims'], as_index=False) \
         .mean()
 
-names = mdf['name'].unique()
+# names = mdf['name'].unique()
+names = ['MLP (RF)']
 for name in names:
     if 'g' in name:
         continue
+
     cdf = mdf[mdf['name'] == name].pivot(index='n_symbols', columns='n_dims', values='acc_unseen')
     tdf = pd.DataFrame(np.argwhere(np.cumsum(cdf > threshold, axis=0) == 1), columns=['n_symbols', 'n_dims'])
     tdf['n_symbols'] = n_symbols[tdf['n_symbols']]
@@ -484,8 +486,11 @@ for name in names:
 
     sns.lineplot(tdf, x='n_dims', y='n_symbols', marker='o', linestyle='dashed', label=name)
 
-plt.gca().set_yscale('log')
-# plt.gca().set_xscale('log')
+# xs = tdf['n_dims']
+# plt.plot(xs, 0.3 * xs**2)
 
-plt.savefig(fig_dir / 'same_diff_data_diversity.png')
+plt.gca().set_yscale('log')
+plt.gca().set_xscale('log')
+
+# plt.savefig(fig_dir / 'same_diff_data_diversity.png')
 # %%
