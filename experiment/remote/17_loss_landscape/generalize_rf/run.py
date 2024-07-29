@@ -19,8 +19,11 @@ print('RUN ID', run_id)
 run_split = 1
 
 train_iters_std = 50_000
-n_vocab = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-n_dims = [2, 4, 8, 16, 32, 64, 128]
+# n_vocab = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+# n_dims = [2, 4, 8, 16, 32, 64, 128]
+
+n_dims = (2**(np.linspace(2, 6, num=12))).astype(int)
+n_vocab = [128, 256, 512, 1024, 2048, 4096, 8192]
 
 n_layers = 1
 n_hidden = 512

@@ -493,4 +493,34 @@ plt.gca().set_yscale('log')
 plt.gca().set_xscale('log')
 
 # plt.savefig(fig_dir / 'same_diff_data_diversity.png')
+
+# <codecell>
+df = collate_dfs('remote/17_loss_landscape/generalize_rf')
+df
+
+# <codecell>
+def extract_plot_vals(row):
+    return pd.Series([
+        row['name'],
+        row['train_task'].n_symbols,
+        row['train_task'].n_dims,
+        row['info']['acc_seen'].item(),
+        row['info']['acc_unseen'].item(),
+    ], index=['name', 'n_symbols', 'n_dims', 'acc_seen', 'acc_unseen'])
+
+plot_df = df.apply(extract_plot_vals, axis=1) \
+            .reset_index(drop=True)
+
+plot_df['neg_log_acc_unseen'] = -np.log(plot_df['acc_unseen'])
+plot_df
+
 # %%
+g = sns.lineplot(plot_df, x='n_dims', y='neg_log_acc_unseen', hue='n_symbols', marker='o')
+
+ds = np.unique(plot_df['n_dims'].to_numpy())
+ds = ds.astype('float')
+plt.plot(ds, 0.0001 * ds**(2))
+plt.axhline(y=-np.log(0.5))
+
+g.set_yscale('log')
+g.set_xscale('log')
