@@ -39,7 +39,11 @@ class LinearRegression:
 class FiniteLinearRegression:
     """Based on the construction described in Raventos et al. 2023"""
 
-    def __init__(self, n_ws=128, n_points=16, n_dims=8, noise_scale=0.05, batch_size=128, stack_y=True, enforce_orth_x=False, seed=None, reset_rng_for_data=True) -> None:
+    def __init__(self, n_ws=128, n_points=16, n_dims=8, 
+                 noise_scale=0.05, batch_size=128, 
+                 stack_y=True, enforce_orth_x=False,
+                 var_length=False,
+                 seed=None, reset_rng_for_data=True) -> None:
         self.n_points = n_points
         self.n_dims = n_dims
         self.noise_scale = noise_scale
@@ -49,6 +53,7 @@ class FiniteLinearRegression:
         self.n_ws = n_ws
         self.stack_y = stack_y
         self.enforce_orth_x = enforce_orth_x
+        self.var_length = var_length
 
         self.ws = None
         if n_ws is not None:
@@ -82,22 +87,51 @@ class FiniteLinearRegression:
         ys = xs @ ws + self.rng.normal(scale=np.sqrt(self.noise_scale), size=(self.batch_size, xs.shape[1], 1))
 
         if self.stack_y:
-            out = np.concatenate((xs, ys), axis=-1)
-            ys_true = ys[:,-1].squeeze()
-            out[:, -1, -1] = 0
-            return out, ys_true
-        else:
-            zs = np.zeros((self.batch_size, self.n_points, self.n_dims - 1))
-            ys_pad = np.concatenate((ys, zs), axis=-1)
+            lower = 3 if self.var_length else self.n_points
 
-            interl_xs = np.empty((self.batch_size, self.n_points * 2 - 1, self.n_dims))
-            interl_xs[:, 0::2] = xs
-            interl_xs[:, 1::2] = ys_pad[:,:-1]
-            return interl_xs, ys[:,-1].squeeze()
+            all_xs = []
+            all_ys = []
+            for n in range(lower, self.n_points + 1):
+                out = np.concatenate((xs[:,:n], ys[:,:n]), axis=-1)
+                ys_true = ys[:,n-1].squeeze()
+                out[:, -1, -1] = 0
+
+                out_pad = np.zeros((self.batch_size, self.n_points, self.n_dims+1))
+                out_pad[:,:n,:] = out
+                all_xs.append(out_pad)
+                all_ys.append(ys_true)
+            
+            all_xs = np.concatenate(all_xs)
+            all_ys = np.concatenate(all_ys)
+            return all_xs, all_ys
+
+        else:
+            lower = 3 if self.var_length else self.n_points
+
+            all_xs_pad = []
+            all_ys = []
+            for n in range(lower, self.n_points + 1):
+                zs = np.zeros((self.batch_size, n, self.n_dims - 1))
+                ys_pad = np.concatenate((ys[:,:n], zs), axis=-1)
+
+                interl_xs = np.empty((self.batch_size, n * 2 - 1, self.n_dims))
+                interl_xs[:, 0::2] = xs[:,:n]
+                interl_xs[:, 1::2] = ys_pad[:,:-1]
+
+                xs_pad = np.zeros((self.batch_size, 2 * self.n_points - 1, self.n_dims))
+                xs_pad[:, :(2 * n - 1), :] = interl_xs
+
+                all_xs_pad.append(xs_pad)
+                all_ys.append(ys[:,n-1].squeeze())
+
+            all_xs_pad = np.concatenate(all_xs_pad)
+            all_ys = np.concatenate(all_ys)
+            return all_xs_pad, all_ys
 
 
     def __iter__(self):
         return self
+
 
 def t(xs):
     return np.swapaxes(xs, -2, -1)
@@ -105,17 +139,42 @@ def t(xs):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
+
+    def unpack(pack_xs):
+        xs = pack_xs[:,:-1,:-1]
+        ys = pack_xs[:,:-1,[-1]]
+        x_q = pack_xs[:,[-1],:-1]
+        return xs, ys, x_q
+
+
+    def estimate_dmmse(task, xs, ys, x_q, sig2=0.05):
+        '''
+        xs: N x P x D
+        ys: N x P x 1
+        x_q: N x 1 x D
+        ws: F x D
+        '''
+        ws = task.ws
+        
+        weights = np.exp(-(1 / (2 * sig2)) * np.sum((ys - xs @ ws.T)**2, axis=1))  # N x F
+        probs = weights / (np.sum(weights, axis=1, keepdims=True) + 1e-32)
+        w_dmmse = np.expand_dims(probs, axis=-1) * ws  # N x F x D
+        w_dmmse = np.sum(w_dmmse, axis=1, keepdims=True)  # N x 1 x D
+        return (x_q @ t(w_dmmse)).squeeze()
+
+
+    def estimate_ridge(task, xs, ys, x_q, sig2=0.05):
+        n_dims = xs.shape[-1]
+        w_ridge = np.linalg.pinv(t(xs) @ xs + n_dims * sig2 * np.identity(n_dims)) @ t(xs) @ ys
+        return (x_q @ w_ridge).squeeze()
+
     n_points = 5
 
-    task = LinearRegression(batch_size=5, n_dims=1, n_points=n_points+1)
+    task = FiniteLinearRegression(n_points=n_points, n_dims=2, stack_y=True, var_length=True, batch_size=2)
     xs, ys = next(task)
 
-    plt.scatter(xs[0][0:-1:2], xs[0][1::2], c=np.zeros(n_points))
-    ax = plt.gca()
-    ax.set_axis_off()
+    print(estimate_ridge(task, *unpack(xs[:,:2,:])))
+    print(ys)
 
-    plt.gcf().set_size_inches(2, 2)
-    plt.tight_layout()
-    plt.savefig('../experiment/fig/final/fig1/icl_reg_example.svg')
     
 

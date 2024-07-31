@@ -40,8 +40,8 @@ def t(xs):
 
 def get_flops(fn, *args, **kwargs):
     """Borrowed from flax.nn.tabulate"""
-    e = fn.lower(*args, **kwargs)
-    cost = e.cost_analysis()
+    e = fn.lower(*args, **kwargs).compile()
+    cost = e.cost_analysis()[0]
     if cost is None:
         return 0
     flops = int(cost['flops']) if 'flops' in cost else 0

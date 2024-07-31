@@ -441,14 +441,14 @@ g.tight_layout()
 plt.savefig('fig/reg_finite_pd_x_dims.png')
 # <codecell>
 ### TRAINING PLAYGROUND
-task = FiniteLinearRegression(n_points=256, n_ws=None, batch_size=128, n_dims=8)
+task = FiniteLinearRegression(n_points=32, n_ws=None, batch_size=32, n_dims=8, var_length=True, stack_y=True)
 
-config = MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='relu', layer_norm=True)
+# config = MlpConfig(n_out=1, n_layers=3, n_hidden=512, act_fn='relu')
 # config = MlpConfig(n_out=1, n_layers=1, n_hidden=4096, act_fn='gelu')
 # config = PolyConfig(n_out=1, n_layers=1, n_hidden=512, start_with_dense=True)
 # config = TransformerConfig(use_last_index_output=True, pos_emb=False, n_out=1, n_layers=1, n_hidden=512, n_mlp_layers=0, layer_norm=False, use_single_head_module=True, softmax_att=False)
-# config = TransformerConfig(pos_emb=False, n_out=1, n_layers=3, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True)
-# config = SpatialMlpConfig(n_layers=6, n_hidden=128, n_channels=128, layer_norm=True)
+# config = TransformerConfig(pos_emb=True, n_out=1, n_layers=3, n_heads=2, n_hidden=128, n_mlp_layers=2, layer_norm=True)
+config = SpatialMlpConfig(n_layers=6, n_hidden=128, n_channels=128, layer_norm=True)
 
 
 state, hist = train(config, data_iter=iter(task), loss='mse', test_every=1000, train_iters=10_000, lr=1e-4)
