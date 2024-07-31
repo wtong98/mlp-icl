@@ -14,7 +14,7 @@ from task.regression import FiniteLinearRegression
 run_id = new_seed()
 print('RUN ID', run_id)
 
-run_split = 72
+run_split = 18
 
 @dataclass
 class FunctionCase:
@@ -38,10 +38,10 @@ n_iters = 1
 train_iters_mlp = 2_048_000
 train_iters_mix = 500_000
 train_iters_transf = 600_000
-batch_size = 128
+batch_size = 16
 # n_points = [4, 8, 16, 32, 64, 128, 256, 512]
 n_points = [4, 8, 16, 32, 64, 128]
-n_dims = [2, 4, 8, 16]
+n_dims = [8]
 n_ws = None
 
 model_depth = 8
@@ -67,7 +67,7 @@ all_cases = []
 for _ in range(n_iters):
     for n_point in n_points:
         for n_dim in n_dims:
-            common_task_args = {'n_ws': n_ws, 'n_dims': n_dim, 'n_points': n_point}
+            common_task_args = {'var_length': True, 'n_ws': n_ws, 'n_dims': n_dim, 'n_points': n_point}
 
             def train_args(train_iters):
                 return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}

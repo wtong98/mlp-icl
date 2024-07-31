@@ -9,7 +9,7 @@
 #SBATCH --array=1-27%12
 #SBATCH --mail-type=END
 #SBATCH --mail-user=wtong@g.harvard.edu
-#SBATCH --account=pehlevan_kempner_lab
+#SBATCH --account=kempner_pehlevan_lab
 
 source ../../../../../venv_haystack/bin/activate
 python run.py ${SLURM_ARRAY_TASK_ID}
