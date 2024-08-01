@@ -31,16 +31,16 @@ class FunctionCase:
         mse = np.mean((ys - ys_pred)**2)
         self.info[key_name] = mse
     
-run_split = 7
+run_split = 12
 
 n_iters = 1
 train_iters_mlp = 2_048_000
 train_iters_mix = 500_000
 train_iters_transf = 600_000
-batch_size = 128
+batch_size = 64
 n_points = 8
 n_dims = 8
-n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, None]
+n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
 
 model_depth = 8
 mix_channels = 128
@@ -71,7 +71,6 @@ for _ in range(n_iters):
             Case('MLP', MlpConfig(n_out=1, n_layers=model_depth, n_hidden=2048), train_args=make_args(train_iters_mlp)),
             Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_channels=mix_channels), train_args=make_args(train_iters_mix)),
             Case('Transformer', TransformerConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2, pos_emb=False), train_args=make_args(train_iters_transf)),
-            FunctionCase('Ridge', estimate_ridge),
         ]
 
         if n_w is not None:
