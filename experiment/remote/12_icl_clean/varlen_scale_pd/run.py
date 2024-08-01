@@ -38,9 +38,9 @@ n_iters = 1
 train_iters_mlp = 2_048_000
 train_iters_mix = 500_000
 train_iters_transf = 600_000
-batch_size = 16
+batch_size = 8
 # n_points = [4, 8, 16, 32, 64, 128, 256, 512]
-n_points = [4, 8, 16, 32, 64, 128]
+n_points = [4, 8, 16, 32, 64]
 n_dims = [8]
 n_ws = None
 
@@ -98,7 +98,7 @@ true_tasks = []
 for c in all_cases:
     task_args = c.info['common_task_args']
     task_args['n_ws'] = None
-    true_tasks.append(FiniteLinearRegression(batch_size=1024, **task_args))
+    true_tasks.append(FiniteLinearRegression(batch_size=128, **task_args))
 
 eval_cases(all_cases, true_tasks, key_name='mse', use_mse=True)
 
