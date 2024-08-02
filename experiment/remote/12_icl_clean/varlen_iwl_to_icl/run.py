@@ -50,7 +50,7 @@ mix_channels = 128
 # train_iters_mlp = 1_024
 # train_iters_mix = 256
 # train_iters_transf = 128
-# batch_size = 128
+# batch_size = 64
 # n_points = 8
 # n_dims = 8
 # n_ws = [2]
@@ -62,7 +62,7 @@ mix_channels = 128
 all_cases = []
 for _ in range(n_iters):
     for n_w in n_ws:
-        common_task_args = {'n_ws': n_w, 'n_points': n_points, 'n_dims': n_dims, 'seed': new_seed()}
+        common_task_args = {'var_length': True, 'n_ws': n_w, 'n_points': n_points, 'n_dims': n_dims, 'seed': new_seed()}
 
         def make_args(train_iters):
             return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
@@ -73,12 +73,12 @@ for _ in range(n_iters):
             Case('Transformer', TransformerConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2, pos_emb=False), train_args=make_args(train_iters_transf)),
         ]
 
-        if n_w is not None:
-            curr_tasks.append(FunctionCase('dMMSE', estimate_dmmse))
+        # if n_w is not None:
+        #     curr_tasks.append(FunctionCase('dMMSE', estimate_dmmse))
 
         for case in curr_tasks:
             case.train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args)
-            case.test_task = FiniteLinearRegression(batch_size=8192, **common_task_args)
+            case.test_task = FiniteLinearRegression(batch_size=128, **common_task_args)
             case.info['common_task_args'] = common_task_args
 
         all_cases.extend(curr_tasks)
@@ -95,7 +95,7 @@ true_tasks = []
 for c in all_cases:
     task_args = c.info['common_task_args']
     task_args['n_ws'] = None
-    true_tasks.append(FiniteLinearRegression(batch_size=8192, **task_args))
+    true_tasks.append(FiniteLinearRegression(batch_size=128, **task_args))
 
 eval_cases(all_cases, pretrain_tasks, key_name='mse_pretrain', use_mse=True)
 eval_cases(all_cases, true_tasks, key_name='mse_true', use_mse=True)

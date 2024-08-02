@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -c 8
 #SBATCH -t 1-00:00
-#SBATCH -p kempner
+#SBATCH -p kempner_h100,kempner
 #SBATCH --gres=gpu:1
 #SBATCH --mem=16000
 #SBATCH --array=1-36%12
