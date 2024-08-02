@@ -42,7 +42,7 @@ class FiniteLinearRegression:
     def __init__(self, n_ws=128, n_points=16, n_dims=8, 
                  noise_scale=0.05, batch_size=128, 
                  stack_y=True, enforce_orth_x=False,
-                 var_length=False,
+                 var_length=False, autoregressive=True, dist=None,
                  seed=None, reset_rng_for_data=True) -> None:
         self.n_points = n_points
         self.n_dims = n_dims
@@ -54,6 +54,8 @@ class FiniteLinearRegression:
         self.stack_y = stack_y
         self.enforce_orth_x = enforce_orth_x
         self.var_length = var_length
+        self.autoregressive = autoregressive
+        self.dist = dist
 
         self.ws = None
         if n_ws is not None:
@@ -88,10 +90,11 @@ class FiniteLinearRegression:
 
         if self.stack_y:
             lower = 3 if self.var_length else self.n_points
+            upper = self.n_points + 1
 
             all_xs = []
             all_ys = []
-            for n in range(lower, self.n_points + 1):
+            for n in range(lower, upper):
                 out = np.concatenate((xs[:,:n], ys[:,:n]), axis=-1)
                 ys_true = ys[:,n-1].squeeze()
                 out[:, -1, -1] = 0
@@ -100,9 +103,30 @@ class FiniteLinearRegression:
                 out_pad[:,:n,:] = out
                 all_xs.append(out_pad)
                 all_ys.append(ys_true)
+
+            all_xs = np.stack(all_xs)
+            all_ys = np.stack(all_ys)
+
+            if not self.autoregressive:
+                if self.dist == 'zipf':
+                    ranks = np.arange(lower, upper)
+                    probs = 1 / ranks
+                    probs = probs / np.sum(probs)
+                    rand_idxs = np.array([np.random.choice(ranks, p=probs) for _ in range(self.batch_size)])
+                else:
+                    rand_idxs = np.random.randint(lower, upper, size=self.batch_size)
+
+                rand_idxs = rand_idxs - 3
+                # print('XS', all_xs.shape)
+                # print('RAND IDX', rand_idxs)
+                all_xs = all_xs[rand_idxs, np.arange(self.batch_size)]
+                all_ys = all_ys[rand_idxs, np.arange(self.batch_size)]
+                # print('XS', all_xs.shape)
+                # print('YS', all_ys.shape)
             
-            all_xs = np.concatenate(all_xs)
-            all_ys = np.concatenate(all_ys)
+            if len(all_ys.shape) > 1:
+                all_xs = np.concatenate(all_xs)
+                all_ys = np.concatenate(all_ys)
             return all_xs, all_ys
 
         else:
@@ -137,44 +161,15 @@ def t(xs):
     return np.swapaxes(xs, -2, -1)
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
+    n_points = 16
 
-
-    def unpack(pack_xs):
-        xs = pack_xs[:,:-1,:-1]
-        ys = pack_xs[:,:-1,[-1]]
-        x_q = pack_xs[:,[-1],:-1]
-        return xs, ys, x_q
-
-
-    def estimate_dmmse(task, xs, ys, x_q, sig2=0.05):
-        '''
-        xs: N x P x D
-        ys: N x P x 1
-        x_q: N x 1 x D
-        ws: F x D
-        '''
-        ws = task.ws
-        
-        weights = np.exp(-(1 / (2 * sig2)) * np.sum((ys - xs @ ws.T)**2, axis=1))  # N x F
-        probs = weights / (np.sum(weights, axis=1, keepdims=True) + 1e-32)
-        w_dmmse = np.expand_dims(probs, axis=-1) * ws  # N x F x D
-        w_dmmse = np.sum(w_dmmse, axis=1, keepdims=True)  # N x 1 x D
-        return (x_q @ t(w_dmmse)).squeeze()
-
-
-    def estimate_ridge(task, xs, ys, x_q, sig2=0.05):
-        n_dims = xs.shape[-1]
-        w_ridge = np.linalg.pinv(t(xs) @ xs + n_dims * sig2 * np.identity(n_dims)) @ t(xs) @ ys
-        return (x_q @ w_ridge).squeeze()
-
-    n_points = 5
-
-    task = FiniteLinearRegression(n_points=n_points, n_dims=2, stack_y=True, var_length=True, batch_size=2)
+    task = FiniteLinearRegression(autoregressive=False, dist='zipf', n_points=n_points, n_dims=2, stack_y=True, var_length=True, batch_size=10)
     xs, ys = next(task)
 
-    print(estimate_ridge(task, *unpack(xs[:,:2,:])))
+    print(xs)
     print(ys)
 
     
 
+
+# %%

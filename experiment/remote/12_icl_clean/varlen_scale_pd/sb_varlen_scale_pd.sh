@@ -7,11 +7,10 @@
 #SBATCH --mem=8000
 #SBATCH -o log.%A.%a.out
 #SBATCH -e log.%A.%a.err
-#SBATCH --array=18
+#SBATCH --array=1-18
 #SBATCH --mail-type=END
 #SBATCH --mail-user=wtong@g.harvard.edu
 #SBATCH --account=kempner_pehlevan_lab
-# # SBATCH --account=pehlevan_lab
 
 source ../../../../../venv_haystack/bin/activate
 python run.py ${SLURM_ARRAY_TASK_ID}
