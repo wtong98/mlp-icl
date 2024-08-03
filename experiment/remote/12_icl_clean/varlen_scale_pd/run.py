@@ -14,7 +14,7 @@ from task.regression import FiniteLinearRegression
 run_id = new_seed()
 print('RUN ID', run_id)
 
-run_split = 18
+run_split = 15
 
 @dataclass
 class FunctionCase:
@@ -38,9 +38,9 @@ n_iters = 1
 train_iters_mlp = 2_048_000
 train_iters_mix = 500_000
 train_iters_transf = 600_000
-batch_size = 128
+batch_size_max = 1024
 # n_points = [4, 8, 16, 32, 64, 128, 256, 512]
-n_points = [4, 8, 16, 32, 64, 128]
+n_points = [4, 8, 16, 32, 64]
 n_dims = [8]
 n_ws = None
 
@@ -48,26 +48,26 @@ model_depth = 8
 mix_channels = 64
 
 ### START TEST PARAMS
-run_split = 1
+# run_split = 1
 
-n_iters = 1
-train_iters_mlp = 1_024
-train_iters_mix = 256
-train_iters_transf = 128
-batch_size = 128
-n_points = [4]
-n_dims = [2]
-n_ws = None
+# n_iters = 1
+# train_iters_mlp = 1_024
+# train_iters_mix = 256
+# train_iters_transf = 128
+# batch_size_max = 128
+# n_points = [4]
+# n_dims = [2]
+# n_ws = None
 
-model_depth = 2
-mix_channels = 4
+# model_depth = 2
+# mix_channels = 4
 ### END TEST PARAMS
 
 all_cases = []
 for _ in range(n_iters):
     for n_point in n_points:
         for n_dim in n_dims:
-            common_task_args = {'var_length': True, 'autoregressive': False, 'n_ws': n_ws, 'n_dims': n_dim, 'n_points': n_point}
+            common_task_args = {'var_length': True, 'autoregressive': True, 'n_ws': n_ws, 'n_dims': n_dim, 'n_points': n_point}
 
             def train_args(train_iters):
                 return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
@@ -81,7 +81,7 @@ for _ in range(n_iters):
 
             for case in curr_tasks:
                 seed = new_seed()
-                case.train_task = FiniteLinearRegression(batch_size=batch_size, seed=seed, **common_task_args)
+                case.train_task = FiniteLinearRegression(batch_size=batch_size_max//n_point, seed=seed, **common_task_args)
                 case.test_task = FiniteLinearRegression(batch_size=1024, seed=seed, **common_task_args)
                 case.info['common_task_args'] = common_task_args
 

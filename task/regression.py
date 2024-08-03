@@ -107,7 +107,7 @@ class FiniteLinearRegression:
             all_xs = np.stack(all_xs)
             all_ys = np.stack(all_ys)
 
-            if not self.autoregressive:
+            if not self.autoregressive and self.var_length:
                 if self.dist == 'zipf':
                     ranks = np.arange(lower, upper)
                     probs = 1 / ranks
@@ -163,7 +163,7 @@ def t(xs):
 if __name__ == '__main__':
     n_points = 16
 
-    task = FiniteLinearRegression(autoregressive=False, dist='zipf', n_points=n_points, n_dims=2, stack_y=True, var_length=True, batch_size=10)
+    task = FiniteLinearRegression(autoregressive=False, dist='zipf', n_points=n_points, n_dims=2, stack_y=True, var_length=False, batch_size=10)
     xs, ys = next(task)
 
     print(xs)

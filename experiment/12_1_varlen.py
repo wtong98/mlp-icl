@@ -106,19 +106,19 @@ def format_df(name=None):
 # <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
-# fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_mlp_scale.svg')
+fig.savefig(fig_dir / 'varlen_mlp_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
-# fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_mix_scale.svg')
+fig.savefig(fig_dir / 'varlen_mix_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
-# fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_transf_scale.svg')
+fig.savefig(fig_dir / 'varlen_transf_scale.svg')
 fig.show()
 
 # <codecell>
@@ -126,7 +126,8 @@ mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
 # mdfs = [format_df('Transformer'), format_df('Mixer'), format_df('MLP')]
 mdf = pd.concat(mdfs)
 # mdf = pd.concat(mdfs).sample(frac=1)
-mdf = mdf[::4].sample(frac=1)
+# mdf = mdf[::4].sample(frac=1)
+mdf = mdf.sample(frac=1)[::3]
 
 g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, legend='auto', s=50, hue_order=['MLP', 'Mixer', 'Transformer'])
 g.set_xscale('log')
@@ -186,6 +187,7 @@ for _ in tqdm(range(100)):
         k = int(k)
 
         all_dmmse = []
+        all_dmmse_unr = []
         all_ridge = []
         for n in range(3, 8+1):
             task = FiniteLinearRegression(k, n_points=n, n_dims=8, batch_size=128)
@@ -197,11 +199,17 @@ for _ in tqdm(range(100)):
             all_dmmse.append(dm_result)
             ridge_result = np.mean((ys_pred - ys)**2)
             all_ridge.append(ridge_result)
+
+            task_unr = FiniteLinearRegression(None, n_points=n, n_dims=8, batch_size=128)
+            xs, ys = next(task_unr)
+            ys_pred_dm_unr = estimate_dmmse(task, *unpack(xs), sig2=0.05)
+            all_dmmse_unr.append(np.mean((ys_pred_dm_unr - ys)**2))
         
         ridge_res.append({
             'n_tasks': k,
             'ridge_mse': np.mean(all_ridge),
-            'dmmse_mse': np.mean(all_dmmse)
+            'dmmse_mse': np.mean(all_dmmse),
+            'dmmse_mse_unr': np.mean(all_dmmse_unr)
         })
 
 rdf = pd.DataFrame(ridge_res)
@@ -209,15 +217,17 @@ rdf
 
 # <codecell>
 def make_iwl_to_icl_plot(mse_type, title='', ylim=False, sim=False):
-    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='mean', markersize=8)
+    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='min', markersize=8, ci=False)
     g.set_xscale('log', base=2)
     if ylim:
         g.set_ylim(0, 0.55)
-    # g.plot(ddf['n_tasks'], ddf[mse_type], linestyle='dashed', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=6)
 
-    if title.startswith('Finite'):
-        sns.lineplot(rdf, x='n_tasks', y='dmmse_mse', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=6, linestyle='dashed', errorbar=None)
-    sns.lineplot(rdf, x='n_tasks', y='ridge_mse', color='r', alpha=0.5, label='Ridge', marker='o', markersize=8, linestyle='dashed', errorbar=None)
+    # if title.startswith('Finite'):
+    #     sns.lineplot(rdf, x='n_tasks', y='dmmse_mse', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=8, linestyle='dashed', errorbar=None)
+    # else:
+    #     sns.lineplot(rdf, x='n_tasks', y='dmmse_mse_unr', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=8, linestyle='dashed', errorbar=None)
+
+    # sns.lineplot(rdf, x='n_tasks', y='ridge_mse', color='r', alpha=0.5, label='Ridge', marker='o', markersize=8, linestyle='dashed', errorbar=None)
 
     g.legend()
 
@@ -231,8 +241,9 @@ def make_iwl_to_icl_plot(mse_type, title='', ylim=False, sim=False):
     return fig
 
 fig = make_iwl_to_icl_plot('mse_pretrain', 'Finite Task Distribution', ylim=False, sim=True)
-# fig.savefig('fig/final/fig1/reg_icl_pretrain_mse.svg')
+# fig.savefig('fig/final/varlen_reg_icl_pretrain_mse.svg')
 fig.show()
+
 # <codecell>
 fig = make_iwl_to_icl_plot('mse_true', 'Unrestricted Task Distribution')
 # fig.savefig('fig/final/fig1/reg_icl_true_mse.svg')
@@ -241,7 +252,7 @@ fig.show()
 
 # <codecell>
 #### PATCH-WISE SCALING
-df = collate_dfs('remote/12_icl_clean/varlen_scale_pd/', show_progress=False)
+df = collate_dfs('remote/12_icl_clean/varlen_scale_pd/autoreg', show_progress=False)
 mdf = df[df['name'] != 'Ridge']
 
 # <codecell>
@@ -252,6 +263,7 @@ def extract_plot_vals(row):
     slice_idxs = (slices * len(hist)).astype(np.int32)
     slice_idxs[-1] -= 1  # adjust for last value
     
+    row.test_task.autoregressive = False
     n_points = row.test_task.n_points
     row.test_task.var_length = False
     all_ridge_err = []
@@ -321,7 +333,7 @@ g = make_pd_plot('Transformer')
 # <codecell>
 # Subsection on high dimensions
 adf = plot_df[plot_df['n_dims'] == 8]
-g = sns.lineplot(adf, x='n_points', y='mse_final', hue='name', marker='o', estimator='mean', markersize=8)
+g = sns.lineplot(adf, x='n_points', y='mse_final', hue='name', marker='o', estimator='min', markersize=8)
 g.set_xscale('log', base=2)
 g.axhline(0.95, linestyle='dashed', color='k', alpha=0.3)
 
@@ -332,4 +344,4 @@ g.legend_.set_title(None)
 fig = g.figure
 # fig.set_size_inches(4, 3)
 fig.tight_layout()
-fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
+# fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
