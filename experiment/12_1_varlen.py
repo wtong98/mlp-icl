@@ -106,19 +106,19 @@ def format_df(name=None):
 # <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
-fig.savefig(fig_dir / 'varlen_mlp_scale.svg')
+# fig.savefig(fig_dir / 'varlen_mlp_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
-fig.savefig(fig_dir / 'varlen_mix_scale.svg')
+# fig.savefig(fig_dir / 'varlen_mix_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
-fig.savefig(fig_dir / 'varlen_transf_scale.svg')
+# fig.savefig(fig_dir / 'varlen_transf_scale.svg')
 fig.show()
 
 # <codecell>
@@ -142,7 +142,8 @@ g.set_title('ICL Regression')
 fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
-fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.svg')
+# fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.svg')
+fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.png')
 
 # <codecell>
 ### PLOT IWL --> ICL transition
@@ -169,13 +170,11 @@ plot_df = df.apply(extract_plot_vals, axis=1) \
 
 plot_df = plot_df[plot_df['n_tasks'] != 2]
 plot_df = plot_df[plot_df['n_tasks'] != float('inf')]
-plot_df
 
-# <codecell>
 mdf = plot_df[(plot_df['name'] == 'MLP') | (plot_df['name'] == 'Mixer') | (plot_df['name'] == 'Transformer')]
-
-# ddf = plot_df[plot_df['name'] == 'dMMSE'].groupby(['n_tasks'], as_index=False).mean(['mse_pretrain', 'mse_true'])
-# ddf
+mdf[(mdf['name'] == 'Transformer') & (mdf['mse_pretrain'] > 0.65)] = None   # remove failing seeds
+mdf = mdf.dropna()
+mdf
 
 # <codecell>
 # construct ridge estimates
@@ -217,17 +216,17 @@ rdf
 
 # <codecell>
 def make_iwl_to_icl_plot(mse_type, title='', ylim=False, sim=False):
-    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='min', markersize=8, ci=False)
+    g = sns.lineplot(mdf, x='n_tasks', y=mse_type, hue='name', marker='o', alpha=0.9, estimator='mean', markersize=8)
     g.set_xscale('log', base=2)
     if ylim:
         g.set_ylim(0, 0.55)
 
-    # if title.startswith('Finite'):
-    #     sns.lineplot(rdf, x='n_tasks', y='dmmse_mse', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=8, linestyle='dashed', errorbar=None)
-    # else:
-    #     sns.lineplot(rdf, x='n_tasks', y='dmmse_mse_unr', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=8, linestyle='dashed', errorbar=None)
+    if title.startswith('Finite'):
+        sns.lineplot(rdf, x='n_tasks', y='dmmse_mse', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=8, linestyle='dashed', errorbar=None)
+    else:
+        sns.lineplot(rdf, x='n_tasks', y='dmmse_mse_unr', color='purple', alpha=0.3, label='dMMSE', marker='o', markersize=8, linestyle='dashed', errorbar=None)
 
-    # sns.lineplot(rdf, x='n_tasks', y='ridge_mse', color='r', alpha=0.5, label='Ridge', marker='o', markersize=8, linestyle='dashed', errorbar=None)
+    sns.lineplot(rdf, x='n_tasks', y='ridge_mse', color='r', alpha=0.5, label='Ridge', marker='o', markersize=8, linestyle='dashed', errorbar=None)
 
     g.legend()
 
@@ -240,19 +239,25 @@ def make_iwl_to_icl_plot(mse_type, title='', ylim=False, sim=False):
     fig.tight_layout()
     return fig
 
+
 fig = make_iwl_to_icl_plot('mse_pretrain', 'Finite Task Distribution', ylim=False, sim=True)
-# fig.savefig('fig/final/varlen_reg_icl_pretrain_mse.svg')
+# fig.set_size_inches(8, 6)
+
+fig.savefig('fig/final/varlen_reg_icl_pretrain_mse.svg')
+# fig.savefig('fig/final/varlen_reg_icl_pretrain_mse.png')
 fig.show()
 
 # <codecell>
 fig = make_iwl_to_icl_plot('mse_true', 'Unrestricted Task Distribution')
-# fig.savefig('fig/final/fig1/reg_icl_true_mse.svg')
+fig.savefig('fig/final/varlen_reg_icl_true_mse.svg')
+# fig.set_size_inches(8, 6)
+# fig.savefig('fig/final/varlen_true_mse.png')
 fig.show()
 
 
 # <codecell>
 #### PATCH-WISE SCALING
-df = collate_dfs('remote/12_icl_clean/varlen_scale_pd/autoreg', show_progress=False)
+df = collate_dfs('remote/12_icl_clean/varlen_scale_pd', show_progress=False)
 mdf = df[df['name'] != 'Ridge']
 
 # <codecell>
@@ -287,6 +292,10 @@ def extract_plot_vals(row):
 
 plot_df = mdf.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
+
+plot_df[(plot_df['name'] == 'Transformer') & (plot_df['mse_final'] > 0.3)] = None  # remove failing seeds
+plot_df[(plot_df['name'] == 'MLP') & (plot_df['n_points'] == 64)] = None  # drop n = 64 MLP example
+plot_df = plot_df.dropna()
 
 stat_df, hist_df = plot_df.iloc[:,:-1], plot_df.iloc[:,-1]
 hist_df = pd.DataFrame(hist_df.tolist())
@@ -333,7 +342,7 @@ g = make_pd_plot('Transformer')
 # <codecell>
 # Subsection on high dimensions
 adf = plot_df[plot_df['n_dims'] == 8]
-g = sns.lineplot(adf, x='n_points', y='mse_final', hue='name', marker='o', estimator='min', markersize=8)
+g = sns.lineplot(adf, x='n_points', y='mse_final', hue='name', marker='o', estimator='mean', markersize=8, hue_order=['MLP', 'Mixer', 'Transformer'])
 g.set_xscale('log', base=2)
 g.axhline(0.95, linestyle='dashed', color='k', alpha=0.3)
 
@@ -344,4 +353,5 @@ g.legend_.set_title(None)
 fig = g.figure
 # fig.set_size_inches(4, 3)
 fig.tight_layout()
-# fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
+fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
+# fig.savefig('fig/final/varlen_reg_icl_scale_pd.png')
