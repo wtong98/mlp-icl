@@ -44,6 +44,7 @@ class TransformerConfig:
     n_mlp_layers: int = 2
     return_final_logits_only: bool = True
     pure_linear_self_att: bool = False
+    causal_mask: bool = True
 
     def to_model(self):
         return Transformer(self)
@@ -253,7 +254,10 @@ class Transformer(nn.Module):
             # decoder_mask = nn.combine_masks(
             #     decoder_mask,
             #     nn.make_causal_mask(inputs))
-            decoder_mask = nn.make_causal_mask(jnp.zeros(inputs.shape[:2]))
+
+            decoder_mask = None
+            if self.config.causal_mask:
+                decoder_mask = nn.make_causal_mask(jnp.zeros(inputs.shape[:2]))
             
             for _ in range(config.n_layers):
                 y = TransformerBlock(

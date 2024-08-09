@@ -66,37 +66,49 @@ n_ws_set = [None]
 all_cases = []
 
 for n_ws in n_ws_set:
-    for depth in depths_mlp:
-        for width in widths_mlp:
-            common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
+    # for depth in depths_mlp:
+    #     for width in widths_mlp:
+    #         common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
 
-            all_cases.append(
-                Case('MLP', MlpConfig(n_out=1, n_layers=depth, n_hidden=width),
-                    train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
-                    train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
-                    test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),
-                    info={'common_task_args': common_task_args})
-            )
+    #         all_cases.append(
+    #             Case('MLP', MlpConfig(n_out=1, n_layers=depth, n_hidden=width),
+    #                 train_args={'train_iters': train_iters_mlp, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+    #                 train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
+    #                 test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),
+    #                 info={'common_task_args': common_task_args})
+    #         )
 
-    for depth in depths_mix:
-        for width in widths_mix:
-            common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
+    # for depth in depths_mix:
+    #     for width in widths_mix:
+    #         common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
 
-            all_cases.append(
-                Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=depth, n_hidden=width, n_channels=channels_mix),
-                    train_args={'train_iters': train_iters_mix, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
-                    train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
-                    test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),
-                    info={'common_task_args': common_task_args})
-            )
+    #         all_cases.append(
+    #             Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=depth, n_hidden=width, n_channels=channels_mix),
+    #                 train_args={'train_iters': train_iters_mix, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+    #                 train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
+    #                 test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),
+    #                 info={'common_task_args': common_task_args})
+    #         )
 
+
+    # for depth in depths_trans:
+    #     for width in widths_trans:
+    #         common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
+
+    #         all_cases.append(
+    #             Case('Transformer', TransformerConfig(n_out=1, n_layers=depth, n_hidden=width, pos_emb=False, n_heads=1, n_mlp_layers=2),
+    #                 train_args={'train_iters': train_iters_trans, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
+    #                 train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
+    #                 test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),
+    #                 info={'common_task_args': common_task_args})
+    #         )
 
     for depth in depths_trans:
         for width in widths_trans:
             common_task_args = {'n_ws': n_ws, 'n_dims': n_dims, 'n_points': n_points, 'seed': new_seed()}
 
             all_cases.append(
-                Case('Transformer', TransformerConfig(n_out=1, n_layers=depth, n_hidden=width, pos_emb=False, n_heads=1, n_mlp_layers=2),
+                Case('Transformer (non-causal)', TransformerConfig(causal_mask=False, n_out=1, n_layers=depth, n_hidden=width, pos_emb=False, n_heads=1, n_mlp_layers=2),
                     train_args={'train_iters': train_iters_trans, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'},
                     train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args),
                     test_task=FiniteLinearRegression(batch_size=1024, **common_task_args),

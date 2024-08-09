@@ -136,7 +136,7 @@ g.set_title('ICL Regression')
 fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
-fig.savefig(fig_dir / 'fig1/reg_icl_all_scale.svg')
+# fig.savefig(fig_dir / 'fig1/reg_icl_all_scale.svg')
 
 # <codecell>
 ### PLOT IWL --> ICL transition
