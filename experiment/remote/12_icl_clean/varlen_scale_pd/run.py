@@ -38,10 +38,10 @@ n_iters = 1
 train_iters_mlp = 2_048_000
 train_iters_mix = 500_000
 train_iters_transf = 600_000
-batch_size_max = 512
+batch_size_max = 2048
 # n_points = [4, 8, 16, 32, 64, 128, 256, 512]
-# n_points = [4, 8, 16, 32, 64]
-n_points = [64, 128]
+n_points = [4, 8, 16, 32, 64]
+# n_points = [64, 128]
 n_dims = [8]
 n_ws = None
 
@@ -74,7 +74,7 @@ for _ in range(n_iters):
                 return {'train_iters': train_iters, 'test_iters': 1, 'test_every': 1000, 'loss': 'mse'}
 
             curr_tasks = [
-                # Case('MLP', MlpConfig(n_out=1, n_layers=model_depth, n_hidden=2048), train_args=train_args(train_iters_mlp)),
+                Case('MLP', MlpConfig(n_out=1, n_layers=model_depth, n_hidden=2048), train_args=train_args(train_iters_mlp)),
                 Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_channels=mix_channels), train_args=train_args(train_iters_mix)),
                 Case('Transformer', TransformerConfig(pos_emb=False, n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2), train_args=train_args(train_iters_transf)),
                 # FunctionCase('Ridge', estimate_ridge),
@@ -83,7 +83,7 @@ for _ in range(n_iters):
             for case in curr_tasks:
                 seed = new_seed()
                 case.train_task = FiniteLinearRegression(batch_size=batch_size_max//n_point, seed=seed, **common_task_args)
-                case.test_task = FiniteLinearRegression(batch_size=1024, seed=seed, **common_task_args)
+                case.test_task = FiniteLinearRegression(batch_size=batch_size_max//n_point, seed=seed, **common_task_args)
                 case.info['common_task_args'] = common_task_args
 
             all_cases.extend(curr_tasks)

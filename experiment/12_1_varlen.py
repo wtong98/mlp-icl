@@ -106,19 +106,19 @@ def format_df(name=None):
 # <codecell>
 mdf = format_df('MLP')
 fig = plot_compute(mdf, 'MLP')
-# fig.savefig(fig_dir / 'varlen_mlp_scale.svg')
+fig.savefig(fig_dir / 'varlen_mlp_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Mixer')
 fig = plot_compute(mdf, 'Mixer')
-# fig.savefig(fig_dir / 'varlen_mix_scale.svg')
+fig.savefig(fig_dir / 'varlen_mix_scale.svg')
 fig.show()
 
 # <codecell>
 mdf = format_df('Transformer')
 fig = plot_compute(mdf, 'Transformer')
-# fig.savefig(fig_dir / 'varlen_transf_scale.svg')
+fig.savefig(fig_dir / 'varlen_transf_scale.svg')
 fig.show()
 
 # <codecell>
@@ -127,7 +127,7 @@ mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
 mdf = pd.concat(mdfs)
 # mdf = pd.concat(mdfs).sample(frac=1)
 # mdf = mdf[::4].sample(frac=1)
-mdf = mdf.sample(frac=1)[::3]
+mdf = mdf.sample(frac=1)[::5]
 
 g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, legend='auto', s=50, hue_order=['MLP', 'Mixer', 'Transformer'])
 g.set_xscale('log')
@@ -293,8 +293,8 @@ def extract_plot_vals(row):
 plot_df = mdf.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
 
-plot_df[(plot_df['name'] == 'Transformer') & (plot_df['mse_final'] > 0.3)] = None  # remove failing seeds
-plot_df[(plot_df['name'] == 'MLP') & (plot_df['n_points'] == 64)] = None  # drop n = 64 MLP example
+# plot_df[(plot_df['name'] == 'Transformer') & (plot_df['mse_final'] > 0.3)] = None  # remove failing seeds
+# plot_df[(plot_df['name'] == 'MLP') & (plot_df['n_points'] == 64)] = None  # drop n = 64 MLP example
 plot_df = plot_df.dropna()
 
 stat_df, hist_df = plot_df.iloc[:,:-1], plot_df.iloc[:,-1]
@@ -353,5 +353,5 @@ g.legend_.set_title(None)
 fig = g.figure
 # fig.set_size_inches(4, 3)
 fig.tight_layout()
-fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
+# fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
 # fig.savefig('fig/final/varlen_reg_icl_scale_pd.png')

@@ -117,13 +117,15 @@ fig.savefig(fig_dir / 'fig_reg_icl_supp/reg_icl_transf_scale.svg')
 fig.show()
 
 # <codecell>
-mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
+mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer'), format_df('Transformer (non-causal)')]
+# mdfs = [format_df('Transformer'), format_df('Transformer (non-causal)')]
 # mdfs = [format_df('Transformer'), format_df('Mixer'), format_df('MLP')]
 mdf = pd.concat(mdfs)
 # mdf = pd.concat(mdfs).sample(frac=1)
-mdf = mdf[::4].sample(frac=1)
+mdf = mdf.sample(frac=1)[::5]
+# mdf = mdf[::4].sample(frac=1)
 
-g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, legend='auto', s=50, hue_order=['MLP', 'Mixer', 'Transformer'])
+g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, legend='auto', s=50, hue_order=['MLP', 'Mixer', 'Transformer', 'Transformer (non-causal)'], palette=['C0', 'C1', 'C2', 'C6'])
 g.set_xscale('log')
 g.axhline(ridge_result, linestyle='dashed', color='r', alpha=0.5)
 
@@ -136,7 +138,7 @@ g.set_title('ICL Regression')
 fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
-# fig.savefig(fig_dir / 'fig1/reg_icl_all_scale.svg')
+fig.savefig(fig_dir / 'reg_icl_all_scale_non_causal.svg')
 
 # <codecell>
 ### PLOT IWL --> ICL transition
