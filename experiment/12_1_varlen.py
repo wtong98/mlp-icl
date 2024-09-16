@@ -142,8 +142,8 @@ g.set_title('ICL Regression')
 fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
-# fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.svg')
-fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.png')
+fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.svg')
+# fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.png')
 
 # <codecell>
 ### PLOT IWL --> ICL transition
@@ -172,7 +172,6 @@ plot_df = plot_df[plot_df['n_tasks'] != 2]
 plot_df = plot_df[plot_df['n_tasks'] != float('inf')]
 
 mdf = plot_df[(plot_df['name'] == 'MLP') | (plot_df['name'] == 'Mixer') | (plot_df['name'] == 'Transformer')]
-mdf[(mdf['name'] == 'Transformer') & (mdf['mse_pretrain'] > 0.65)] = None   # remove failing seeds
 mdf = mdf.dropna()
 mdf
 
@@ -293,8 +292,6 @@ def extract_plot_vals(row):
 plot_df = mdf.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
 
-# plot_df[(plot_df['name'] == 'Transformer') & (plot_df['mse_final'] > 0.3)] = None  # remove failing seeds
-# plot_df[(plot_df['name'] == 'MLP') & (plot_df['n_points'] == 64)] = None  # drop n = 64 MLP example
 plot_df = plot_df.dropna()
 
 stat_df, hist_df = plot_df.iloc[:,:-1], plot_df.iloc[:,-1]
@@ -353,5 +350,7 @@ g.legend_.set_title(None)
 fig = g.figure
 # fig.set_size_inches(4, 3)
 fig.tight_layout()
-# fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
+fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
 # fig.savefig('fig/final/varlen_reg_icl_scale_pd.png')
+
+# %%
