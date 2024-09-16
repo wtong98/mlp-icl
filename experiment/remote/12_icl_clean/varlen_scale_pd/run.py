@@ -1,4 +1,5 @@
 # <codecell>
+from typing import Callable
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -39,30 +40,12 @@ train_iters_mlp = 2_048_000
 train_iters_mix = 500_000
 train_iters_transf = 600_000
 batch_size_max = 2048
-# n_points = [4, 8, 16, 32, 64, 128, 256, 512]
 n_points = [4, 8, 16, 32, 64]
-# n_points = [64, 128]
 n_dims = [8]
 n_ws = None
 
 model_depth = 8
 mix_channels = 64
-
-### START TEST PARAMS
-# run_split = 1
-
-# n_iters = 1
-# train_iters_mlp = 1_024
-# train_iters_mix = 256
-# train_iters_transf = 128
-# batch_size_max = 128
-# n_points = [4]
-# n_dims = [2]
-# n_ws = None
-
-# model_depth = 2
-# mix_channels = 4
-### END TEST PARAMS
 
 all_cases = []
 for _ in range(n_iters):
@@ -77,7 +60,6 @@ for _ in range(n_iters):
                 Case('MLP', MlpConfig(n_out=1, n_layers=model_depth, n_hidden=2048), train_args=train_args(train_iters_mlp)),
                 Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_channels=mix_channels), train_args=train_args(train_iters_mix)),
                 Case('Transformer', TransformerConfig(pos_emb=False, n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2), train_args=train_args(train_iters_transf)),
-                # FunctionCase('Ridge', estimate_ridge),
             ]
 
             for case in curr_tasks:

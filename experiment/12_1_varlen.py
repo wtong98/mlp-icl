@@ -5,9 +5,6 @@ Assembling the final ICL figures for NeurIPS 2024 cleanly
 # <codecell>
 from pathlib import Path
 
-import jax.numpy as jnp
-from flax.serialization import to_state_dict
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -17,8 +14,6 @@ import sys
 sys.path.append('../../../')
 sys.path.append('../../../../')
 from common import *
-from model.mlp import MlpConfig, RfConfig, SpatialMlpConfig
-from model.transformer import TransformerConfig
 from task.regression import FiniteLinearRegression 
 
 set_theme()
@@ -88,7 +83,6 @@ def extract_plot_vals(row):
 
 plot_df = df.apply(extract_plot_vals, axis=1) \
             .reset_index(drop=True)
-#             .melt(id_vars=['name', 'n_pretrain_tasks', 'n_dims'], var_name='mse_type', value_name='mse')
 
 def format_df(name=None):
     mdf = plot_df.copy()
@@ -123,10 +117,7 @@ fig.show()
 
 # <codecell>
 mdfs = [format_df('MLP'), format_df('Mixer'), format_df('Transformer')]
-# mdfs = [format_df('Transformer'), format_df('Mixer'), format_df('MLP')]
 mdf = pd.concat(mdfs)
-# mdf = pd.concat(mdfs).sample(frac=1)
-# mdf = mdf[::4].sample(frac=1)
 mdf = mdf.sample(frac=1)[::5]
 
 g = sns.scatterplot(mdf, x='total_pflops', y='mse', hue='name', marker='o', alpha=0.7, legend='auto', s=50, hue_order=['MLP', 'Mixer', 'Transformer'])
@@ -143,7 +134,6 @@ fig = g.get_figure()
 fig.set_size_inches(4, 3)
 fig.tight_layout()
 fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.svg')
-# fig.savefig(fig_dir / 'varlen_reg_icl_all_scale.png')
 
 # <codecell>
 ### PLOT IWL --> ICL transition
@@ -240,7 +230,6 @@ def make_iwl_to_icl_plot(mse_type, title='', ylim=False, sim=False):
 
 
 fig = make_iwl_to_icl_plot('mse_pretrain', 'Finite Task Distribution', ylim=False, sim=True)
-# fig.set_size_inches(8, 6)
 
 fig.savefig('fig/final/varlen_reg_icl_pretrain_mse.svg')
 # fig.savefig('fig/final/varlen_reg_icl_pretrain_mse.png')
@@ -249,7 +238,6 @@ fig.show()
 # <codecell>
 fig = make_iwl_to_icl_plot('mse_true', 'Unrestricted Task Distribution')
 fig.savefig('fig/final/varlen_reg_icl_true_mse.svg')
-# fig.set_size_inches(8, 6)
 # fig.savefig('fig/final/varlen_true_mse.png')
 fig.show()
 
@@ -348,7 +336,6 @@ g.set_xlabel('$L$')
 g.legend_.set_title(None)
 
 fig = g.figure
-# fig.set_size_inches(4, 3)
 fig.tight_layout()
 fig.savefig('fig/final/varlen_reg_icl_scale_pd.svg')
 # fig.savefig('fig/final/varlen_reg_icl_scale_pd.png')

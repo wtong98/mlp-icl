@@ -4,7 +4,6 @@ Observing scaling laws associated with model size and training iterations
 
 # <codecell>
 import jax
-from flax.serialization import to_state_dict
 import pandas as pd
 from tqdm import tqdm
 
@@ -40,27 +39,6 @@ widths_trans = [32, 128, 512]
 n_dims = 8
 n_points = 8
 n_ws_set = [None]
-
-### START TEST CONFIGS
-# run_split = 1
-
-# train_iters_mlp = 2_000
-# depths_mlp = [2]
-# widths_mlp = [128]
-
-# train_iters_mix = 2_000
-# depths_mix = [2]
-# widths_mix = [64]
-# channels_mix = 4
-
-# train_iters_trans = 2_000
-# depths_trans = [2]
-# widths_trans = [32]
-
-# n_dims = 8
-# n_points = 8
-# n_ws_set = [None]
-### END TEST CONFIGS
 
 
 all_cases = []

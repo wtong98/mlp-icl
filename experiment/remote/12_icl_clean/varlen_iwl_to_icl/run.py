@@ -1,4 +1,5 @@
 # <codecell>
+from typing import Callable
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -45,19 +46,6 @@ n_ws = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
 model_depth = 8
 mix_channels = 128
 
-### START TEST CONFIGS
-# run_split = 1
-# train_iters_mlp = 1_024
-# train_iters_mix = 256
-# train_iters_transf = 128
-# batch_size = 64
-# n_points = 8
-# n_dims = 8
-# n_ws = [2]
-
-# model_depth = 1
-# mix_channels = 4
-### END TEST CONFIGS
 
 all_cases = []
 for _ in range(n_iters):
@@ -72,9 +60,6 @@ for _ in range(n_iters):
             Case('Mixer', SpatialMlpConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_channels=mix_channels), train_args=make_args(train_iters_mix)),
             Case('Transformer', TransformerConfig(n_out=1, n_layers=model_depth, n_hidden=512, n_mlp_layers=2, pos_emb=False), train_args=make_args(train_iters_transf)),
         ]
-
-        # if n_w is not None:
-        #     curr_tasks.append(FunctionCase('dMMSE', estimate_dmmse))
 
         for case in curr_tasks:
             case.train_task = FiniteLinearRegression(batch_size=batch_size, **common_task_args)
