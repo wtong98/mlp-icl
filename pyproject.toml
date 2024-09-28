@@ -1,0 +1,35 @@
+[project]
+name = "mlp_icl"
+version = "0.0.1"
+authors = [
+  { name = "William L. Tong" },
+  { name = "Cengiz Pehlevan" }
+]
+description = "Python package for the paper 'MLPs Learn In-Context'"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    'flax',
+    'jax',
+    'matplotlib',
+    'numpy',
+    'pandas',
+    'seaborn',
+    'tqdm'
+]
+
+[tool.setuptools.packages.find]
+where = ["mlp_icl"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+"Homepage" = "https://github.com/wtong98/mlp-icl"
+"Bug Tracker" = "https://github.com/wtong98/mlp-icl/issues"

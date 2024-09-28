@@ -11,13 +11,13 @@ import pandas as pd
 import seaborn as sns
 
 import sys
-sys.path.append('../../../')
-sys.path.append('../../../../')
+
+
 from common import *
-from model.mlp import MlpConfig, DotMlpConfig
-from model.transformer import TransformerConfig
-from task.match import RingMatch 
-from task.oddball import FreeOddballTask, LineOddballTask
+from mlp_icl.model.mlp import MlpConfig, DotMlpConfig
+from mlp_icl.model.transformer import TransformerConfig
+from mlp_icl.task.match import RingMatch 
+from mlp_icl.task.oddball import FreeOddballTask, LineOddballTask
 
 fig_dir = Path('fig/final')
 set_theme()
