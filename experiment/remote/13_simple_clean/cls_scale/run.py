@@ -8,12 +8,12 @@ import pandas as pd
 from tqdm import tqdm
 
 import sys
-sys.path.append('../../../')
-sys.path.append('../../../../')
+
+
 from common import *
-from model.mlp import MlpConfig
-from model.transformer import TransformerConfig
-from task.function import ClassificationTask 
+from mlp_icl.model.mlp import MlpConfig
+from mlp_icl.model.transformer import TransformerConfig
+from mlp_icl.task.function import ClassificationTask 
 
 run_id = new_seed()
 print('RUN ID', run_id)

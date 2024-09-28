@@ -11,10 +11,10 @@ import pandas as pd
 import seaborn as sns
 
 import sys
-sys.path.append('../../../')
-sys.path.append('../../../../')
+
+
 from common import *
-from task.regression import FiniteLinearRegression 
+from mlp_icl.task.regression import FiniteLinearRegression 
 
 set_theme()
 

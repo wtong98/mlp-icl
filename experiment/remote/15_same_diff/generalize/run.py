@@ -8,11 +8,11 @@ import pandas as pd
 from tqdm import tqdm
 
 import sys
-sys.path.append('../../../')
-sys.path.append('../../../../')
+
+
 from common import *
-from model.mlp import MlpConfig
-from task.function import SameDifferentToken
+from mlp_icl.model.mlp import MlpConfig
+from mlp_icl.task.function import SameDifferentToken
 
 run_id = new_seed()
 print('RUN ID', run_id)

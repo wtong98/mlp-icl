@@ -7,7 +7,7 @@ We use Python 3.10.12.
 
 To install the requisite Python packages, run
 ```sh
-pip install -r requirements.txt
+pip install .
 ```
 By default, this will install CPU-only Jax. For GPU-enabled Jax, run
 ```sh
