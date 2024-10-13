@@ -7,3 +7,7 @@ fig/
 # ignore slurm logging outputs
 *.err
 *.out
+
+# Python package
+*.egg-info/
+build

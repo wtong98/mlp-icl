@@ -4,12 +4,12 @@ import pandas as pd
 from tqdm import tqdm
 
 import sys
-sys.path.append('../../../')
-sys.path.append('../../../../')
+
+
 from common import *
-from model.mlp import MlpConfig, SpatialMlpConfig
-from model.transformer import TransformerConfig
-from task.match import GautamMatch 
+from mlp_icl.model.mlp import MlpConfig, SpatialMlpConfig
+from mlp_icl.model.transformer import TransformerConfig
+from mlp_icl.task.match import GautamMatch 
 
 run_id = new_seed()
 print('RUN ID', run_id)

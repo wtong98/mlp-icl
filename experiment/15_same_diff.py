@@ -10,8 +10,8 @@ import pandas as pd
 import seaborn as sns
 
 import sys
-sys.path.append('../../../')
-sys.path.append('../../../../')
+
+
 from common import *
 
 fig_dir = Path('fig/final')

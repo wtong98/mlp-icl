@@ -6,12 +6,12 @@ import pandas as pd
 from tqdm import tqdm
 
 import sys
-sys.path.append('../../../')
-sys.path.append('../../../../')
+
+
 from common import *
-from model.mlp import MlpConfig, SpatialMlpConfig
-from model.transformer import TransformerConfig
-from task.regression import FiniteLinearRegression 
+from mlp_icl.model.mlp import MlpConfig, SpatialMlpConfig
+from mlp_icl.model.transformer import TransformerConfig
+from mlp_icl.task.regression import FiniteLinearRegression 
 
 run_id = new_seed()
 print('RUN ID', run_id)
